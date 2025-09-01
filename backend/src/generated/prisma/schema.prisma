@@ -1,0 +1,187 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+//////////////////////////////////////////////////
+// BlueShark Database Schema (Prisma Models)
+//////////////////////////////////////////////////
+
+model User {
+  id        Int      @id @default(autoincrement())
+  email     String   @unique
+  password  String
+  createdAt DateTime @default(now())
+}
+
+model rolls {
+  id          Int           @id @default(autoincrement())
+  name        String
+  quantity    Int
+  unit        String
+  color       String
+  vendor_id   Int?
+  vendor      vendors?      @relation(fields: [vendor_id], references: [id])
+  batches     batches[]
+  sub_batches sub_batches[]
+}
+
+model batches {
+  id          Int           @id @default(autoincrement())
+  roll_id     Int?
+  name        String
+  quantity    Int
+  unit        String
+  color       String
+  vendor_id   Int?
+  vendor      vendors?      @relation(fields: [vendor_id], references: [id])
+  roll        rolls?        @relation(fields: [roll_id], references: [id])
+  sub_batches sub_batches[]
+}
+
+model sub_batches {
+  id               Int      @id @default(autoincrement())
+  roll_id          Int?
+  batch_id         Int?
+  estimated_pieces Int
+  expected_items   Int
+  start_date       DateTime
+  due_date         DateTime
+  department_id    Int?
+
+  roll       rolls?       @relation(fields: [roll_id], references: [id])
+  batch      batches?     @relation(fields: [batch_id], references: [id])
+  department departments? @relation(fields: [department_id], references: [id])
+
+  size_details sub_batch_size_details[]
+  attachments  sub_batch_attachments[]
+  rejected     sub_batch_rejected[]
+  altered      sub_batch_altered[]
+  dept_links   department_sub_batches[]
+  worker_logs  worker_logs[]
+}
+
+model sub_batch_size_details {
+  id           Int          @id @default(autoincrement())
+  sub_batch_id Int?
+  category     String
+  pieces       Int
+  sub_batch    sub_batches? @relation(fields: [sub_batch_id], references: [id])
+}
+
+model sub_batch_attachments {
+  id              Int          @id @default(autoincrement())
+  sub_batch_id    Int?
+  attachment_name String
+  quantity        Int
+  sub_batch       sub_batches? @relation(fields: [sub_batch_id], references: [id])
+}
+
+model sub_batch_rejected {
+  id                    Int          @id @default(autoincrement())
+  sub_batch_id          Int?
+  quantity              Int
+  sent_to_department_id Int?
+  reason                String
+  sub_batch             sub_batches? @relation(fields: [sub_batch_id], references: [id])
+  sent_to_department    departments? @relation("RejectedDept", fields: [sent_to_department_id], references: [id])
+}
+
+model sub_batch_altered {
+  id                    Int          @id @default(autoincrement())
+  sub_batch_id          Int?
+  quantity              Int
+  sent_to_department_id Int?
+  reason                String
+  sub_batch             sub_batches? @relation(fields: [sub_batch_id], references: [id])
+  sent_to_department    departments? @relation("AlteredDept", fields: [sent_to_department_id], references: [id])
+}
+
+model departments {
+  id         Int     @id @default(autoincrement())
+  name       String
+  supervisor String
+  remarks    String?
+
+  sub_batches  sub_batches[]
+  workers      workers[]
+  dept_workers department_workers[]
+  dept_batches department_sub_batches[]
+  rejected     sub_batch_rejected[]     @relation("RejectedDept")
+  altered      sub_batch_altered[]      @relation("AlteredDept")
+}
+
+model department_workers {
+  id            Int          @id @default(autoincrement())
+  department_id Int?
+  worker_id     Int?
+  assigned_date DateTime
+  department    departments? @relation(fields: [department_id], references: [id])
+  worker        workers?     @relation(fields: [worker_id], references: [id])
+}
+
+model department_sub_batches {
+  id            Int          @id @default(autoincrement())
+  department_id Int?
+  sub_batch_id  Int?
+  department    departments? @relation(fields: [department_id], references: [id])
+  sub_batch     sub_batches? @relation(fields: [sub_batch_id], references: [id])
+}
+
+model clients {
+  id      Int     @id @default(autoincrement())
+  name    String
+  vat_pan String
+  address String
+  phone   String
+  comment String?
+}
+
+model workers {
+  id            Int                  @id @default(autoincrement())
+  name          String
+  pan           String
+  address       String
+  department_id Int?
+  wage_type     WageType
+  wage_rate     Float
+  department    departments?         @relation(fields: [department_id], references: [id])
+  worker_logs   worker_logs[]
+  dept_workers  department_workers[]
+}
+
+model worker_logs {
+  id           Int          @id @default(autoincrement())
+  worker_id    Int?
+  sub_batch_id Int?
+  quantity     Int
+  date         DateTime
+  worker       workers?     @relation(fields: [worker_id], references: [id])
+  sub_batch    sub_batches? @relation(fields: [sub_batch_id], references: [id])
+}
+
+model vendors {
+  id      Int       @id @default(autoincrement())
+  name    String
+  vat_pan String
+  address String
+  phone   String
+  comment String?
+  rolls   rolls[]
+  batches batches[]
+}
+
+//////////////////////////////////////////////////
+// Enums
+//////////////////////////////////////////////////
+
+enum WageType {
+  per_piece
+  hourly
+  monthly
+}
