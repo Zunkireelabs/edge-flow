@@ -6,6 +6,7 @@ import rollRoutes from "./src/routes/roll";
 import batchRoutes from "./src/routes/batch";
 import subBatchRoutes from "./src/routes/subBatch";
 import workerRoutes from "./src/routes/worker";
+import vendorRoutes from "./src/routes/vendor";
 
 dotenv.config();
 
@@ -29,9 +30,8 @@ app.use("/api/subbatch", subBatchRoutes);
 // Worker Routes
 app.use("/api/workers", workerRoutes);
 
-
-
-
+//Vendor Routes
+app.use("/api/vendors", vendorRoutes);
 
 // Optional test route
 app.get("/", (req, res) => {
