@@ -1,4 +1,4 @@
-// src/types/category.ts
+// this is the data type for category
 export interface CategoryData {
   subBatchId?: number;
   category: string;
