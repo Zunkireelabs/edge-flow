@@ -7,6 +7,7 @@ import batchRoutes from "./src/routes/batch";
 import subBatchRoutes from "./src/routes/subBatch";
 import workerRoutes from "./src/routes/worker";
 import vendorRoutes from "./src/routes/vendor";
+import categoryRoutes from "./src/routes/category";
 
 dotenv.config();
 
@@ -32,6 +33,9 @@ app.use("/api/workers", workerRoutes);
 
 //Vendor Routes
 app.use("/api/vendors", vendorRoutes);
+
+//category Routes
+app.use("/api/categories", categoryRoutes);
 
 // Optional test route
 app.get("/", (req, res) => {
