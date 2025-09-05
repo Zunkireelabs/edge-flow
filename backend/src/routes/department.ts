@@ -1,7 +1,7 @@
-import express from "express";
+import { Router } from "express";
 import * as departmentController from "../controllers/departmentController";
 
-const router = express.Router();
+const router = Router();
 
 router.post("/", departmentController.createDepartment);
 router.get("/", departmentController.getAllDepartments);

@@ -1,60 +1,105 @@
 import prisma from "../config/db";
 
-interface DepartmentData {
+interface DepartmentPayload {
   name: string;
   supervisor: string;
   remarks?: string;
+
+  sub_batches?: { id: number }[];
+  workers?: { id: number }[];
 }
 
-export const createDepartment = async (data: DepartmentData) => {
-  const newDept = await prisma.departments.create({
-    data,
+const departmentInclude = {
+  sub_batches: {
+    include: {
+      size_details: true,
+      attachments: true,
+      rejected: true,
+      altered: true,
+      dept_links: true,
+      worker_logs: true,
+      roll: true,
+      batch: true,
+      department: true,
+    },
+  },
+  workers: true,
+  dept_workers: true,
+  dept_batches: true,
+  rejected: true,
+  altered: true,
+};
+
+export const createDepartment = async (data: DepartmentPayload) => {
+  const deptData: any = {
+    name: data.name,
+    supervisor: data.supervisor,
+    remarks: data.remarks,
+    ...(data.sub_batches?.length
+      ? {
+          sub_batches: {
+            connect: data.sub_batches.map((sb) => ({ id: sb.id })),
+          },
+        }
+      : {}),
+    ...(data.workers?.length
+      ? { workers: { connect: data.workers.map((w) => ({ id: w.id })) } }
+      : {}),
+  };
+
+  return await prisma.departments.create({
+    data: deptData,
+    include: departmentInclude,
   });
-  return newDept;
 };
 
 export const getAllDepartments = async () => {
   return await prisma.departments.findMany({
-    include: {
-      sub_batches: true,
-      workers: true,
-      dept_workers: true,
-      dept_batches: true,
-      rejected: true,
-      altered: true,
-    },
+    include: departmentInclude,
   });
 };
 
 export const getDepartmentById = async (id: number) => {
-  const dept = await prisma.departments.findUnique({
+  const department = await prisma.departments.findUnique({
     where: { id },
-    include: {
-      sub_batches: true,
-      workers: true,
-      dept_workers: true,
-      dept_batches: true,
-      rejected: true,
-      altered: true,
-    },
+    include: departmentInclude,
   });
-  if (!dept) throw new Error("Department not found");
-  return dept;
+  if (!department) throw new Error("Department not found");
+  return department;
 };
 
 export const updateDepartment = async (
   id: number,
-  data: Partial<DepartmentData>
+  data: Partial<DepartmentPayload>
 ) => {
-  const updatedDept = await prisma.departments.update({
+  const updateData: any = {
+    name: data.name,
+    supervisor: data.supervisor,
+    remarks: data.remarks,
+  };
+
+  if (data.sub_batches !== undefined) {
+    updateData.sub_batches = data.sub_batches.length
+      ? { set: data.sub_batches.map((sb) => ({ id: sb.id })) }
+      : { set: [] };
+  }
+
+  if (data.workers !== undefined) {
+    updateData.workers = data.workers.length
+      ? { set: data.workers.map((w) => ({ id: w.id })) }
+      : { set: [] };
+  }
+
+  return await prisma.departments.update({
     where: { id },
-    data,
+    data: updateData,
+    include: departmentInclude,
   });
-  return updatedDept;
 };
 
 export const deleteDepartment = async (id: number) => {
   return await prisma.departments.delete({
     where: { id },
+    include: departmentInclude,
   });
 };
