@@ -177,4 +177,10 @@ model vendors {
   batches batches[]
 }
 
+model categories {
+  id            Int      @id @default(autoincrement())
+  category_name String   @unique
+}
+
+
 

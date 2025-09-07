@@ -244,6 +244,11 @@ exports.Prisma.VendorsScalarFieldEnum = {
   comment: 'comment'
 };
 
+exports.Prisma.CategoriesScalarFieldEnum = {
+  id: 'id',
+  category_name: 'category_name'
+};
+
 exports.Prisma.SortOrder = {
   asc: 'asc',
   desc: 'desc'
@@ -275,7 +280,8 @@ exports.Prisma.ModelName = {
   clients: 'clients',
   workers: 'workers',
   worker_logs: 'worker_logs',
-  vendors: 'vendors'
+  vendors: 'vendors',
+  categories: 'categories'
 };
 
 /**

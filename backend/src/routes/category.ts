@@ -1,8 +1,7 @@
-// src/routes/categoryRoutes.ts
-import express from "express";
+import { Router } from "express";
 import * as categoryController from "../controllers/categoryController";
 
-const router = express.Router();
+const router = Router();
 
 router.post("/", categoryController.createCategory);
 router.get("/", categoryController.getAllCategories);
