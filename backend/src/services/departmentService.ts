@@ -2,11 +2,11 @@ import prisma from "../config/db";
 
 interface DepartmentPayload {
   name: string;
-  supervisor: string;
+  supervisorId: number;
   remarks?: string;
 
   sub_batches?: { id: number }[];
-  workers?: { id: number }[];
+  workers?: { id: number; assignedDate?: string }[];
 }
 
 const departmentInclude = {
@@ -33,7 +33,6 @@ const departmentInclude = {
 export const createDepartment = async (data: DepartmentPayload) => {
   const deptData: any = {
     name: data.name,
-    supervisor: data.supervisor,
     remarks: data.remarks,
     ...(data.sub_batches?.length
       ? {
@@ -43,8 +42,20 @@ export const createDepartment = async (data: DepartmentPayload) => {
         }
       : {}),
     ...(data.workers?.length
-      ? { workers: { connect: data.workers.map((w) => ({ id: w.id })) } }
+      ? {
+          dept_workers: {
+            create: data.workers.map((w) => ({
+              worker_id: w.id,
+              assigned_date: w.assignedDate
+                ? new Date(w.assignedDate)
+                : new Date(),
+            })),
+          },
+        }
       : {}),
+    ...(data.supervisorId
+      ? { supervisor: { connect: { id: data.supervisorId } } }
+      : {}), // <-- link supervisor if ID is provided
   };
 
   return await prisma.departments.create({
@@ -52,6 +63,7 @@ export const createDepartment = async (data: DepartmentPayload) => {
     include: departmentInclude,
   });
 };
+
 
 export const getAllDepartments = async () => {
   return await prisma.departments.findMany({
@@ -111,21 +123,33 @@ export const updateDepartment = async (
 ) => {
   const updateData: any = {
     name: data.name,
-    supervisor: data.supervisor,
     remarks: data.remarks,
+    ...(data.sub_batches !== undefined
+      ? data.sub_batches.length
+        ? {
+            sub_batches: { set: data.sub_batches.map((sb) => ({ id: sb.id })) },
+          }
+        : { sub_batches: { set: [] } } // clear all if empty
+      : {}),
+    ...(data.workers !== undefined
+      ? data.workers.length
+        ? {
+            dept_workers: {
+              deleteMany: {}, // remove old links
+              create: data.workers.map((w) => ({
+                worker_id: w.id,
+                assigned_date: w.assignedDate
+                  ? new Date(w.assignedDate)
+                  : new Date(),
+              })),
+            },
+          }
+        : { dept_workers: { deleteMany: {} } } // clear all if empty
+      : {}),
+    ...(data.supervisorId
+      ? { supervisor: { connect: { id: data.supervisorId } } }
+      : {}), // connect supervisor if ID provided
   };
-
-  if (data.sub_batches !== undefined) {
-    updateData.sub_batches = data.sub_batches.length
-      ? { set: data.sub_batches.map((sb) => ({ id: sb.id })) }
-      : { set: [] };
-  }
-
-  if (data.workers !== undefined) {
-    updateData.workers = data.workers.length
-      ? { set: data.workers.map((w) => ({ id: w.id })) }
-      : { set: [] };
-  }
 
   return await prisma.departments.update({
     where: { id },
@@ -160,3 +184,37 @@ export async function getSubBatchesByDepartment(departmentId: number) {
     completed: subs.filter((s) => s.stage === "COMPLETED"),
   };
 }
+
+ // Remove worker from department
+export const removeWorkerFromDepartment = async (
+  departmentId: number,
+  workerId: number
+) => {
+  // Delete the link from department_workers
+  return await prisma.department_workers.deleteMany({
+    where: {
+      department_id: departmentId,
+      worker_id: workerId,
+    },
+  });
+};
+
+
+// Get All the Sub-batches that are sent to production
+export const getProductionSubBatches = async (productionDeptId: number) => {
+  return await prisma.department_sub_batches.findMany({
+    where: {
+      department_id: productionDeptId,
+    },
+    include: {
+      sub_batch: {
+        include: {
+          size_details: true,
+          attachments: true,
+          batch: true,
+        },
+      },
+      department: true,
+    },
+  });
+};

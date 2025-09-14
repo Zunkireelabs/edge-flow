@@ -18,8 +18,13 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+import healthRoutes from "./src/routes/health";
+app.use("/api/health", healthRoutes);
+
 // Auth routes
 app.use("/api/auth", authRoutes);
+
+// Supervisor routes
 app.use("/api/supervisors", supervisorRoutes);
 
 // Roll routes

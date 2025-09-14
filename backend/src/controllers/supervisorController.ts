@@ -1,5 +1,7 @@
 import { Request, Response } from "express";
 import * as supervisorService from "../services/supervisorService";
+import { updateSupervisor } from "../services/supervisorService";
+import {deleteSupervisorService } from "../services/supervisorService";
 
 export const createSupervisor = async (req: Request, res: Response) => {
   try {
@@ -45,5 +47,45 @@ export const assignDepartment = async (req: Request, res: Response) => {
     res.status(200).json({ success: true, supervisor: updatedSupervisor });
   } catch (err: any) {
     res.status(400).json({ success: false, message: err.message });
+  }
+};
+
+export const updateSupervisorController = async (
+  req: Request,
+  res: Response
+) => {
+  try {
+    const supervisorId = parseInt(req.params.id);
+    const { name, email, newPassword } = req.body;
+
+    if (!name && !email && !newPassword) {
+      return res
+        .status(400)
+        .json({ message: "Provide at least one field to update" });
+    }
+
+    const updated = await updateSupervisor(supervisorId, {
+      name,
+      email,
+      newPassword,
+    });
+
+    return res.json({
+      message: "Supervisor updated successfully",
+      supervisor: updated,
+    });
+  } catch (error: any) {
+    return res.status(400).json({ message: error.message });
+  }
+};
+
+// Delete supervisor
+export const deleteSupervisor = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    await deleteSupervisorService(parseInt(id));
+    res.json({ message: "Supervisor deleted successfully" });
+  } catch (error) {
+    res.status(500).json({ error: "Error deleting supervisor" });
   }
 };
