@@ -2,6 +2,8 @@ import { Request, Response } from "express";
 import * as supervisorService from "../services/supervisorService";
 import { updateSupervisor } from "../services/supervisorService";
 import {deleteSupervisorService } from "../services/supervisorService";
+import { AuthRequest } from "../types/express"; // custom type where user info is attached
+import * as departmentService from "../services/departmentService";
 
 export const createSupervisor = async (req: Request, res: Response) => {
   try {
@@ -87,5 +89,33 @@ export const deleteSupervisor = async (req: Request, res: Response) => {
     res.json({ message: "Supervisor deleted successfully" });
   } catch (error) {
     res.status(500).json({ error: "Error deleting supervisor" });
+  }
+};
+
+
+
+
+export const getSupervisorSubBatches = async (
+  req: AuthRequest,
+  res: Response
+) => {
+  try {
+    const supervisorId = req.user?.userId; // get supervisorId from auth middleware
+
+    if (!supervisorId) {
+      return res.status(400).json({ message: "Supervisor ID is required" });
+    }
+
+    const subBatches = await departmentService.getSubBatchesByDepartment(
+      supervisorId
+    );
+
+    return res.status(200).json({
+      success: true,
+      message: "Sub-batches fetched successfully",
+      data: subBatches,
+    });
+  } catch (error: any) {
+    return res.status(500).json({ success: false, message: error.message });
   }
 };

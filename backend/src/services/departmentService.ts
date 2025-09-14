@@ -165,19 +165,37 @@ export const deleteDepartment = async (id: number) => {
   });
 };
 
+// Get sub-batches by department (for supervisor's assigned department)
+export async function getSubBatchesByDepartment(supervisorId: number) {
+  // Step 1: Get the department for this supervisor
+  const department = await prisma.departments.findFirst({
+    where: { supervisor: { id: supervisorId } },
+  });
 
-export async function getSubBatchesByDepartment(departmentId: number) {
+  if (!department) {
+    throw new Error("Supervisor is not assigned to any department");
+  }
+
+  // Step 2: Fetch sub-batches for this department
   const subs = await prisma.department_sub_batches.findMany({
     where: {
-      department_id: departmentId,
-      is_current: true, // only the current department
+      department_id: department.id,
+      is_current: true,
     },
     include: {
-      sub_batch: true, // get sub-batch details
+      sub_batch: {
+        include: {
+          size_details: true,
+          attachments: true,
+          batch: true,
+        },
+      },
+      assigned_worker: true,
+      department: true,
     },
   });
 
-  // Group into Kanban columns
+  // Step 3: Return in Kanban style
   return {
     newArrival: subs.filter((s) => s.stage === "NEW_ARRIVAL"),
     inProgress: subs.filter((s) => s.stage === "IN_PROGRESS"),

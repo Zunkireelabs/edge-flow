@@ -3,6 +3,7 @@ import { createSupervisor, getSupervisors, assignDepartment } from "../controlle
 import { authMiddleware, requireRole } from "../middleware/authMiddleware";
 import { updateSupervisorController } from "../controllers/supervisorController";
 import { deleteSupervisor} from "../controllers/supervisorController";
+import { getSupervisorSubBatches } from "../controllers/supervisorController";
 
 const router = Router();
 
@@ -21,6 +22,16 @@ router.delete("/:id",  deleteSupervisor);
 
 // Only ADMIN can update supervisor
 router.put("/:id", updateSupervisorController);
+
+
+
+// Endpoint for supervisor to get sub-batches of their department
+router.get(
+  "/sub-batches",
+  authMiddleware,
+  requireRole("SUPERVISOR"), // only supervisors can access
+  getSupervisorSubBatches
+);
 
 
 export default router;
