@@ -18565,38 +18565,57 @@ export namespace Prisma {
     id: number | null
     worker_id: number | null
     sub_batch_id: number | null
-    quantity: number | null
+    quantity_received: number | null
+    quantity_worked: number | null
+    unit_price: number | null
   }
 
   export type Worker_logsSumAggregateOutputType = {
     id: number | null
     worker_id: number | null
     sub_batch_id: number | null
-    quantity: number | null
+    quantity_received: number | null
+    quantity_worked: number | null
+    unit_price: number | null
   }
 
   export type Worker_logsMinAggregateOutputType = {
     id: number | null
     worker_id: number | null
     sub_batch_id: number | null
-    quantity: number | null
-    date: Date | null
+    worker_name: string | null
+    work_date: Date | null
+    size_category: string | null
+    particulars: string | null
+    quantity_received: number | null
+    quantity_worked: number | null
+    unit_price: number | null
   }
 
   export type Worker_logsMaxAggregateOutputType = {
     id: number | null
     worker_id: number | null
     sub_batch_id: number | null
-    quantity: number | null
-    date: Date | null
+    worker_name: string | null
+    work_date: Date | null
+    size_category: string | null
+    particulars: string | null
+    quantity_received: number | null
+    quantity_worked: number | null
+    unit_price: number | null
   }
 
   export type Worker_logsCountAggregateOutputType = {
     id: number
     worker_id: number
     sub_batch_id: number
-    quantity: number
-    date: number
+    worker_name: number
+    work_date: number
+    size_category: number
+    particulars: number
+    quantity_received: number
+    quantity_worked: number
+    unit_price: number
     _all: number
   }
 
@@ -18605,38 +18624,57 @@ export namespace Prisma {
     id?: true
     worker_id?: true
     sub_batch_id?: true
-    quantity?: true
+    quantity_received?: true
+    quantity_worked?: true
+    unit_price?: true
   }
 
   export type Worker_logsSumAggregateInputType = {
     id?: true
     worker_id?: true
     sub_batch_id?: true
-    quantity?: true
+    quantity_received?: true
+    quantity_worked?: true
+    unit_price?: true
   }
 
   export type Worker_logsMinAggregateInputType = {
     id?: true
     worker_id?: true
     sub_batch_id?: true
-    quantity?: true
-    date?: true
+    worker_name?: true
+    work_date?: true
+    size_category?: true
+    particulars?: true
+    quantity_received?: true
+    quantity_worked?: true
+    unit_price?: true
   }
 
   export type Worker_logsMaxAggregateInputType = {
     id?: true
     worker_id?: true
     sub_batch_id?: true
-    quantity?: true
-    date?: true
+    worker_name?: true
+    work_date?: true
+    size_category?: true
+    particulars?: true
+    quantity_received?: true
+    quantity_worked?: true
+    unit_price?: true
   }
 
   export type Worker_logsCountAggregateInputType = {
     id?: true
     worker_id?: true
     sub_batch_id?: true
-    quantity?: true
-    date?: true
+    worker_name?: true
+    work_date?: true
+    size_category?: true
+    particulars?: true
+    quantity_received?: true
+    quantity_worked?: true
+    unit_price?: true
     _all?: true
   }
 
@@ -18728,10 +18766,15 @@ export namespace Prisma {
 
   export type Worker_logsGroupByOutputType = {
     id: number
-    worker_id: number | null
-    sub_batch_id: number | null
-    quantity: number
-    date: Date
+    worker_id: number
+    sub_batch_id: number
+    worker_name: string | null
+    work_date: Date | null
+    size_category: string | null
+    particulars: string | null
+    quantity_received: number | null
+    quantity_worked: number | null
+    unit_price: number | null
     _count: Worker_logsCountAggregateOutputType | null
     _avg: Worker_logsAvgAggregateOutputType | null
     _sum: Worker_logsSumAggregateOutputType | null
@@ -18757,66 +18800,91 @@ export namespace Prisma {
     id?: boolean
     worker_id?: boolean
     sub_batch_id?: boolean
-    quantity?: boolean
-    date?: boolean
-    worker?: boolean | worker_logs$workerArgs<ExtArgs>
-    sub_batch?: boolean | worker_logs$sub_batchArgs<ExtArgs>
+    worker_name?: boolean
+    work_date?: boolean
+    size_category?: boolean
+    particulars?: boolean
+    quantity_received?: boolean
+    quantity_worked?: boolean
+    unit_price?: boolean
+    worker?: boolean | workersDefaultArgs<ExtArgs>
+    sub_batch?: boolean | sub_batchesDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["worker_logs"]>
 
   export type worker_logsSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
     id?: boolean
     worker_id?: boolean
     sub_batch_id?: boolean
-    quantity?: boolean
-    date?: boolean
-    worker?: boolean | worker_logs$workerArgs<ExtArgs>
-    sub_batch?: boolean | worker_logs$sub_batchArgs<ExtArgs>
+    worker_name?: boolean
+    work_date?: boolean
+    size_category?: boolean
+    particulars?: boolean
+    quantity_received?: boolean
+    quantity_worked?: boolean
+    unit_price?: boolean
+    worker?: boolean | workersDefaultArgs<ExtArgs>
+    sub_batch?: boolean | sub_batchesDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["worker_logs"]>
 
   export type worker_logsSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
     id?: boolean
     worker_id?: boolean
     sub_batch_id?: boolean
-    quantity?: boolean
-    date?: boolean
-    worker?: boolean | worker_logs$workerArgs<ExtArgs>
-    sub_batch?: boolean | worker_logs$sub_batchArgs<ExtArgs>
+    worker_name?: boolean
+    work_date?: boolean
+    size_category?: boolean
+    particulars?: boolean
+    quantity_received?: boolean
+    quantity_worked?: boolean
+    unit_price?: boolean
+    worker?: boolean | workersDefaultArgs<ExtArgs>
+    sub_batch?: boolean | sub_batchesDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["worker_logs"]>
 
   export type worker_logsSelectScalar = {
     id?: boolean
     worker_id?: boolean
     sub_batch_id?: boolean
-    quantity?: boolean
-    date?: boolean
+    worker_name?: boolean
+    work_date?: boolean
+    size_category?: boolean
+    particulars?: boolean
+    quantity_received?: boolean
+    quantity_worked?: boolean
+    unit_price?: boolean
   }
 
-  export type worker_logsOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "worker_id" | "sub_batch_id" | "quantity" | "date", ExtArgs["result"]["worker_logs"]>
+  export type worker_logsOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "worker_id" | "sub_batch_id" | "worker_name" | "work_date" | "size_category" | "particulars" | "quantity_received" | "quantity_worked" | "unit_price", ExtArgs["result"]["worker_logs"]>
   export type worker_logsInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    worker?: boolean | worker_logs$workerArgs<ExtArgs>
-    sub_batch?: boolean | worker_logs$sub_batchArgs<ExtArgs>
+    worker?: boolean | workersDefaultArgs<ExtArgs>
+    sub_batch?: boolean | sub_batchesDefaultArgs<ExtArgs>
   }
   export type worker_logsIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    worker?: boolean | worker_logs$workerArgs<ExtArgs>
-    sub_batch?: boolean | worker_logs$sub_batchArgs<ExtArgs>
+    worker?: boolean | workersDefaultArgs<ExtArgs>
+    sub_batch?: boolean | sub_batchesDefaultArgs<ExtArgs>
   }
   export type worker_logsIncludeUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    worker?: boolean | worker_logs$workerArgs<ExtArgs>
-    sub_batch?: boolean | worker_logs$sub_batchArgs<ExtArgs>
+    worker?: boolean | workersDefaultArgs<ExtArgs>
+    sub_batch?: boolean | sub_batchesDefaultArgs<ExtArgs>
   }
 
   export type $worker_logsPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     name: "worker_logs"
     objects: {
-      worker: Prisma.$workersPayload<ExtArgs> | null
-      sub_batch: Prisma.$sub_batchesPayload<ExtArgs> | null
+      worker: Prisma.$workersPayload<ExtArgs>
+      sub_batch: Prisma.$sub_batchesPayload<ExtArgs>
     }
     scalars: $Extensions.GetPayloadResult<{
       id: number
-      worker_id: number | null
-      sub_batch_id: number | null
-      quantity: number
-      date: Date
+      worker_id: number
+      sub_batch_id: number
+      worker_name: string | null
+      work_date: Date | null
+      size_category: string | null
+      particulars: string | null
+      quantity_received: number | null
+      quantity_worked: number | null
+      unit_price: number | null
     }, ExtArgs["result"]["worker_logs"]>
     composites: {}
   }
@@ -19211,8 +19279,8 @@ export namespace Prisma {
    */
   export interface Prisma__worker_logsClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
     readonly [Symbol.toStringTag]: "PrismaPromise"
-    worker<T extends worker_logs$workerArgs<ExtArgs> = {}>(args?: Subset<T, worker_logs$workerArgs<ExtArgs>>): Prisma__workersClient<$Result.GetResult<Prisma.$workersPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
-    sub_batch<T extends worker_logs$sub_batchArgs<ExtArgs> = {}>(args?: Subset<T, worker_logs$sub_batchArgs<ExtArgs>>): Prisma__sub_batchesClient<$Result.GetResult<Prisma.$sub_batchesPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+    worker<T extends workersDefaultArgs<ExtArgs> = {}>(args?: Subset<T, workersDefaultArgs<ExtArgs>>): Prisma__workersClient<$Result.GetResult<Prisma.$workersPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+    sub_batch<T extends sub_batchesDefaultArgs<ExtArgs> = {}>(args?: Subset<T, sub_batchesDefaultArgs<ExtArgs>>): Prisma__sub_batchesClient<$Result.GetResult<Prisma.$sub_batchesPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
     /**
      * Attaches callbacks for the resolution and/or rejection of the Promise.
      * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -19245,8 +19313,13 @@ export namespace Prisma {
     readonly id: FieldRef<"worker_logs", 'Int'>
     readonly worker_id: FieldRef<"worker_logs", 'Int'>
     readonly sub_batch_id: FieldRef<"worker_logs", 'Int'>
-    readonly quantity: FieldRef<"worker_logs", 'Int'>
-    readonly date: FieldRef<"worker_logs", 'DateTime'>
+    readonly worker_name: FieldRef<"worker_logs", 'String'>
+    readonly work_date: FieldRef<"worker_logs", 'DateTime'>
+    readonly size_category: FieldRef<"worker_logs", 'String'>
+    readonly particulars: FieldRef<"worker_logs", 'String'>
+    readonly quantity_received: FieldRef<"worker_logs", 'Int'>
+    readonly quantity_worked: FieldRef<"worker_logs", 'Int'>
+    readonly unit_price: FieldRef<"worker_logs", 'Float'>
   }
     
 
@@ -19640,44 +19713,6 @@ export namespace Prisma {
      * Limit how many worker_logs to delete.
      */
     limit?: number
-  }
-
-  /**
-   * worker_logs.worker
-   */
-  export type worker_logs$workerArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * Select specific fields to fetch from the workers
-     */
-    select?: workersSelect<ExtArgs> | null
-    /**
-     * Omit specific fields from the workers
-     */
-    omit?: workersOmit<ExtArgs> | null
-    /**
-     * Choose, which related nodes to fetch as well
-     */
-    include?: workersInclude<ExtArgs> | null
-    where?: workersWhereInput
-  }
-
-  /**
-   * worker_logs.sub_batch
-   */
-  export type worker_logs$sub_batchArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * Select specific fields to fetch from the sub_batches
-     */
-    select?: sub_batchesSelect<ExtArgs> | null
-    /**
-     * Omit specific fields from the sub_batches
-     */
-    omit?: sub_batchesOmit<ExtArgs> | null
-    /**
-     * Choose, which related nodes to fetch as well
-     */
-    include?: sub_batchesInclude<ExtArgs> | null
-    where?: sub_batchesWhereInput
   }
 
   /**
@@ -28841,8 +28876,13 @@ export namespace Prisma {
     id: 'id',
     worker_id: 'worker_id',
     sub_batch_id: 'sub_batch_id',
-    quantity: 'quantity',
-    date: 'date'
+    worker_name: 'worker_name',
+    work_date: 'work_date',
+    size_category: 'size_category',
+    particulars: 'particulars',
+    quantity_received: 'quantity_received',
+    quantity_worked: 'quantity_worked',
+    unit_price: 'unit_price'
   };
 
   export type Worker_logsScalarFieldEnum = (typeof Worker_logsScalarFieldEnum)[keyof typeof Worker_logsScalarFieldEnum]
@@ -29930,20 +29970,30 @@ export namespace Prisma {
     OR?: worker_logsWhereInput[]
     NOT?: worker_logsWhereInput | worker_logsWhereInput[]
     id?: IntFilter<"worker_logs"> | number
-    worker_id?: IntNullableFilter<"worker_logs"> | number | null
-    sub_batch_id?: IntNullableFilter<"worker_logs"> | number | null
-    quantity?: IntFilter<"worker_logs"> | number
-    date?: DateTimeFilter<"worker_logs"> | Date | string
-    worker?: XOR<WorkersNullableScalarRelationFilter, workersWhereInput> | null
-    sub_batch?: XOR<Sub_batchesNullableScalarRelationFilter, sub_batchesWhereInput> | null
+    worker_id?: IntFilter<"worker_logs"> | number
+    sub_batch_id?: IntFilter<"worker_logs"> | number
+    worker_name?: StringNullableFilter<"worker_logs"> | string | null
+    work_date?: DateTimeNullableFilter<"worker_logs"> | Date | string | null
+    size_category?: StringNullableFilter<"worker_logs"> | string | null
+    particulars?: StringNullableFilter<"worker_logs"> | string | null
+    quantity_received?: IntNullableFilter<"worker_logs"> | number | null
+    quantity_worked?: IntNullableFilter<"worker_logs"> | number | null
+    unit_price?: FloatNullableFilter<"worker_logs"> | number | null
+    worker?: XOR<WorkersScalarRelationFilter, workersWhereInput>
+    sub_batch?: XOR<Sub_batchesScalarRelationFilter, sub_batchesWhereInput>
   }
 
   export type worker_logsOrderByWithRelationInput = {
     id?: SortOrder
-    worker_id?: SortOrderInput | SortOrder
-    sub_batch_id?: SortOrderInput | SortOrder
-    quantity?: SortOrder
-    date?: SortOrder
+    worker_id?: SortOrder
+    sub_batch_id?: SortOrder
+    worker_name?: SortOrderInput | SortOrder
+    work_date?: SortOrderInput | SortOrder
+    size_category?: SortOrderInput | SortOrder
+    particulars?: SortOrderInput | SortOrder
+    quantity_received?: SortOrderInput | SortOrder
+    quantity_worked?: SortOrderInput | SortOrder
+    unit_price?: SortOrderInput | SortOrder
     worker?: workersOrderByWithRelationInput
     sub_batch?: sub_batchesOrderByWithRelationInput
   }
@@ -29953,20 +30003,30 @@ export namespace Prisma {
     AND?: worker_logsWhereInput | worker_logsWhereInput[]
     OR?: worker_logsWhereInput[]
     NOT?: worker_logsWhereInput | worker_logsWhereInput[]
-    worker_id?: IntNullableFilter<"worker_logs"> | number | null
-    sub_batch_id?: IntNullableFilter<"worker_logs"> | number | null
-    quantity?: IntFilter<"worker_logs"> | number
-    date?: DateTimeFilter<"worker_logs"> | Date | string
-    worker?: XOR<WorkersNullableScalarRelationFilter, workersWhereInput> | null
-    sub_batch?: XOR<Sub_batchesNullableScalarRelationFilter, sub_batchesWhereInput> | null
+    worker_id?: IntFilter<"worker_logs"> | number
+    sub_batch_id?: IntFilter<"worker_logs"> | number
+    worker_name?: StringNullableFilter<"worker_logs"> | string | null
+    work_date?: DateTimeNullableFilter<"worker_logs"> | Date | string | null
+    size_category?: StringNullableFilter<"worker_logs"> | string | null
+    particulars?: StringNullableFilter<"worker_logs"> | string | null
+    quantity_received?: IntNullableFilter<"worker_logs"> | number | null
+    quantity_worked?: IntNullableFilter<"worker_logs"> | number | null
+    unit_price?: FloatNullableFilter<"worker_logs"> | number | null
+    worker?: XOR<WorkersScalarRelationFilter, workersWhereInput>
+    sub_batch?: XOR<Sub_batchesScalarRelationFilter, sub_batchesWhereInput>
   }, "id">
 
   export type worker_logsOrderByWithAggregationInput = {
     id?: SortOrder
-    worker_id?: SortOrderInput | SortOrder
-    sub_batch_id?: SortOrderInput | SortOrder
-    quantity?: SortOrder
-    date?: SortOrder
+    worker_id?: SortOrder
+    sub_batch_id?: SortOrder
+    worker_name?: SortOrderInput | SortOrder
+    work_date?: SortOrderInput | SortOrder
+    size_category?: SortOrderInput | SortOrder
+    particulars?: SortOrderInput | SortOrder
+    quantity_received?: SortOrderInput | SortOrder
+    quantity_worked?: SortOrderInput | SortOrder
+    unit_price?: SortOrderInput | SortOrder
     _count?: worker_logsCountOrderByAggregateInput
     _avg?: worker_logsAvgOrderByAggregateInput
     _max?: worker_logsMaxOrderByAggregateInput
@@ -29979,10 +30039,15 @@ export namespace Prisma {
     OR?: worker_logsScalarWhereWithAggregatesInput[]
     NOT?: worker_logsScalarWhereWithAggregatesInput | worker_logsScalarWhereWithAggregatesInput[]
     id?: IntWithAggregatesFilter<"worker_logs"> | number
-    worker_id?: IntNullableWithAggregatesFilter<"worker_logs"> | number | null
-    sub_batch_id?: IntNullableWithAggregatesFilter<"worker_logs"> | number | null
-    quantity?: IntWithAggregatesFilter<"worker_logs"> | number
-    date?: DateTimeWithAggregatesFilter<"worker_logs"> | Date | string
+    worker_id?: IntWithAggregatesFilter<"worker_logs"> | number
+    sub_batch_id?: IntWithAggregatesFilter<"worker_logs"> | number
+    worker_name?: StringNullableWithAggregatesFilter<"worker_logs"> | string | null
+    work_date?: DateTimeNullableWithAggregatesFilter<"worker_logs"> | Date | string | null
+    size_category?: StringNullableWithAggregatesFilter<"worker_logs"> | string | null
+    particulars?: StringNullableWithAggregatesFilter<"worker_logs"> | string | null
+    quantity_received?: IntNullableWithAggregatesFilter<"worker_logs"> | number | null
+    quantity_worked?: IntNullableWithAggregatesFilter<"worker_logs"> | number | null
+    unit_price?: FloatNullableWithAggregatesFilter<"worker_logs"> | number | null
   }
 
   export type vendorsWhereInput = {
@@ -31275,54 +31340,89 @@ export namespace Prisma {
   }
 
   export type worker_logsCreateInput = {
-    quantity: number
-    date: Date | string
-    worker?: workersCreateNestedOneWithoutWorker_logsInput
-    sub_batch?: sub_batchesCreateNestedOneWithoutWorker_logsInput
+    worker_name?: string | null
+    work_date?: Date | string | null
+    size_category?: string | null
+    particulars?: string | null
+    quantity_received?: number | null
+    quantity_worked?: number | null
+    unit_price?: number | null
+    worker: workersCreateNestedOneWithoutWorker_logsInput
+    sub_batch: sub_batchesCreateNestedOneWithoutWorker_logsInput
   }
 
   export type worker_logsUncheckedCreateInput = {
     id?: number
-    worker_id?: number | null
-    sub_batch_id?: number | null
-    quantity: number
-    date: Date | string
+    worker_id: number
+    sub_batch_id: number
+    worker_name?: string | null
+    work_date?: Date | string | null
+    size_category?: string | null
+    particulars?: string | null
+    quantity_received?: number | null
+    quantity_worked?: number | null
+    unit_price?: number | null
   }
 
   export type worker_logsUpdateInput = {
-    quantity?: IntFieldUpdateOperationsInput | number
-    date?: DateTimeFieldUpdateOperationsInput | Date | string
-    worker?: workersUpdateOneWithoutWorker_logsNestedInput
-    sub_batch?: sub_batchesUpdateOneWithoutWorker_logsNestedInput
+    worker_name?: NullableStringFieldUpdateOperationsInput | string | null
+    work_date?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    size_category?: NullableStringFieldUpdateOperationsInput | string | null
+    particulars?: NullableStringFieldUpdateOperationsInput | string | null
+    quantity_received?: NullableIntFieldUpdateOperationsInput | number | null
+    quantity_worked?: NullableIntFieldUpdateOperationsInput | number | null
+    unit_price?: NullableFloatFieldUpdateOperationsInput | number | null
+    worker?: workersUpdateOneRequiredWithoutWorker_logsNestedInput
+    sub_batch?: sub_batchesUpdateOneRequiredWithoutWorker_logsNestedInput
   }
 
   export type worker_logsUncheckedUpdateInput = {
     id?: IntFieldUpdateOperationsInput | number
-    worker_id?: NullableIntFieldUpdateOperationsInput | number | null
-    sub_batch_id?: NullableIntFieldUpdateOperationsInput | number | null
-    quantity?: IntFieldUpdateOperationsInput | number
-    date?: DateTimeFieldUpdateOperationsInput | Date | string
+    worker_id?: IntFieldUpdateOperationsInput | number
+    sub_batch_id?: IntFieldUpdateOperationsInput | number
+    worker_name?: NullableStringFieldUpdateOperationsInput | string | null
+    work_date?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    size_category?: NullableStringFieldUpdateOperationsInput | string | null
+    particulars?: NullableStringFieldUpdateOperationsInput | string | null
+    quantity_received?: NullableIntFieldUpdateOperationsInput | number | null
+    quantity_worked?: NullableIntFieldUpdateOperationsInput | number | null
+    unit_price?: NullableFloatFieldUpdateOperationsInput | number | null
   }
 
   export type worker_logsCreateManyInput = {
     id?: number
-    worker_id?: number | null
-    sub_batch_id?: number | null
-    quantity: number
-    date: Date | string
+    worker_id: number
+    sub_batch_id: number
+    worker_name?: string | null
+    work_date?: Date | string | null
+    size_category?: string | null
+    particulars?: string | null
+    quantity_received?: number | null
+    quantity_worked?: number | null
+    unit_price?: number | null
   }
 
   export type worker_logsUpdateManyMutationInput = {
-    quantity?: IntFieldUpdateOperationsInput | number
-    date?: DateTimeFieldUpdateOperationsInput | Date | string
+    worker_name?: NullableStringFieldUpdateOperationsInput | string | null
+    work_date?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    size_category?: NullableStringFieldUpdateOperationsInput | string | null
+    particulars?: NullableStringFieldUpdateOperationsInput | string | null
+    quantity_received?: NullableIntFieldUpdateOperationsInput | number | null
+    quantity_worked?: NullableIntFieldUpdateOperationsInput | number | null
+    unit_price?: NullableFloatFieldUpdateOperationsInput | number | null
   }
 
   export type worker_logsUncheckedUpdateManyInput = {
     id?: IntFieldUpdateOperationsInput | number
-    worker_id?: NullableIntFieldUpdateOperationsInput | number | null
-    sub_batch_id?: NullableIntFieldUpdateOperationsInput | number | null
-    quantity?: IntFieldUpdateOperationsInput | number
-    date?: DateTimeFieldUpdateOperationsInput | Date | string
+    worker_id?: IntFieldUpdateOperationsInput | number
+    sub_batch_id?: IntFieldUpdateOperationsInput | number
+    worker_name?: NullableStringFieldUpdateOperationsInput | string | null
+    work_date?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    size_category?: NullableStringFieldUpdateOperationsInput | string | null
+    particulars?: NullableStringFieldUpdateOperationsInput | string | null
+    quantity_received?: NullableIntFieldUpdateOperationsInput | number | null
+    quantity_worked?: NullableIntFieldUpdateOperationsInput | number | null
+    unit_price?: NullableFloatFieldUpdateOperationsInput | number | null
   }
 
   export type vendorsCreateInput = {
@@ -32658,42 +32758,123 @@ export namespace Prisma {
     _max?: NestedFloatFilter<$PrismaModel>
   }
 
+  export type DateTimeNullableFilter<$PrismaModel = never> = {
+    equals?: Date | string | DateTimeFieldRefInput<$PrismaModel> | null
+    in?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
+    notIn?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
+    lt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    lte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    gt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    gte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    not?: NestedDateTimeNullableFilter<$PrismaModel> | Date | string | null
+  }
+
+  export type FloatNullableFilter<$PrismaModel = never> = {
+    equals?: number | FloatFieldRefInput<$PrismaModel> | null
+    in?: number[] | ListFloatFieldRefInput<$PrismaModel> | null
+    notIn?: number[] | ListFloatFieldRefInput<$PrismaModel> | null
+    lt?: number | FloatFieldRefInput<$PrismaModel>
+    lte?: number | FloatFieldRefInput<$PrismaModel>
+    gt?: number | FloatFieldRefInput<$PrismaModel>
+    gte?: number | FloatFieldRefInput<$PrismaModel>
+    not?: NestedFloatNullableFilter<$PrismaModel> | number | null
+  }
+
+  export type WorkersScalarRelationFilter = {
+    is?: workersWhereInput
+    isNot?: workersWhereInput
+  }
+
+  export type Sub_batchesScalarRelationFilter = {
+    is?: sub_batchesWhereInput
+    isNot?: sub_batchesWhereInput
+  }
+
   export type worker_logsCountOrderByAggregateInput = {
     id?: SortOrder
     worker_id?: SortOrder
     sub_batch_id?: SortOrder
-    quantity?: SortOrder
-    date?: SortOrder
+    worker_name?: SortOrder
+    work_date?: SortOrder
+    size_category?: SortOrder
+    particulars?: SortOrder
+    quantity_received?: SortOrder
+    quantity_worked?: SortOrder
+    unit_price?: SortOrder
   }
 
   export type worker_logsAvgOrderByAggregateInput = {
     id?: SortOrder
     worker_id?: SortOrder
     sub_batch_id?: SortOrder
-    quantity?: SortOrder
+    quantity_received?: SortOrder
+    quantity_worked?: SortOrder
+    unit_price?: SortOrder
   }
 
   export type worker_logsMaxOrderByAggregateInput = {
     id?: SortOrder
     worker_id?: SortOrder
     sub_batch_id?: SortOrder
-    quantity?: SortOrder
-    date?: SortOrder
+    worker_name?: SortOrder
+    work_date?: SortOrder
+    size_category?: SortOrder
+    particulars?: SortOrder
+    quantity_received?: SortOrder
+    quantity_worked?: SortOrder
+    unit_price?: SortOrder
   }
 
   export type worker_logsMinOrderByAggregateInput = {
     id?: SortOrder
     worker_id?: SortOrder
     sub_batch_id?: SortOrder
-    quantity?: SortOrder
-    date?: SortOrder
+    worker_name?: SortOrder
+    work_date?: SortOrder
+    size_category?: SortOrder
+    particulars?: SortOrder
+    quantity_received?: SortOrder
+    quantity_worked?: SortOrder
+    unit_price?: SortOrder
   }
 
   export type worker_logsSumOrderByAggregateInput = {
     id?: SortOrder
     worker_id?: SortOrder
     sub_batch_id?: SortOrder
-    quantity?: SortOrder
+    quantity_received?: SortOrder
+    quantity_worked?: SortOrder
+    unit_price?: SortOrder
+  }
+
+  export type DateTimeNullableWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: Date | string | DateTimeFieldRefInput<$PrismaModel> | null
+    in?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
+    notIn?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
+    lt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    lte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    gt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    gte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    not?: NestedDateTimeNullableWithAggregatesFilter<$PrismaModel> | Date | string | null
+    _count?: NestedIntNullableFilter<$PrismaModel>
+    _min?: NestedDateTimeNullableFilter<$PrismaModel>
+    _max?: NestedDateTimeNullableFilter<$PrismaModel>
+  }
+
+  export type FloatNullableWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: number | FloatFieldRefInput<$PrismaModel> | null
+    in?: number[] | ListFloatFieldRefInput<$PrismaModel> | null
+    notIn?: number[] | ListFloatFieldRefInput<$PrismaModel> | null
+    lt?: number | FloatFieldRefInput<$PrismaModel>
+    lte?: number | FloatFieldRefInput<$PrismaModel>
+    gt?: number | FloatFieldRefInput<$PrismaModel>
+    gte?: number | FloatFieldRefInput<$PrismaModel>
+    not?: NestedFloatNullableWithAggregatesFilter<$PrismaModel> | number | null
+    _count?: NestedIntNullableFilter<$PrismaModel>
+    _avg?: NestedFloatNullableFilter<$PrismaModel>
+    _sum?: NestedFloatNullableFilter<$PrismaModel>
+    _min?: NestedFloatNullableFilter<$PrismaModel>
+    _max?: NestedFloatNullableFilter<$PrismaModel>
   }
 
   export type RollsListRelationFilter = {
@@ -34329,22 +34510,30 @@ export namespace Prisma {
     connect?: sub_batchesWhereUniqueInput
   }
 
-  export type workersUpdateOneWithoutWorker_logsNestedInput = {
+  export type NullableDateTimeFieldUpdateOperationsInput = {
+    set?: Date | string | null
+  }
+
+  export type NullableFloatFieldUpdateOperationsInput = {
+    set?: number | null
+    increment?: number
+    decrement?: number
+    multiply?: number
+    divide?: number
+  }
+
+  export type workersUpdateOneRequiredWithoutWorker_logsNestedInput = {
     create?: XOR<workersCreateWithoutWorker_logsInput, workersUncheckedCreateWithoutWorker_logsInput>
     connectOrCreate?: workersCreateOrConnectWithoutWorker_logsInput
     upsert?: workersUpsertWithoutWorker_logsInput
-    disconnect?: workersWhereInput | boolean
-    delete?: workersWhereInput | boolean
     connect?: workersWhereUniqueInput
     update?: XOR<XOR<workersUpdateToOneWithWhereWithoutWorker_logsInput, workersUpdateWithoutWorker_logsInput>, workersUncheckedUpdateWithoutWorker_logsInput>
   }
 
-  export type sub_batchesUpdateOneWithoutWorker_logsNestedInput = {
+  export type sub_batchesUpdateOneRequiredWithoutWorker_logsNestedInput = {
     create?: XOR<sub_batchesCreateWithoutWorker_logsInput, sub_batchesUncheckedCreateWithoutWorker_logsInput>
     connectOrCreate?: sub_batchesCreateOrConnectWithoutWorker_logsInput
     upsert?: sub_batchesUpsertWithoutWorker_logsInput
-    disconnect?: sub_batchesWhereInput | boolean
-    delete?: sub_batchesWhereInput | boolean
     connect?: sub_batchesWhereUniqueInput
     update?: XOR<XOR<sub_batchesUpdateToOneWithWhereWithoutWorker_logsInput, sub_batchesUpdateWithoutWorker_logsInput>, sub_batchesUncheckedUpdateWithoutWorker_logsInput>
   }
@@ -34857,6 +35046,47 @@ export namespace Prisma {
     _sum?: NestedFloatFilter<$PrismaModel>
     _min?: NestedFloatFilter<$PrismaModel>
     _max?: NestedFloatFilter<$PrismaModel>
+  }
+
+  export type NestedDateTimeNullableFilter<$PrismaModel = never> = {
+    equals?: Date | string | DateTimeFieldRefInput<$PrismaModel> | null
+    in?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
+    notIn?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
+    lt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    lte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    gt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    gte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    not?: NestedDateTimeNullableFilter<$PrismaModel> | Date | string | null
+  }
+
+  export type NestedDateTimeNullableWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: Date | string | DateTimeFieldRefInput<$PrismaModel> | null
+    in?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
+    notIn?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
+    lt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    lte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    gt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    gte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    not?: NestedDateTimeNullableWithAggregatesFilter<$PrismaModel> | Date | string | null
+    _count?: NestedIntNullableFilter<$PrismaModel>
+    _min?: NestedDateTimeNullableFilter<$PrismaModel>
+    _max?: NestedDateTimeNullableFilter<$PrismaModel>
+  }
+
+  export type NestedFloatNullableWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: number | FloatFieldRefInput<$PrismaModel> | null
+    in?: number[] | ListFloatFieldRefInput<$PrismaModel> | null
+    notIn?: number[] | ListFloatFieldRefInput<$PrismaModel> | null
+    lt?: number | FloatFieldRefInput<$PrismaModel>
+    lte?: number | FloatFieldRefInput<$PrismaModel>
+    gt?: number | FloatFieldRefInput<$PrismaModel>
+    gte?: number | FloatFieldRefInput<$PrismaModel>
+    not?: NestedFloatNullableWithAggregatesFilter<$PrismaModel> | number | null
+    _count?: NestedIntNullableFilter<$PrismaModel>
+    _avg?: NestedFloatNullableFilter<$PrismaModel>
+    _sum?: NestedFloatNullableFilter<$PrismaModel>
+    _min?: NestedFloatNullableFilter<$PrismaModel>
+    _max?: NestedFloatNullableFilter<$PrismaModel>
   }
 
   export type NestedEnumDepartmentStageNullableFilter<$PrismaModel = never> = {
@@ -35433,16 +35663,26 @@ export namespace Prisma {
   }
 
   export type worker_logsCreateWithoutSub_batchInput = {
-    quantity: number
-    date: Date | string
-    worker?: workersCreateNestedOneWithoutWorker_logsInput
+    worker_name?: string | null
+    work_date?: Date | string | null
+    size_category?: string | null
+    particulars?: string | null
+    quantity_received?: number | null
+    quantity_worked?: number | null
+    unit_price?: number | null
+    worker: workersCreateNestedOneWithoutWorker_logsInput
   }
 
   export type worker_logsUncheckedCreateWithoutSub_batchInput = {
     id?: number
-    worker_id?: number | null
-    quantity: number
-    date: Date | string
+    worker_id: number
+    worker_name?: string | null
+    work_date?: Date | string | null
+    size_category?: string | null
+    particulars?: string | null
+    quantity_received?: number | null
+    quantity_worked?: number | null
+    unit_price?: number | null
   }
 
   export type worker_logsCreateOrConnectWithoutSub_batchInput = {
@@ -35733,10 +35973,15 @@ export namespace Prisma {
     OR?: worker_logsScalarWhereInput[]
     NOT?: worker_logsScalarWhereInput | worker_logsScalarWhereInput[]
     id?: IntFilter<"worker_logs"> | number
-    worker_id?: IntNullableFilter<"worker_logs"> | number | null
-    sub_batch_id?: IntNullableFilter<"worker_logs"> | number | null
-    quantity?: IntFilter<"worker_logs"> | number
-    date?: DateTimeFilter<"worker_logs"> | Date | string
+    worker_id?: IntFilter<"worker_logs"> | number
+    sub_batch_id?: IntFilter<"worker_logs"> | number
+    worker_name?: StringNullableFilter<"worker_logs"> | string | null
+    work_date?: DateTimeNullableFilter<"worker_logs"> | Date | string | null
+    size_category?: StringNullableFilter<"worker_logs"> | string | null
+    particulars?: StringNullableFilter<"worker_logs"> | string | null
+    quantity_received?: IntNullableFilter<"worker_logs"> | number | null
+    quantity_worked?: IntNullableFilter<"worker_logs"> | number | null
+    unit_price?: FloatNullableFilter<"worker_logs"> | number | null
   }
 
   export type sub_batch_workflowsUpsertWithWhereUniqueWithoutSub_batchInput = {
@@ -37136,16 +37381,26 @@ export namespace Prisma {
   }
 
   export type worker_logsCreateWithoutWorkerInput = {
-    quantity: number
-    date: Date | string
-    sub_batch?: sub_batchesCreateNestedOneWithoutWorker_logsInput
+    worker_name?: string | null
+    work_date?: Date | string | null
+    size_category?: string | null
+    particulars?: string | null
+    quantity_received?: number | null
+    quantity_worked?: number | null
+    unit_price?: number | null
+    sub_batch: sub_batchesCreateNestedOneWithoutWorker_logsInput
   }
 
   export type worker_logsUncheckedCreateWithoutWorkerInput = {
     id?: number
-    sub_batch_id?: number | null
-    quantity: number
-    date: Date | string
+    sub_batch_id: number
+    worker_name?: string | null
+    work_date?: Date | string | null
+    size_category?: string | null
+    particulars?: string | null
+    quantity_received?: number | null
+    quantity_worked?: number | null
+    unit_price?: number | null
   }
 
   export type worker_logsCreateOrConnectWithoutWorkerInput = {
@@ -38247,9 +38502,14 @@ export namespace Prisma {
 
   export type worker_logsCreateManySub_batchInput = {
     id?: number
-    worker_id?: number | null
-    quantity: number
-    date: Date | string
+    worker_id: number
+    worker_name?: string | null
+    work_date?: Date | string | null
+    size_category?: string | null
+    particulars?: string | null
+    quantity_received?: number | null
+    quantity_worked?: number | null
+    unit_price?: number | null
   }
 
   export type sub_batch_workflowsCreateManySub_batchInput = {
@@ -38364,23 +38624,38 @@ export namespace Prisma {
   }
 
   export type worker_logsUpdateWithoutSub_batchInput = {
-    quantity?: IntFieldUpdateOperationsInput | number
-    date?: DateTimeFieldUpdateOperationsInput | Date | string
-    worker?: workersUpdateOneWithoutWorker_logsNestedInput
+    worker_name?: NullableStringFieldUpdateOperationsInput | string | null
+    work_date?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    size_category?: NullableStringFieldUpdateOperationsInput | string | null
+    particulars?: NullableStringFieldUpdateOperationsInput | string | null
+    quantity_received?: NullableIntFieldUpdateOperationsInput | number | null
+    quantity_worked?: NullableIntFieldUpdateOperationsInput | number | null
+    unit_price?: NullableFloatFieldUpdateOperationsInput | number | null
+    worker?: workersUpdateOneRequiredWithoutWorker_logsNestedInput
   }
 
   export type worker_logsUncheckedUpdateWithoutSub_batchInput = {
     id?: IntFieldUpdateOperationsInput | number
-    worker_id?: NullableIntFieldUpdateOperationsInput | number | null
-    quantity?: IntFieldUpdateOperationsInput | number
-    date?: DateTimeFieldUpdateOperationsInput | Date | string
+    worker_id?: IntFieldUpdateOperationsInput | number
+    worker_name?: NullableStringFieldUpdateOperationsInput | string | null
+    work_date?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    size_category?: NullableStringFieldUpdateOperationsInput | string | null
+    particulars?: NullableStringFieldUpdateOperationsInput | string | null
+    quantity_received?: NullableIntFieldUpdateOperationsInput | number | null
+    quantity_worked?: NullableIntFieldUpdateOperationsInput | number | null
+    unit_price?: NullableFloatFieldUpdateOperationsInput | number | null
   }
 
   export type worker_logsUncheckedUpdateManyWithoutSub_batchInput = {
     id?: IntFieldUpdateOperationsInput | number
-    worker_id?: NullableIntFieldUpdateOperationsInput | number | null
-    quantity?: IntFieldUpdateOperationsInput | number
-    date?: DateTimeFieldUpdateOperationsInput | Date | string
+    worker_id?: IntFieldUpdateOperationsInput | number
+    worker_name?: NullableStringFieldUpdateOperationsInput | string | null
+    work_date?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    size_category?: NullableStringFieldUpdateOperationsInput | string | null
+    particulars?: NullableStringFieldUpdateOperationsInput | string | null
+    quantity_received?: NullableIntFieldUpdateOperationsInput | number | null
+    quantity_worked?: NullableIntFieldUpdateOperationsInput | number | null
+    unit_price?: NullableFloatFieldUpdateOperationsInput | number | null
   }
 
   export type sub_batch_workflowsUpdateWithoutSub_batchInput = {
@@ -38713,9 +38988,14 @@ export namespace Prisma {
 
   export type worker_logsCreateManyWorkerInput = {
     id?: number
-    sub_batch_id?: number | null
-    quantity: number
-    date: Date | string
+    sub_batch_id: number
+    worker_name?: string | null
+    work_date?: Date | string | null
+    size_category?: string | null
+    particulars?: string | null
+    quantity_received?: number | null
+    quantity_worked?: number | null
+    unit_price?: number | null
   }
 
   export type department_workersCreateManyWorkerInput = {
@@ -38735,23 +39015,38 @@ export namespace Prisma {
   }
 
   export type worker_logsUpdateWithoutWorkerInput = {
-    quantity?: IntFieldUpdateOperationsInput | number
-    date?: DateTimeFieldUpdateOperationsInput | Date | string
-    sub_batch?: sub_batchesUpdateOneWithoutWorker_logsNestedInput
+    worker_name?: NullableStringFieldUpdateOperationsInput | string | null
+    work_date?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    size_category?: NullableStringFieldUpdateOperationsInput | string | null
+    particulars?: NullableStringFieldUpdateOperationsInput | string | null
+    quantity_received?: NullableIntFieldUpdateOperationsInput | number | null
+    quantity_worked?: NullableIntFieldUpdateOperationsInput | number | null
+    unit_price?: NullableFloatFieldUpdateOperationsInput | number | null
+    sub_batch?: sub_batchesUpdateOneRequiredWithoutWorker_logsNestedInput
   }
 
   export type worker_logsUncheckedUpdateWithoutWorkerInput = {
     id?: IntFieldUpdateOperationsInput | number
-    sub_batch_id?: NullableIntFieldUpdateOperationsInput | number | null
-    quantity?: IntFieldUpdateOperationsInput | number
-    date?: DateTimeFieldUpdateOperationsInput | Date | string
+    sub_batch_id?: IntFieldUpdateOperationsInput | number
+    worker_name?: NullableStringFieldUpdateOperationsInput | string | null
+    work_date?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    size_category?: NullableStringFieldUpdateOperationsInput | string | null
+    particulars?: NullableStringFieldUpdateOperationsInput | string | null
+    quantity_received?: NullableIntFieldUpdateOperationsInput | number | null
+    quantity_worked?: NullableIntFieldUpdateOperationsInput | number | null
+    unit_price?: NullableFloatFieldUpdateOperationsInput | number | null
   }
 
   export type worker_logsUncheckedUpdateManyWithoutWorkerInput = {
     id?: IntFieldUpdateOperationsInput | number
-    sub_batch_id?: NullableIntFieldUpdateOperationsInput | number | null
-    quantity?: IntFieldUpdateOperationsInput | number
-    date?: DateTimeFieldUpdateOperationsInput | Date | string
+    sub_batch_id?: IntFieldUpdateOperationsInput | number
+    worker_name?: NullableStringFieldUpdateOperationsInput | string | null
+    work_date?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    size_category?: NullableStringFieldUpdateOperationsInput | string | null
+    particulars?: NullableStringFieldUpdateOperationsInput | string | null
+    quantity_received?: NullableIntFieldUpdateOperationsInput | number | null
+    quantity_worked?: NullableIntFieldUpdateOperationsInput | number | null
+    unit_price?: NullableFloatFieldUpdateOperationsInput | number | null
   }
 
   export type department_workersUpdateWithoutWorkerInput = {

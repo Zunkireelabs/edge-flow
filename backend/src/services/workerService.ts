@@ -57,3 +57,4 @@ export const deleteWorker = async (id: number) => {
     where: { id },
   });
 };
+

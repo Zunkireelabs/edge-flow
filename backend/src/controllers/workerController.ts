@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import * as workerService from "../services/workerService";
 
+
 export const createWorker = async (req: Request, res: Response) => {
   try {
     const worker = await workerService.createWorker(req.body);
@@ -59,3 +60,5 @@ export const deleteWorker = async (req: Request, res: Response) => {
       .json({ message: "Error deleting worker", error: error.message });
   }
 };
+
+

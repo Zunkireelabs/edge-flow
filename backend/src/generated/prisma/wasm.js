@@ -236,8 +236,13 @@ exports.Prisma.Worker_logsScalarFieldEnum = {
   id: 'id',
   worker_id: 'worker_id',
   sub_batch_id: 'sub_batch_id',
-  quantity: 'quantity',
-  date: 'date'
+  worker_name: 'worker_name',
+  work_date: 'work_date',
+  size_category: 'size_category',
+  particulars: 'particulars',
+  quantity_received: 'quantity_received',
+  quantity_worked: 'quantity_worked',
+  unit_price: 'unit_price'
 };
 
 exports.Prisma.VendorsScalarFieldEnum = {

@@ -10,6 +10,8 @@ import vendorRoutes from "./src/routes/vendor";
 import categoryRoutes from "./src/routes/category";
 import departmentRoutes from "./src/routes/department";
 import supervisorRoutes from "./src/routes/supervisor";
+import workerLogRoutes from "./src/routes/workerLog";
+
 
 dotenv.config();
 
@@ -47,6 +49,10 @@ app.use("/api/categories", categoryRoutes);
 
 // Department Routes
 app.use("/api/departments", departmentRoutes);
+
+//worker Log Routes
+app.use("/api/worker-logs", workerLogRoutes);
+
 
 // Optional test route
 app.get("/", (req, res) => {

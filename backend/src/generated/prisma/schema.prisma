@@ -178,13 +178,22 @@ model workers {
 }
 
 model worker_logs {
-  id           Int          @id @default(autoincrement())
-  worker_id    Int?
-  sub_batch_id Int?
-  quantity     Int
-  date         DateTime
-  worker       workers?     @relation(fields: [worker_id], references: [id])
-  sub_batch    sub_batches? @relation(fields: [sub_batch_id], references: [id])
+  id           Int       @id @default(autoincrement())
+  worker_id    Int
+  sub_batch_id Int
+  worker_name  String? // denormalized, for quick reference
+  work_date    DateTime? // optional date
+
+  // Work details
+  size_category     String?
+  particulars       String?
+  quantity_received Int?
+  quantity_worked   Int?
+  unit_price        Float?
+
+  // Relations
+  worker    workers     @relation(fields: [worker_id], references: [id])
+  sub_batch sub_batches @relation(fields: [sub_batch_id], references: [id])
 }
 
 model vendors {
