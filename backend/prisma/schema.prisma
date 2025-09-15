@@ -1,6 +1,6 @@
 generator client {
   provider = "prisma-client-js"
-  // output   = "../src/generated/prisma"
+  output   = "../src/generated/prisma"
 }
 
 datasource db {
@@ -145,6 +145,7 @@ model department_sub_batches {
   is_current       Boolean         @default(false)       // only true for active dept
   createdAt        DateTime        @default(now())
   updatedAt        DateTime        @updatedAt
+  quantity_remaining Int?
 
   assigned_worker_id Int?
   assigned_worker  workers?        @relation(fields: [assigned_worker_id], references: [id])

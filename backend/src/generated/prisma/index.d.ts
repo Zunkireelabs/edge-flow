@@ -15046,6 +15046,7 @@ export namespace Prisma {
     id: number | null
     department_id: number | null
     sub_batch_id: number | null
+    quantity_remaining: number | null
     assigned_worker_id: number | null
   }
 
@@ -15053,6 +15054,7 @@ export namespace Prisma {
     id: number | null
     department_id: number | null
     sub_batch_id: number | null
+    quantity_remaining: number | null
     assigned_worker_id: number | null
   }
 
@@ -15064,6 +15066,7 @@ export namespace Prisma {
     is_current: boolean | null
     createdAt: Date | null
     updatedAt: Date | null
+    quantity_remaining: number | null
     assigned_worker_id: number | null
   }
 
@@ -15075,6 +15078,7 @@ export namespace Prisma {
     is_current: boolean | null
     createdAt: Date | null
     updatedAt: Date | null
+    quantity_remaining: number | null
     assigned_worker_id: number | null
   }
 
@@ -15086,6 +15090,7 @@ export namespace Prisma {
     is_current: number
     createdAt: number
     updatedAt: number
+    quantity_remaining: number
     assigned_worker_id: number
     _all: number
   }
@@ -15095,6 +15100,7 @@ export namespace Prisma {
     id?: true
     department_id?: true
     sub_batch_id?: true
+    quantity_remaining?: true
     assigned_worker_id?: true
   }
 
@@ -15102,6 +15108,7 @@ export namespace Prisma {
     id?: true
     department_id?: true
     sub_batch_id?: true
+    quantity_remaining?: true
     assigned_worker_id?: true
   }
 
@@ -15113,6 +15120,7 @@ export namespace Prisma {
     is_current?: true
     createdAt?: true
     updatedAt?: true
+    quantity_remaining?: true
     assigned_worker_id?: true
   }
 
@@ -15124,6 +15132,7 @@ export namespace Prisma {
     is_current?: true
     createdAt?: true
     updatedAt?: true
+    quantity_remaining?: true
     assigned_worker_id?: true
   }
 
@@ -15135,6 +15144,7 @@ export namespace Prisma {
     is_current?: true
     createdAt?: true
     updatedAt?: true
+    quantity_remaining?: true
     assigned_worker_id?: true
     _all?: true
   }
@@ -15233,6 +15243,7 @@ export namespace Prisma {
     is_current: boolean
     createdAt: Date
     updatedAt: Date
+    quantity_remaining: number | null
     assigned_worker_id: number | null
     _count: Department_sub_batchesCountAggregateOutputType | null
     _avg: Department_sub_batchesAvgAggregateOutputType | null
@@ -15263,6 +15274,7 @@ export namespace Prisma {
     is_current?: boolean
     createdAt?: boolean
     updatedAt?: boolean
+    quantity_remaining?: boolean
     assigned_worker_id?: boolean
     assigned_worker?: boolean | department_sub_batches$assigned_workerArgs<ExtArgs>
     department?: boolean | department_sub_batches$departmentArgs<ExtArgs>
@@ -15279,6 +15291,7 @@ export namespace Prisma {
     is_current?: boolean
     createdAt?: boolean
     updatedAt?: boolean
+    quantity_remaining?: boolean
     assigned_worker_id?: boolean
     assigned_worker?: boolean | department_sub_batches$assigned_workerArgs<ExtArgs>
     department?: boolean | department_sub_batches$departmentArgs<ExtArgs>
@@ -15293,6 +15306,7 @@ export namespace Prisma {
     is_current?: boolean
     createdAt?: boolean
     updatedAt?: boolean
+    quantity_remaining?: boolean
     assigned_worker_id?: boolean
     assigned_worker?: boolean | department_sub_batches$assigned_workerArgs<ExtArgs>
     department?: boolean | department_sub_batches$departmentArgs<ExtArgs>
@@ -15307,10 +15321,11 @@ export namespace Prisma {
     is_current?: boolean
     createdAt?: boolean
     updatedAt?: boolean
+    quantity_remaining?: boolean
     assigned_worker_id?: boolean
   }
 
-  export type department_sub_batchesOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "department_id" | "sub_batch_id" | "stage" | "is_current" | "createdAt" | "updatedAt" | "assigned_worker_id", ExtArgs["result"]["department_sub_batches"]>
+  export type department_sub_batchesOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "department_id" | "sub_batch_id" | "stage" | "is_current" | "createdAt" | "updatedAt" | "quantity_remaining" | "assigned_worker_id", ExtArgs["result"]["department_sub_batches"]>
   export type department_sub_batchesInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     assigned_worker?: boolean | department_sub_batches$assigned_workerArgs<ExtArgs>
     department?: boolean | department_sub_batches$departmentArgs<ExtArgs>
@@ -15345,6 +15360,7 @@ export namespace Prisma {
       is_current: boolean
       createdAt: Date
       updatedAt: Date
+      quantity_remaining: number | null
       assigned_worker_id: number | null
     }, ExtArgs["result"]["department_sub_batches"]>
     composites: {}
@@ -15780,6 +15796,7 @@ export namespace Prisma {
     readonly is_current: FieldRef<"department_sub_batches", 'Boolean'>
     readonly createdAt: FieldRef<"department_sub_batches", 'DateTime'>
     readonly updatedAt: FieldRef<"department_sub_batches", 'DateTime'>
+    readonly quantity_remaining: FieldRef<"department_sub_batches", 'Int'>
     readonly assigned_worker_id: FieldRef<"department_sub_batches", 'Int'>
   }
     
@@ -28841,6 +28858,7 @@ export namespace Prisma {
     is_current: 'is_current',
     createdAt: 'createdAt',
     updatedAt: 'updatedAt',
+    quantity_remaining: 'quantity_remaining',
     assigned_worker_id: 'assigned_worker_id'
   };
 
@@ -29760,6 +29778,7 @@ export namespace Prisma {
     is_current?: BoolFilter<"department_sub_batches"> | boolean
     createdAt?: DateTimeFilter<"department_sub_batches"> | Date | string
     updatedAt?: DateTimeFilter<"department_sub_batches"> | Date | string
+    quantity_remaining?: IntNullableFilter<"department_sub_batches"> | number | null
     assigned_worker_id?: IntNullableFilter<"department_sub_batches"> | number | null
     assigned_worker?: XOR<WorkersNullableScalarRelationFilter, workersWhereInput> | null
     department?: XOR<DepartmentsNullableScalarRelationFilter, departmentsWhereInput> | null
@@ -29775,6 +29794,7 @@ export namespace Prisma {
     is_current?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
+    quantity_remaining?: SortOrderInput | SortOrder
     assigned_worker_id?: SortOrderInput | SortOrder
     assigned_worker?: workersOrderByWithRelationInput
     department?: departmentsOrderByWithRelationInput
@@ -29793,6 +29813,7 @@ export namespace Prisma {
     is_current?: BoolFilter<"department_sub_batches"> | boolean
     createdAt?: DateTimeFilter<"department_sub_batches"> | Date | string
     updatedAt?: DateTimeFilter<"department_sub_batches"> | Date | string
+    quantity_remaining?: IntNullableFilter<"department_sub_batches"> | number | null
     assigned_worker_id?: IntNullableFilter<"department_sub_batches"> | number | null
     assigned_worker?: XOR<WorkersNullableScalarRelationFilter, workersWhereInput> | null
     department?: XOR<DepartmentsNullableScalarRelationFilter, departmentsWhereInput> | null
@@ -29808,6 +29829,7 @@ export namespace Prisma {
     is_current?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
+    quantity_remaining?: SortOrderInput | SortOrder
     assigned_worker_id?: SortOrderInput | SortOrder
     _count?: department_sub_batchesCountOrderByAggregateInput
     _avg?: department_sub_batchesAvgOrderByAggregateInput
@@ -29827,6 +29849,7 @@ export namespace Prisma {
     is_current?: BoolWithAggregatesFilter<"department_sub_batches"> | boolean
     createdAt?: DateTimeWithAggregatesFilter<"department_sub_batches"> | Date | string
     updatedAt?: DateTimeWithAggregatesFilter<"department_sub_batches"> | Date | string
+    quantity_remaining?: IntNullableWithAggregatesFilter<"department_sub_batches"> | number | null
     assigned_worker_id?: IntNullableWithAggregatesFilter<"department_sub_batches"> | number | null
   }
 
@@ -31131,6 +31154,7 @@ export namespace Prisma {
     is_current?: boolean
     createdAt?: Date | string
     updatedAt?: Date | string
+    quantity_remaining?: number | null
     assigned_worker?: workersCreateNestedOneWithoutDepartment_assignmentsInput
     department?: departmentsCreateNestedOneWithoutDept_batchesInput
     sub_batch?: sub_batchesCreateNestedOneWithoutDept_linksInput
@@ -31145,6 +31169,7 @@ export namespace Prisma {
     is_current?: boolean
     createdAt?: Date | string
     updatedAt?: Date | string
+    quantity_remaining?: number | null
     assigned_worker_id?: number | null
     history?: department_sub_batch_historyUncheckedCreateNestedManyWithoutDepartment_sub_batchInput
   }
@@ -31154,6 +31179,7 @@ export namespace Prisma {
     is_current?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    quantity_remaining?: NullableIntFieldUpdateOperationsInput | number | null
     assigned_worker?: workersUpdateOneWithoutDepartment_assignmentsNestedInput
     department?: departmentsUpdateOneWithoutDept_batchesNestedInput
     sub_batch?: sub_batchesUpdateOneWithoutDept_linksNestedInput
@@ -31168,6 +31194,7 @@ export namespace Prisma {
     is_current?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    quantity_remaining?: NullableIntFieldUpdateOperationsInput | number | null
     assigned_worker_id?: NullableIntFieldUpdateOperationsInput | number | null
     history?: department_sub_batch_historyUncheckedUpdateManyWithoutDepartment_sub_batchNestedInput
   }
@@ -31180,6 +31207,7 @@ export namespace Prisma {
     is_current?: boolean
     createdAt?: Date | string
     updatedAt?: Date | string
+    quantity_remaining?: number | null
     assigned_worker_id?: number | null
   }
 
@@ -31188,6 +31216,7 @@ export namespace Prisma {
     is_current?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    quantity_remaining?: NullableIntFieldUpdateOperationsInput | number | null
   }
 
   export type department_sub_batchesUncheckedUpdateManyInput = {
@@ -31198,6 +31227,7 @@ export namespace Prisma {
     is_current?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    quantity_remaining?: NullableIntFieldUpdateOperationsInput | number | null
     assigned_worker_id?: NullableIntFieldUpdateOperationsInput | number | null
   }
 
@@ -32597,6 +32627,7 @@ export namespace Prisma {
     is_current?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
+    quantity_remaining?: SortOrder
     assigned_worker_id?: SortOrder
   }
 
@@ -32604,6 +32635,7 @@ export namespace Prisma {
     id?: SortOrder
     department_id?: SortOrder
     sub_batch_id?: SortOrder
+    quantity_remaining?: SortOrder
     assigned_worker_id?: SortOrder
   }
 
@@ -32615,6 +32647,7 @@ export namespace Prisma {
     is_current?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
+    quantity_remaining?: SortOrder
     assigned_worker_id?: SortOrder
   }
 
@@ -32626,6 +32659,7 @@ export namespace Prisma {
     is_current?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
+    quantity_remaining?: SortOrder
     assigned_worker_id?: SortOrder
   }
 
@@ -32633,6 +32667,7 @@ export namespace Prisma {
     id?: SortOrder
     department_id?: SortOrder
     sub_batch_id?: SortOrder
+    quantity_remaining?: SortOrder
     assigned_worker_id?: SortOrder
   }
 
@@ -35636,6 +35671,7 @@ export namespace Prisma {
     is_current?: boolean
     createdAt?: Date | string
     updatedAt?: Date | string
+    quantity_remaining?: number | null
     assigned_worker?: workersCreateNestedOneWithoutDepartment_assignmentsInput
     department?: departmentsCreateNestedOneWithoutDept_batchesInput
     history?: department_sub_batch_historyCreateNestedManyWithoutDepartment_sub_batchInput
@@ -35648,6 +35684,7 @@ export namespace Prisma {
     is_current?: boolean
     createdAt?: Date | string
     updatedAt?: Date | string
+    quantity_remaining?: number | null
     assigned_worker_id?: number | null
     history?: department_sub_batch_historyUncheckedCreateNestedManyWithoutDepartment_sub_batchInput
   }
@@ -35949,6 +35986,7 @@ export namespace Prisma {
     is_current?: BoolFilter<"department_sub_batches"> | boolean
     createdAt?: DateTimeFilter<"department_sub_batches"> | Date | string
     updatedAt?: DateTimeFilter<"department_sub_batches"> | Date | string
+    quantity_remaining?: IntNullableFilter<"department_sub_batches"> | number | null
     assigned_worker_id?: IntNullableFilter<"department_sub_batches"> | number | null
   }
 
@@ -36598,6 +36636,7 @@ export namespace Prisma {
     is_current?: boolean
     createdAt?: Date | string
     updatedAt?: Date | string
+    quantity_remaining?: number | null
     assigned_worker?: workersCreateNestedOneWithoutDepartment_assignmentsInput
     sub_batch?: sub_batchesCreateNestedOneWithoutDept_linksInput
     history?: department_sub_batch_historyCreateNestedManyWithoutDepartment_sub_batchInput
@@ -36610,6 +36649,7 @@ export namespace Prisma {
     is_current?: boolean
     createdAt?: Date | string
     updatedAt?: Date | string
+    quantity_remaining?: number | null
     assigned_worker_id?: number | null
     history?: department_sub_batch_historyUncheckedCreateNestedManyWithoutDepartment_sub_batchInput
   }
@@ -37439,6 +37479,7 @@ export namespace Prisma {
     is_current?: boolean
     createdAt?: Date | string
     updatedAt?: Date | string
+    quantity_remaining?: number | null
     department?: departmentsCreateNestedOneWithoutDept_batchesInput
     sub_batch?: sub_batchesCreateNestedOneWithoutDept_linksInput
     history?: department_sub_batch_historyCreateNestedManyWithoutDepartment_sub_batchInput
@@ -37452,6 +37493,7 @@ export namespace Prisma {
     is_current?: boolean
     createdAt?: Date | string
     updatedAt?: Date | string
+    quantity_remaining?: number | null
     history?: department_sub_batch_historyUncheckedCreateNestedManyWithoutDepartment_sub_batchInput
   }
 
@@ -38190,6 +38232,7 @@ export namespace Prisma {
     is_current?: boolean
     createdAt?: Date | string
     updatedAt?: Date | string
+    quantity_remaining?: number | null
     assigned_worker?: workersCreateNestedOneWithoutDepartment_assignmentsInput
     department?: departmentsCreateNestedOneWithoutDept_batchesInput
     sub_batch?: sub_batchesCreateNestedOneWithoutDept_linksInput
@@ -38203,6 +38246,7 @@ export namespace Prisma {
     is_current?: boolean
     createdAt?: Date | string
     updatedAt?: Date | string
+    quantity_remaining?: number | null
     assigned_worker_id?: number | null
   }
 
@@ -38227,6 +38271,7 @@ export namespace Prisma {
     is_current?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    quantity_remaining?: NullableIntFieldUpdateOperationsInput | number | null
     assigned_worker?: workersUpdateOneWithoutDepartment_assignmentsNestedInput
     department?: departmentsUpdateOneWithoutDept_batchesNestedInput
     sub_batch?: sub_batchesUpdateOneWithoutDept_linksNestedInput
@@ -38240,6 +38285,7 @@ export namespace Prisma {
     is_current?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    quantity_remaining?: NullableIntFieldUpdateOperationsInput | number | null
     assigned_worker_id?: NullableIntFieldUpdateOperationsInput | number | null
   }
 
@@ -38497,6 +38543,7 @@ export namespace Prisma {
     is_current?: boolean
     createdAt?: Date | string
     updatedAt?: Date | string
+    quantity_remaining?: number | null
     assigned_worker_id?: number | null
   }
 
@@ -38597,6 +38644,7 @@ export namespace Prisma {
     is_current?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    quantity_remaining?: NullableIntFieldUpdateOperationsInput | number | null
     assigned_worker?: workersUpdateOneWithoutDepartment_assignmentsNestedInput
     department?: departmentsUpdateOneWithoutDept_batchesNestedInput
     history?: department_sub_batch_historyUpdateManyWithoutDepartment_sub_batchNestedInput
@@ -38609,6 +38657,7 @@ export namespace Prisma {
     is_current?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    quantity_remaining?: NullableIntFieldUpdateOperationsInput | number | null
     assigned_worker_id?: NullableIntFieldUpdateOperationsInput | number | null
     history?: department_sub_batch_historyUncheckedUpdateManyWithoutDepartment_sub_batchNestedInput
   }
@@ -38620,6 +38669,7 @@ export namespace Prisma {
     is_current?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    quantity_remaining?: NullableIntFieldUpdateOperationsInput | number | null
     assigned_worker_id?: NullableIntFieldUpdateOperationsInput | number | null
   }
 
@@ -38710,6 +38760,7 @@ export namespace Prisma {
     is_current?: boolean
     createdAt?: Date | string
     updatedAt?: Date | string
+    quantity_remaining?: number | null
     assigned_worker_id?: number | null
   }
 
@@ -38839,6 +38890,7 @@ export namespace Prisma {
     is_current?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    quantity_remaining?: NullableIntFieldUpdateOperationsInput | number | null
     assigned_worker?: workersUpdateOneWithoutDepartment_assignmentsNestedInput
     sub_batch?: sub_batchesUpdateOneWithoutDept_linksNestedInput
     history?: department_sub_batch_historyUpdateManyWithoutDepartment_sub_batchNestedInput
@@ -38851,6 +38903,7 @@ export namespace Prisma {
     is_current?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    quantity_remaining?: NullableIntFieldUpdateOperationsInput | number | null
     assigned_worker_id?: NullableIntFieldUpdateOperationsInput | number | null
     history?: department_sub_batch_historyUncheckedUpdateManyWithoutDepartment_sub_batchNestedInput
   }
@@ -38862,6 +38915,7 @@ export namespace Prisma {
     is_current?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    quantity_remaining?: NullableIntFieldUpdateOperationsInput | number | null
     assigned_worker_id?: NullableIntFieldUpdateOperationsInput | number | null
   }
 
@@ -39012,6 +39066,7 @@ export namespace Prisma {
     is_current?: boolean
     createdAt?: Date | string
     updatedAt?: Date | string
+    quantity_remaining?: number | null
   }
 
   export type worker_logsUpdateWithoutWorkerInput = {
@@ -39071,6 +39126,7 @@ export namespace Prisma {
     is_current?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    quantity_remaining?: NullableIntFieldUpdateOperationsInput | number | null
     department?: departmentsUpdateOneWithoutDept_batchesNestedInput
     sub_batch?: sub_batchesUpdateOneWithoutDept_linksNestedInput
     history?: department_sub_batch_historyUpdateManyWithoutDepartment_sub_batchNestedInput
@@ -39084,6 +39140,7 @@ export namespace Prisma {
     is_current?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    quantity_remaining?: NullableIntFieldUpdateOperationsInput | number | null
     history?: department_sub_batch_historyUncheckedUpdateManyWithoutDepartment_sub_batchNestedInput
   }
 
@@ -39095,6 +39152,7 @@ export namespace Prisma {
     is_current?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    quantity_remaining?: NullableIntFieldUpdateOperationsInput | number | null
   }
 
   export type rollsCreateManyVendorInput = {

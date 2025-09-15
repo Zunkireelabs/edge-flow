@@ -138,13 +138,14 @@ enum DepartmentStage {
 }
 
 model department_sub_batches {
-  id            Int             @id @default(autoincrement())
-  department_id Int?
-  sub_batch_id  Int?
-  stage         DepartmentStage @default(NEW_ARRIVAL) // Kanban column
-  is_current    Boolean         @default(false) // only true for active dept
-  createdAt     DateTime        @default(now())
-  updatedAt     DateTime        @updatedAt
+  id                 Int             @id @default(autoincrement())
+  department_id      Int?
+  sub_batch_id       Int?
+  stage              DepartmentStage @default(NEW_ARRIVAL) // Kanban column
+  is_current         Boolean         @default(false) // only true for active dept
+  createdAt          DateTime        @default(now())
+  updatedAt          DateTime        @updatedAt
+  quantity_remaining Int?
 
   assigned_worker_id Int?
   assigned_worker    workers? @relation(fields: [assigned_worker_id], references: [id])

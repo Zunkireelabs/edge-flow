@@ -172,64 +172,69 @@ interface RejectedOrAlteredPiece {
 
 export async function sendToProduction(
   subBatchId: number,
-  workflowTemplateId?: number, // optional
-  manualDepartments?: number[], // array of department IDs in order
-  rejectedPieces?: RejectedOrAlteredPiece[], // optional rejected pieces
-  alteredPieces?: RejectedOrAlteredPiece[] // optional altered pieces
+  workflowTemplateId?: number,
+  manualDepartments?: number[],
+  rejectedPieces?: RejectedOrAlteredPiece[],
+  alteredPieces?: RejectedOrAlteredPiece[]
 ) {
-  let steps;
+  return await prisma.$transaction(async (tx) => {
+    let steps;
 
-  // 1️⃣ Determine workflow steps
-  if (workflowTemplateId) {
-    const templateSteps = await prisma.workflow_steps.findMany({
-      where: { workflow_template_id: workflowTemplateId },
-      orderBy: { step_index: "asc" },
+    if (workflowTemplateId) {
+      const templateSteps = await tx.workflow_steps.findMany({
+        where: { workflow_template_id: workflowTemplateId },
+        orderBy: { step_index: "asc" },
+      });
+      if (!templateSteps.length)
+        throw new Error("Workflow template has no steps");
+
+      steps = templateSteps.map((step) => ({
+        step_index: step.step_index,
+        department_id: step.department_id,
+      }));
+    } else if (manualDepartments && manualDepartments.length > 0) {
+      steps = manualDepartments.map((deptId, index) => ({
+        step_index: index,
+        department_id: deptId,
+      }));
+    } else {
+      throw new Error(
+        "Workflow must be provided either by template or manual departments"
+      );
+    }
+
+    // 1️⃣ Create or reuse workflow
+    const workflow = await tx.sub_batch_workflows.upsert({
+      where: { sub_batch_id: subBatchId },
+      update: {},
+      create: {
+        sub_batch_id: subBatchId,
+        current_step_index: 0,
+        steps: { create: steps },
+      },
+      include: { steps: true },
     });
 
-    if (!templateSteps.length)
-      throw new Error("Workflow template has no steps");
+    const firstDeptId = workflow.steps[0].department_id;
 
-    steps = templateSteps.map((step) => ({
-      step_index: step.step_index,
-      department_id: step.department_id,
-    }));
-  } else if (manualDepartments && manualDepartments.length > 0) {
-    steps = manualDepartments.map((deptId, index) => ({
-      step_index: index,
-      department_id: deptId,
-    }));
-  } else {
-    throw new Error(
-      "Workflow must be provided either by template or manual departments"
-    );
-  }
+    const subBatch = await tx.sub_batches.findUnique({
+      where: { id: subBatchId },
+    });
 
-  // 2️⃣ Create sub-batch workflow
-  const workflow = await prisma.sub_batch_workflows.create({
-    data: {
-      sub_batch_id: subBatchId,
-      current_step_index: 0,
-      steps: { create: steps },
-    },
-    include: { steps: true },
-  });
+    const firstDeptSubBatch = await tx.department_sub_batches.create({
+      data: {
+        sub_batch_id: subBatchId,
+        department_id: firstDeptId,
+        stage: "NEW_ARRIVAL",
+        is_current: true,
+        quantity_remaining: subBatch?.expected_items || 0,
+      },
+    });
 
-  // 3️⃣ Send sub-batch to first department
-  const firstDeptId = workflow.steps[0].department_id;
-  const firstDeptSubBatch = await prisma.department_sub_batches.create({
-    data: {
-      sub_batch_id: subBatchId,
-      department_id: firstDeptId,
-      stage: DepartmentStage.NEW_ARRIVAL,
-      is_current: true,
-    },
-  });
-
-  // 4️⃣ Handle rejected pieces (optional)
-  if (rejectedPieces?.length) {
-    for (const rejected of rejectedPieces) {
-      await prisma.$transaction(async (tx) => {
-        const r = await tx.sub_batch_rejected.create({
+    // 2️⃣ Handle rejected pieces
+    if (rejectedPieces?.length) {
+      for (const rejected of rejectedPieces) {
+        await tx.sub_batch_rejected.create({
           data: {
             sub_batch_id: subBatchId,
             quantity: rejected.quantity,
@@ -238,12 +243,25 @@ export async function sendToProduction(
           },
         });
 
+        // reduce quantity from original dept
+        await tx.department_sub_batches.updateMany({
+          where: {
+            sub_batch_id: subBatchId,
+            department_id: firstDeptId,
+            is_current: true,
+          },
+          data: {
+            quantity_remaining: { decrement: rejected.quantity },
+          },
+        });
+
         const deptSubBatch = await tx.department_sub_batches.create({
           data: {
             sub_batch_id: subBatchId,
             department_id: rejected.targetDepartmentId,
-            stage: DepartmentStage.NEW_ARRIVAL,
+            stage: "NEW_ARRIVAL",
             is_current: true,
+            quantity_remaining: rejected.quantity,
           },
         });
 
@@ -252,20 +270,18 @@ export async function sendToProduction(
             department_sub_batch_id: deptSubBatch.id,
             sub_batch_id: subBatchId,
             from_stage: null,
-            to_stage: DepartmentStage.NEW_ARRIVAL,
+            to_stage: "NEW_ARRIVAL",
             to_department_id: rejected.targetDepartmentId,
             reason: rejected.reason,
           },
         });
-      });
+      }
     }
-  }
 
-  // 5️⃣ Handle altered pieces (optional, same as rejected)
-  if (alteredPieces?.length) {
-    for (const altered of alteredPieces) {
-      await prisma.$transaction(async (tx) => {
-        const a = await tx.sub_batch_altered.create({
+    // 3️⃣ Handle altered pieces
+    if (alteredPieces?.length) {
+      for (const altered of alteredPieces) {
+        await tx.sub_batch_altered.create({
           data: {
             sub_batch_id: subBatchId,
             quantity: altered.quantity,
@@ -274,12 +290,24 @@ export async function sendToProduction(
           },
         });
 
+        await tx.department_sub_batches.updateMany({
+          where: {
+            sub_batch_id: subBatchId,
+            department_id: firstDeptId,
+            is_current: true,
+          },
+          data: {
+            quantity_remaining: { decrement: altered.quantity },
+          },
+        });
+
         const deptSubBatch = await tx.department_sub_batches.create({
           data: {
             sub_batch_id: subBatchId,
             department_id: altered.targetDepartmentId,
-            stage: DepartmentStage.NEW_ARRIVAL,
+            stage: "NEW_ARRIVAL",
             is_current: true,
+            quantity_remaining: altered.quantity,
           },
         });
 
@@ -288,16 +316,16 @@ export async function sendToProduction(
             department_sub_batch_id: deptSubBatch.id,
             sub_batch_id: subBatchId,
             from_stage: null,
-            to_stage: DepartmentStage.NEW_ARRIVAL,
+            to_stage: "NEW_ARRIVAL",
             to_department_id: altered.targetDepartmentId,
             reason: altered.reason,
           },
         });
-      });
+      }
     }
-  }
 
-  return { workflow, firstDeptSubBatch };
+    return { workflow, firstDeptSubBatch };
+  });
 }
 
 

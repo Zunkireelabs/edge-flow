@@ -210,6 +210,7 @@ exports.Prisma.Department_sub_batchesScalarFieldEnum = {
   is_current: 'is_current',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt',
+  quantity_remaining: 'quantity_remaining',
   assigned_worker_id: 'assigned_worker_id'
 };
 
