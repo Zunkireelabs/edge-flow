@@ -12,8 +12,6 @@ export enum DepartmentStage {
   COMPLETED = "COMPLETED",
 }
 
-
-
 interface AlteredPieceInput {
   sub_batch_id: number;
   quantity: number;
@@ -33,17 +31,25 @@ export const createAlteredSubBatch = async (data: AlteredPieceInput) => {
       },
     });
 
-    // 2️⃣ Add to department_sub_batches for target department
+    // 2️⃣ Get original sub-batch to know estimated pieces
+    const subBatch = await tx.sub_batches.findUnique({
+      where: { id: data.sub_batch_id },
+    });
+    if (!subBatch) throw new Error("Sub-batch not found");
+
+    // 3️⃣ Add to department_sub_batches for target department with quantity_remaining
     const deptSubBatch = await tx.department_sub_batches.create({
       data: {
         sub_batch_id: data.sub_batch_id,
         department_id: data.target_department_id,
         stage: DepartmentStage.NEW_ARRIVAL,
         is_current: true,
+        quantity_remaining: data.quantity, // use rejected/altered pieces
+        remarks: "Altered"
       },
     });
 
-    // 3️⃣ Log history
+    // 4️⃣ Log history
     await tx.department_sub_batch_history.create({
       data: {
         department_sub_batch_id: deptSubBatch.id,

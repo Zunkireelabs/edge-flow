@@ -13,6 +13,7 @@ import supervisorRoutes from "./src/routes/supervisor";
 import workerLogRoutes from "./src/routes/workerLog";
 import subBatchRejectedRoutes from "./src/routes/subBatchRejected";
 import subBatchAlteredRoutes from "./src/routes/subBatchAltered";
+import subBatchWorkflowRoutes from "./src/routes/subBatchWorkflow";
 
 
 dotenv.config();
@@ -40,6 +41,7 @@ app.use("/api/batches", batchRoutes);
 //Sub-Batch Routes
 app.use("/api/sub-batches", subBatchRoutes);
 
+
 // Worker Routes
 app.use("/api/workers", workerRoutes);
 
@@ -58,6 +60,9 @@ app.use("/api/worker-logs", workerLogRoutes);
 // sub-batch rejected and altered routes
 app.use("/api/sub-batch-rejected", subBatchRejectedRoutes);
 app.use("/api/sub-batch-altered", subBatchAlteredRoutes);
+
+// sub-batch Workflow Routes
+app.use("/api/sub-batches/workflow", subBatchWorkflowRoutes);
 
 
 // Optional test route

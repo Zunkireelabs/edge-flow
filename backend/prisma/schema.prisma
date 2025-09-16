@@ -146,6 +146,7 @@ model department_sub_batches {
   createdAt        DateTime        @default(now())
   updatedAt        DateTime        @updatedAt
   quantity_remaining Int?
+  remarks          String?
 
   assigned_worker_id Int?
   assigned_worker  workers?        @relation(fields: [assigned_worker_id], references: [id])

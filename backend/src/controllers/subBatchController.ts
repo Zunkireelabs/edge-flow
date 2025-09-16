@@ -92,7 +92,6 @@ export const sendSubBatchToProduction = async (req: Request, res: Response) => {
     // Pass both to service
     const workflow = await sendToProduction(
       subBatchId,
-      workflowTemplateId,
       manualDepartments
     );
 
