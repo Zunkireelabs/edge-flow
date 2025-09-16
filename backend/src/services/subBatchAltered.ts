@@ -1,13 +1,11 @@
-// src/services/subBatchAlteredService.ts
-import { PrismaClient } from "@prisma/client";
+// src/services/subBatchAltered.ts
+import { PrismaClient, Prisma } from "@prisma/client";
 
 export enum DepartmentStage {
   NEW_ARRIVAL = "NEW_ARRIVAL",
   IN_PROGRESS = "IN_PROGRESS",
   COMPLETED = "COMPLETED",
 }
-
-
 
 const prisma = new PrismaClient();
 
@@ -19,7 +17,7 @@ interface AlteredPieceInput {
 }
 
 export const createAlteredSubBatch = async (data: AlteredPieceInput) => {
-  return await prisma.$transaction(async (tx) => {
+  return await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
     // 1️⃣ Create altered record
     const altered = await tx.sub_batch_altered.create({
       data: {

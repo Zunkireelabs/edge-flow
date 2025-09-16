@@ -1,15 +1,18 @@
 // src/services/subBatchService.ts
-import prisma from "../config/db";
+import  prisma from "../config/db";
 import {
   SubBatchPayload,
   SubBatchPayloadWithArrays,
 } from "../types/subBatchTypes";
+import { workflow_steps, Prisma } from "../generated/prisma";
 
 export enum DepartmentStage {
   NEW_ARRIVAL = "NEW_ARRIVAL",
   IN_PROGRESS = "IN_PROGRESS",
   COMPLETED = "COMPLETED",
 }
+
+
 
 
 export const createSubBatch = async (data: SubBatchPayload) => {
@@ -170,6 +173,14 @@ interface RejectedOrAlteredPiece {
 
 
 
+
+
+interface RejectedOrAlteredPiece {
+  quantity: number;
+  targetDepartmentId: number;
+  reason: string;
+}
+
 export async function sendToProduction(
   subBatchId: number,
   workflowTemplateId?: number,
@@ -177,7 +188,7 @@ export async function sendToProduction(
   rejectedPieces?: RejectedOrAlteredPiece[],
   alteredPieces?: RejectedOrAlteredPiece[]
 ) {
-  return await prisma.$transaction(async (tx) => {
+  return await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
     let steps;
 
     if (workflowTemplateId) {

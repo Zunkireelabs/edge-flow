@@ -1,5 +1,5 @@
 // src/services/subBatchRejected.ts
-import { PrismaClient } from "../generated/prisma"; // adjust if using default @prisma/client
+import { PrismaClient, Prisma } from "../generated/prisma"; // adjust if using default @prisma/client
 
 const prisma = new PrismaClient();
 
@@ -14,7 +14,7 @@ interface RejectedData {
 export async function createRejectedSubBatch(data: RejectedData) {
   const { sub_batch_id, quantity, reason, sent_to_department_id } = data;
 
-  return await prisma.$transaction(async (tx) => {
+  return await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
     // 1️⃣ Add record to sub_batch_rejected
     const rejected = await tx.sub_batch_rejected.create({
       data: {
