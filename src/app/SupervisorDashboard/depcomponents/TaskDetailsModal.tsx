@@ -336,8 +336,13 @@ const TaskDetailsModal: React.FC<TaskDetailsModalProps> = ({ isOpen, onClose, ta
     const latestAlterationLog = alterationLogs.length > 0 ? alterationLogs[alterationLogs.length - 1] : null;
 
     // Log task data for debugging
+    console.log('======= TASK DETAILS MODAL - FULL DATA STRUCTURE =======');
+    console.log('Full Task Data Object:', JSON.stringify(taskData, null, 2));
+    console.log('Task Data Keys:', Object.keys(taskData));
+    console.log('========================================================');
     console.log('======= TASK DETAILS MODAL DATA =======');
     console.log('Task Data:', taskData);
+    console.log('ID (department_sub_batch_id):', taskData.id);
     console.log('Remarks:', taskData.remarks);
     console.log('Quantity Remaining:', taskData.quantity_remaining);
     console.log('Sub-batch Estimated Pieces:', taskData.sub_batch?.estimated_pieces);
@@ -345,6 +350,19 @@ const TaskDetailsModal: React.FC<TaskDetailsModalProps> = ({ isOpen, onClose, ta
     console.log('Is Altered:', taskData.remarks?.toLowerCase().includes('alter'));
     console.log('Rejection Source:', taskData.rejection_source);
     console.log('Alteration Source:', taskData.alteration_source);
+
+    // Check for any production summary fields from backend
+    console.log('======= CHECKING FOR BACKEND PRODUCTION COUNTS =======');
+    console.log('total_work_done:', taskData.total_work_done);
+    console.log('total_worked:', taskData.total_worked);
+    console.log('total_altered:', taskData.total_altered);
+    console.log('total_rejected:', taskData.total_rejected);
+    console.log('total_processed:', taskData.total_processed);
+    console.log('quantity_worked:', taskData.quantity_worked);
+    console.log('work_summary:', taskData.work_summary);
+    console.log('production_summary:', taskData.production_summary);
+    console.log('======================================================');
+
     if (taskData.rejection_source) {
         console.log('  - From Department:', taskData.rejection_source.from_department_name);
         console.log('  - Reason:', taskData.rejection_source.reason);
@@ -355,14 +373,14 @@ const TaskDetailsModal: React.FC<TaskDetailsModalProps> = ({ isOpen, onClose, ta
         console.log('  - Reason:', taskData.alteration_source.reason);
         console.log('  - Quantity:', taskData.alteration_source.quantity);
     }
-    console.log('======= WORK PROGRESS TRACKING =======');
+    console.log('======= WORK PROGRESS TRACKING (CALCULATED) =======');
     console.log('Worker Records:', workerRecords);
-    console.log('Total Work Done:', totalWorkDone);
-    console.log('Total Altered:', totalAltered);
-    console.log('Total Rejected:', totalRejected);
-    console.log('Total Processed:', totalProcessed);
+    console.log('Total Work Done (calculated from records):', totalWorkDone);
+    console.log('Total Altered (calculated from records):', totalAltered);
+    console.log('Total Rejected (calculated from records):', totalRejected);
+    console.log('Total Processed (calculated):', totalProcessed);
     console.log('Quantity to Work:', quantityToWork);
-    console.log('Remaining Work:', remainingWork);
+    console.log('Remaining Work (calculated):', remainingWork);
     console.log('Progress Percentage:', quantityToWork > 0 ? Math.round((totalProcessed / quantityToWork) * 100) : 0, '%');
     console.log('======================================');
 
@@ -684,12 +702,12 @@ const TaskDetailsModal: React.FC<TaskDetailsModalProps> = ({ isOpen, onClose, ta
                                             <p className="text-2xl font-bold text-blue-600">{quantityToWork.toLocaleString()}</p>
                                         </div>
 
-                                        {/* Work Done */}
-                                        <div className="bg-white rounded-lg p-4 border border-gray-300">
+                                        {/* Work Done - COMMENTED OUT */}
+                                        {/* <div className="bg-white rounded-lg p-4 border border-gray-300">
                                             <p className="text-xs text-gray-600 font-semibold mb-1">Work Done</p>
                                             <p className="text-2xl font-bold text-gray-900">{totalWorkDone.toLocaleString()}</p>
                                             <p className="text-xs text-gray-500 mt-1">Completed pieces</p>
-                                        </div>
+                                        </div> */}
 
                                         {/* Altered */}
                                         <div className="bg-white rounded-lg p-4 border border-gray-300">
@@ -705,15 +723,15 @@ const TaskDetailsModal: React.FC<TaskDetailsModalProps> = ({ isOpen, onClose, ta
                                             <p className="text-xs text-gray-500 mt-1">Rejected pieces</p>
                                         </div>
 
-                                        {/* Total Processed */}
-                                        <div className="bg-white rounded-lg p-4 border border-gray-300">
+                                        {/* Total Processed - COMMENTED OUT */}
+                                        {/* <div className="bg-white rounded-lg p-4 border border-gray-300">
                                             <p className="text-xs text-gray-600 font-semibold mb-1">Total Processed</p>
                                             <p className="text-2xl font-bold text-gray-900">{totalProcessed.toLocaleString()}</p>
                                             <p className="text-xs text-gray-500 mt-1">Done + Altered + Rejected</p>
-                                        </div>
+                                        </div> */}
 
-                                        {/* Remaining */}
-                                        <div className="bg-white rounded-lg p-4 border-2 border-blue-500">
+                                        {/* Remaining - COMMENTED OUT */}
+                                        {/* <div className="bg-white rounded-lg p-4 border-2 border-blue-500">
                                             <p className="text-xs text-gray-600 font-semibold mb-1">Remaining</p>
                                             <p className="text-2xl font-bold text-blue-600">
                                                 {remainingWork.toLocaleString()}
@@ -721,7 +739,7 @@ const TaskDetailsModal: React.FC<TaskDetailsModalProps> = ({ isOpen, onClose, ta
                                             <p className="text-xs text-gray-500 mt-1">
                                                 {remainingWork > 0 ? 'Work pending' : 'All complete!'}
                                             </p>
-                                        </div>
+                                        </div> */}
                                     </div>
 
 

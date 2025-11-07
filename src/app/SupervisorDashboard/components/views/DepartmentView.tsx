@@ -224,6 +224,21 @@ const SupervisorKanban = () => {
         console.log("Completed items:", result.data.completed);
         console.log("Completed count:", result.data.completed?.length || 0);
 
+        // Log first item from each stage to see structure
+        console.log("======= SAMPLE ITEM STRUCTURE =======");
+        const sampleItem = result.data.newArrival[0] || result.data.inProgress[0] || result.data.completed[0];
+        if (sampleItem) {
+          console.log("Sample Item Full Structure:", JSON.stringify(sampleItem, null, 2));
+          console.log("Sample Item Keys:", Object.keys(sampleItem));
+          console.log("Looking for production counts in item:");
+          console.log("  - total_work_done:", sampleItem.total_work_done);
+          console.log("  - total_altered:", sampleItem.total_altered);
+          console.log("  - total_rejected:", sampleItem.total_rejected);
+          console.log("  - quantity_worked:", sampleItem.quantity_worked);
+          console.log("  - work_summary:", sampleItem.work_summary);
+        }
+        console.log("====================================");
+
         setKanbanData(result.data);
 
         // Set supervisor department name from the first item if available

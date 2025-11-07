@@ -8,6 +8,7 @@ interface Task {
   dueDate: string;
   batch: string;
   priority?: 'urgent' | 'at-risk';
+  sentToDepartment?: string;  // Department name where this was sent
 }
 
 interface Column {
@@ -68,7 +69,8 @@ const initialData: Column[] = [
         title: 'Wool Cashmere',
         startDate: 'Aug 12, 2024',
         dueDate: 'Aug 26, 2024',
-        batch: 'Batch Batch 3'
+        batch: 'Batch Batch 3',
+        sentToDepartment: 'Stitching Department'  // Example: Shows which department this was sent to
       }
     ]
   }
@@ -198,9 +200,16 @@ export default function KanbanBoard() {
                           {getPriorityText(task.priority)}
                         </div>
                       )}
-                      
-                      <h4 className="font-medium text-gray-900 mb-2">{task.title}</h4>
-                      
+
+                      <h4 className="font-medium text-gray-900 mb-2">
+                        {task.title}
+                        {task.sentToDepartment && (
+                          <span className="block text-xs font-semibold text-green-700 bg-green-100 px-2 py-1 rounded mt-1 w-fit">
+                            → Sent to: {task.sentToDepartment}
+                          </span>
+                        )}
+                      </h4>
+
                       <div className="space-y-1 text-xs text-gray-600">
                         <div className="flex items-center gap-1">
                           <Calendar size={12} />

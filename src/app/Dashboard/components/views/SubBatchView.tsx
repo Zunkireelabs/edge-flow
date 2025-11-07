@@ -20,6 +20,7 @@ interface SubBatch {
   roll_id?: number | null;
   batch_id?: number | null;
   department_id?: number | null;
+  status?: 'DRAFT' | 'IN_PRODUCTION' | 'COMPLETED' | 'CANCELLED';
 }
 
 interface Roll {
@@ -97,6 +98,42 @@ const SubBatchView = () => {
   const formatDate = (isoString: string | null | undefined) => {
     if (!isoString) return "";
     return new Date(isoString).toISOString().split("T")[0];
+  };
+
+  // Helper function to get status badge styling
+  const getStatusBadge = (status?: 'DRAFT' | 'IN_PRODUCTION' | 'COMPLETED' | 'CANCELLED') => {
+    switch (status) {
+      case 'DRAFT':
+        return (
+          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-200 text-gray-800">
+            Draft
+          </span>
+        );
+      case 'IN_PRODUCTION':
+        return (
+          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+            In Production
+          </span>
+        );
+      case 'COMPLETED':
+        return (
+          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+            Completed
+          </span>
+        );
+      case 'CANCELLED':
+        return (
+          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+            Cancelled
+          </span>
+        );
+      default:
+        return (
+          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-200 text-gray-800">
+            Draft
+          </span>
+        );
+    }
   };
 
   // Fetch data with proper loading states
@@ -493,6 +530,31 @@ const SubBatchView = () => {
         </button>
       </div>
 
+      {/* Status Legend */}
+      <div className="mb-4 p-4 bg-white rounded-lg shadow-sm border border-gray-200">
+        <div className="flex items-center gap-6">
+          <span className="text-sm font-semibold text-gray-700">Status Legend:</span>
+          <div className="flex items-center gap-2">
+            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-200 text-gray-800">
+              Draft
+            </span>
+            <span className="text-xs text-gray-600">- Not yet sent to production</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+              In Production
+            </span>
+            <span className="text-xs text-gray-600">- Currently in departments</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+              Completed
+            </span>
+            <span className="text-xs text-gray-600">- All departments finished</span>
+          </div>
+        </div>
+      </div>
+
       {/* Table */}
       <div className="bg-white rounded-lg shadow-sm">
         {loading ? (
@@ -520,6 +582,7 @@ const SubBatchView = () => {
                   <th className="p-2 text-left">SN</th>
                   <th className="p-2 text-left">ID</th>
                   <th className="p-2 text-left">Name</th>
+                  <th className="p-2 text-left">Status</th>
                   <th className="p-2 text-left">Parent Roll</th>
                   <th className="p-2 text-left">Parent Batch</th>
                   <th className="p-2 text-left">Estimated Pieces</th>
@@ -534,6 +597,7 @@ const SubBatchView = () => {
                     <td className="p-2 bg-gray-50 font-inter font-regular">{index + 1}</td>
                     <td className="p-2 bg-gray-50 font-inter">{`B${sb.id.toString().padStart(4, "0")}`}</td>
                     <td className="p-2 bg-gray-50 font-inter">{sb.name}</td>
+                    <td className="p-2 bg-gray-50 font-inter">{getStatusBadge(sb.status)}</td>
                     <td className="p-2 bg-gray-50 font-inter">{getRollName(sb.roll_id)}</td>
                     <td className="p-2 bg-gray-50 font-inter">{getBatchName(sb.batch_id)}</td>
                     <td className="p-2 bg-gray-50 font-inter">{sb.estimated_pieces}</td>
