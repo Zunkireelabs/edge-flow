@@ -47,6 +47,7 @@ export interface WorkerRecord {
   rejectionReason?: string;
   alteration?: number;
   alterationNote?: string;
+  isBillable?: boolean;
 }
 
 interface AddRecordModalProps {
@@ -56,6 +57,8 @@ interface AddRecordModalProps {
   subBatch: SubBatch | null;
   editRecord?: WorkerRecord | null;
   mode?: 'add' | 'edit' | 'preview';
+  quantityToWork?: number;
+  existingRecords?: any[];
 }
 
 const AddRecordModal: React.FC<AddRecordModalProps> = ({
@@ -65,6 +68,8 @@ const AddRecordModal: React.FC<AddRecordModalProps> = ({
   subBatch,
   editRecord = null,
   mode = 'add',
+  quantityToWork = 0,
+  existingRecords = [],
 }) => {
   const [formData, setFormData] = useState({
     workerId: '',
@@ -82,6 +87,7 @@ const AddRecordModal: React.FC<AddRecordModalProps> = ({
     alterationReturnTo: '',
     alterationNote: '',
     selectedAttachments: [] as number[], // Store selected attachment IDs
+    isBillable: true, // Default to true (billable)
   });
 
   const [workers, setWorkers] = useState<Worker[]>([]);
@@ -90,6 +96,38 @@ const AddRecordModal: React.FC<AddRecordModalProps> = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const isPreviewMode = mode === 'preview';
+
+  // Calculate remaining quantity balance
+  const calculateRemainingQuantity = () => {
+    // Calculate total quantity worked from all existing records
+    const totalWorked = existingRecords.reduce((sum, record) => {
+      // If we're editing, exclude the current record from the calculation
+      if (mode === 'edit' && editRecord && record.id === editRecord.id) {
+        return sum;
+      }
+      return sum + (record.qtyWorked || 0);
+    }, 0);
+
+    const remaining = quantityToWork - totalWorked;
+
+    console.log('======= QUANTITY BALANCE CALCULATION =======');
+    console.log('Quantity to Work (Original):', quantityToWork);
+    console.log('Total Already Worked:', totalWorked);
+    console.log('Remaining Available:', remaining);
+    console.log('Mode:', mode);
+    if (mode === 'edit' && editRecord) {
+      console.log('Editing Record - Current Qty Worked:', editRecord.qtyWorked);
+    }
+    console.log('==========================================');
+
+    return {
+      totalWorked,
+      remaining,
+      originalQuantity: quantityToWork
+    };
+  };
+
+  const quantityBalance = calculateRemainingQuantity();
 
   // Load workers and departments when modal opens
   useEffect(() => {
@@ -110,22 +148,30 @@ const AddRecordModal: React.FC<AddRecordModalProps> = ({
           return d;
         }
       };
+      // Helper function to clean values (treat 0, "-", and empty as empty)
+      const cleanValue = (value: any, isNumber = false) => {
+        if (!value || value === '-' || value === 0) return '';
+        if (isNumber && parseInt(value) === 0) return '';
+        return value.toString();
+      };
+
       setFormData({
         workerId: '', // will be set after workers load
         workerName: editRecord.worker,
         date: formatDate(editRecord.date),
         sizeCategory: editRecord.realCategory || '',
         particulars: editRecord.particulars || '',
-        qtyReceived: editRecord.qtyReceived?.toString() || '',
-        qtyWorked: editRecord.qtyWorked?.toString() || '',
-        unitPrice: editRecord.unitPrice?.toString() || '',
-        rejectReturn: editRecord.rejectReturn?.toString() || '',
-        returnTo: editRecord.returnTo || '',
-        rejectionReason: editRecord.rejectionReason || '',
-        alteration: editRecord.alteration?.toString() || '',
+        qtyReceived: cleanValue(editRecord.qtyReceived, true),
+        qtyWorked: cleanValue(editRecord.qtyWorked, true),
+        unitPrice: cleanValue(editRecord.unitPrice, true),
+        rejectReturn: cleanValue(editRecord.rejectReturn, true),
+        returnTo: cleanValue(editRecord.returnTo),
+        rejectionReason: cleanValue(editRecord.rejectionReason),
+        alteration: cleanValue(editRecord.alteration, true),
         alterationReturnTo: '',
-        alterationNote: editRecord.alterationNote || '',
+        alterationNote: cleanValue(editRecord.alterationNote),
         selectedAttachments: [],
+        isBillable: editRecord.isBillable ?? true, // Default to true if not set
       });
     } else if (mode === 'add') {
       setFormData({
@@ -144,6 +190,7 @@ const AddRecordModal: React.FC<AddRecordModalProps> = ({
         alterationReturnTo: '',
         alterationNote: '',
         selectedAttachments: [],
+        isBillable: true, // Default to true (billable)
       });
     }
   }, [isOpen, editRecord, mode]);
@@ -224,30 +271,47 @@ const AddRecordModal: React.FC<AddRecordModalProps> = ({
       return;
     }
 
+    // Validate: quantity_worked cannot exceed available balance
+    if (quantityToWork > 0 && qtyWorked > quantityBalance.remaining) {
+      alert(
+        `Quantity worked (${qtyWorked}) cannot exceed available balance (${quantityBalance.remaining})!\n\n` +
+        `Original Quantity: ${quantityBalance.originalQuantity}\n` +
+        `Already Worked: ${quantityBalance.totalWorked}\n` +
+        `Available Balance: ${quantityBalance.remaining}`
+      );
+      return;
+    }
+
     // Validate rejected data - all fields must be filled if any is filled
-    const hasRejectData = formData.rejectReturn || formData.returnTo || formData.rejectionReason;
-    if (hasRejectData) {
-      if (!formData.rejectReturn || !formData.returnTo || !formData.rejectionReason) {
+    // Treat "0", "-", and empty as "not filled"
+    const rejectQty = formData.rejectReturn ? parseInt(formData.rejectReturn) : 0;
+    const hasRejectQty = rejectQty > 0;
+    const hasRejectReturn = formData.returnTo && formData.returnTo.trim() && formData.returnTo !== '-';
+    const hasRejectReason = formData.rejectionReason && formData.rejectionReason.trim() && formData.rejectionReason !== '-';
+
+    const hasAnyRejectData = hasRejectQty || hasRejectReturn || hasRejectReason;
+
+    if (hasAnyRejectData) {
+      // If any rejection field has real data, all must be filled
+      if (!hasRejectQty || !hasRejectReturn || !hasRejectReason) {
         alert('Please fill all rejection fields (Reject & Return, Return To, and Reason) or leave them all empty');
-        return;
-      }
-      const rejectQty = parseInt(formData.rejectReturn);
-      if (isNaN(rejectQty) || rejectQty <= 0) {
-        alert('Reject & Return quantity must be a positive number');
         return;
       }
     }
 
     // Validate alteration data - all fields must be filled if any is filled
-    const hasAlterationData = formData.alteration || formData.alterationReturnTo || formData.alterationNote;
-    if (hasAlterationData) {
-      if (!formData.alteration || !formData.alterationReturnTo || !formData.alterationNote) {
+    // Treat "0", "-", and empty as "not filled"
+    const alterQty = formData.alteration ? parseInt(formData.alteration) : 0;
+    const hasAlterQty = alterQty > 0;
+    const hasAlterReturn = formData.alterationReturnTo && formData.alterationReturnTo.trim() && formData.alterationReturnTo !== '-';
+    const hasAlterNote = formData.alterationNote && formData.alterationNote.trim() && formData.alterationNote !== '-';
+
+    const hasAnyAlterationData = hasAlterQty || hasAlterReturn || hasAlterNote;
+
+    if (hasAnyAlterationData) {
+      // If any alteration field has real data, all must be filled
+      if (!hasAlterQty || !hasAlterReturn || !hasAlterNote) {
         alert('Please fill all alteration fields (Alteration, Alteration Return To, and Alteration Note) or leave them all empty');
-        return;
-      }
-      const alterQty = parseInt(formData.alteration);
-      if (isNaN(alterQty) || alterQty <= 0) {
-        alert('Alteration quantity must be a positive number');
         return;
       }
     }
@@ -285,6 +349,10 @@ const AddRecordModal: React.FC<AddRecordModalProps> = ({
         payload.attachment_ids = formData.selectedAttachments;
         console.log('Adding attachment IDs:', payload.attachment_ids);
       }
+
+      // Add is_billable field
+      payload.is_billable = formData.isBillable;
+      console.log('Is Billable:', payload.is_billable);
 
       // Add rejected array if ALL rejection data exists and is valid
       if (formData.rejectReturn && formData.rejectReturn.trim() &&
@@ -554,6 +622,31 @@ const AddRecordModal: React.FC<AddRecordModalProps> = ({
             </div>
           </div>
 
+          {/* Quantity Balance Info */}
+          {quantityToWork > 0 && (
+            <div className=" rounded-lg p-4">
+              <div className="grid grid-cols-3 gap-4 text-sm">
+                <div>
+                  <p className="text-gray-600 font-medium">Original Quantity</p>
+                  <p className="text-lg font-bold text-gray-900">{quantityBalance.originalQuantity.toLocaleString()}</p>
+                </div>
+                <div>
+                  <p className="text-gray-600 font-medium">Already Worked</p>
+                  <p className="text-lg font-bold text-gray-900">{quantityBalance.totalWorked.toLocaleString()}</p>
+                </div>
+                <div>
+                  <p className="text-gray-600 font-medium">Available Balance</p>
+                  <p className={`text-lg font-bold ${quantityBalance.remaining > 0 ? 'text-green-600' : 'text-red-600'}`}>
+                    {quantityBalance.remaining.toLocaleString()}
+                  </p>
+                </div>
+              </div>
+              <p className="text-xs text-blue-800 mt-2">
+                 Quantity worked cannot exceed the available balance
+              </p>
+            </div>
+          )}
+
           {/* Qty & Unit Price */}
           <div className="grid grid-cols-2 gap-4">
             <div>
@@ -575,8 +668,14 @@ const AddRecordModal: React.FC<AddRecordModalProps> = ({
                 value={formData.qtyWorked}
                 onChange={handleChange}
                 disabled={isPreviewMode}
+                max={quantityBalance.remaining}
                 className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               />
+              {quantityBalance.remaining > 0 && (
+                <p className="text-xs text-gray-500 mt-1">
+                  Max: {quantityBalance.remaining.toLocaleString()} pieces
+                </p>
+              )}
             </div>
           </div>
 
@@ -724,6 +823,28 @@ const AddRecordModal: React.FC<AddRecordModalProps> = ({
                 className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               />
             </div>
+          </div>
+
+          {/* Is Billable Checkbox */}
+          <div className="mt-6 border-t pt-4">
+            <div className="flex items-center gap-3">
+              <input
+                type="checkbox"
+                name="isBillable"
+                checked={formData.isBillable}
+                onChange={(e) => setFormData(prev => ({ ...prev, isBillable: e.target.checked }))}
+                disabled={isPreviewMode}
+                className="w-5 h-5 text-blue-600 border-gray-300 rounded focus:ring-2 focus:ring-blue-500"
+              />
+              <label className="text-sm font-semibold text-gray-900">
+                Is Billable
+              </label>
+            </div>
+            <p className="text-xs text-gray-500 mt-2 ml-8">
+              {formData.isBillable
+                ? '✓ This work will be included in payment calculations'
+                : '✗ This work will NOT be included in payment calculations'}
+            </p>
           </div>
         </div>
 

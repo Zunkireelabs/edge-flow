@@ -17,6 +17,8 @@ const TaskDetailsModal: React.FC<TaskDetailsModalProps> = ({ isOpen, onClose, ta
     const [isAddRecordOpen, setIsAddRecordOpen] = useState(false);
     const [isPreviewOpen, setIsPreviewOpen] = useState(false);
     const [selectedRecord, setSelectedRecord] = useState<any | null>(null);
+    const [editRecord, setEditRecord] = useState<any | null>(null);
+    const [modalMode, setModalMode] = useState<'add' | 'edit' | 'preview'>('add');
     const [status, setStatus] = useState('NEW_ARRIVAL');
     const [workerRecords, setWorkerRecords] = useState<any[]>([]);
     const [loading, setLoading] = useState(false);
@@ -183,8 +185,9 @@ const TaskDetailsModal: React.FC<TaskDetailsModalProps> = ({ isOpen, onClose, ta
 
         console.log('Using subBatchId:', subBatchId);
 
-        // If card is ALREADY COMPLETED and sending to another department
-        if (taskData.stage === 'COMPLETED' && sendToDepartment) {
+        // Check the NEW status from dropdown, not the old taskData.stage
+        // If NEW status is COMPLETED and sending to another department
+        if (status === 'COMPLETED' && sendToDepartment) {
             console.log('✅ Advancing to next department...');
             console.log('Card type:', taskData.remarks || 'Regular');
 
@@ -261,12 +264,12 @@ const TaskDetailsModal: React.FC<TaskDetailsModalProps> = ({ isOpen, onClose, ta
             } finally {
                 setSaving(false);
             }
-        } else if (taskData.stage === 'COMPLETED' && !sendToDepartment) {
-            // Card is COMPLETED but no department selected - require selection
+        } else if (status === 'COMPLETED' && !sendToDepartment) {
+            // NEW status is COMPLETED but no department selected - require selection
             alert('Please select a department to send this completed task to');
             return;
         } else {
-            // Normal stage update (not COMPLETED)
+            // Normal stage update (NEW status is not COMPLETED, or changing from COMPLETED to IN_PROGRESS/NEW_ARRIVAL)
             try {
                 setSaving(true);
                 const token = localStorage.getItem('token');
@@ -384,7 +387,11 @@ const TaskDetailsModal: React.FC<TaskDetailsModalProps> = ({ isOpen, onClose, ta
     console.log('Progress Percentage:', quantityToWork > 0 ? Math.round((totalProcessed / quantityToWork) * 100) : 0, '%');
     console.log('======================================');
 
-    const handleAddRecord = () => setIsAddRecordOpen(true);
+    const handleAddRecord = () => {
+        setEditRecord(null);
+        setModalMode('add');
+        setIsAddRecordOpen(true);
+    };
 
     const handleSaveRecord = async () => {
         // Close the modal
@@ -397,6 +404,14 @@ const TaskDetailsModal: React.FC<TaskDetailsModalProps> = ({ isOpen, onClose, ta
     const handlePreviewRecord = (record: any) => {
         setSelectedRecord(record);
         setIsPreviewOpen(true);
+    };
+
+    const handleEditRecord = (record: any) => {
+        console.log('======= EDIT RECORD CLICKED =======');
+        console.log('Record to edit:', record);
+        setEditRecord(record);
+        setModalMode('edit');
+        setIsAddRecordOpen(true);
     };
 
     const handleDeleteRecord = async (id: number) => {
@@ -547,8 +562,8 @@ const TaskDetailsModal: React.FC<TaskDetailsModalProps> = ({ isOpen, onClose, ta
                                         </select>
                                     </div>
 
-                                    {/* Send to Department - Only show when card is ALREADY COMPLETED in database */}
-                                    {taskData.stage === 'COMPLETED' && (
+                                    {/* Send to Department - Show when status is COMPLETED (either already completed or changed to completed) */}
+                                    {status === 'COMPLETED' && (
                                         <div>
                                             <h4 className="text-medium font-semibold text-black mb-2">Send to Department</h4>
                                             <select
@@ -568,7 +583,7 @@ const TaskDetailsModal: React.FC<TaskDetailsModalProps> = ({ isOpen, onClose, ta
 
                                     <div>
                                         <h4 className="text-medium font-semibold text-black mb-2">
-                                            {taskData.quantity_remaining ? 'Quantity to Work' : 'Pieces'}
+                                            Original Pieces
                                         </h4>
                                         <div className={`rounded-lg px-6 py-2 mt-2 min-w-[150px] max-w-[200px] ${
                                             taskData.quantity_remaining
@@ -582,7 +597,7 @@ const TaskDetailsModal: React.FC<TaskDetailsModalProps> = ({ isOpen, onClose, ta
                                             </p>
                                             {taskData.quantity_remaining && taskData.quantity_remaining !== taskData.sub_batch?.estimated_pieces && (
                                                 <p className="text-xs text-gray-600 mt-1">
-                                                    Original: {taskData.sub_batch?.estimated_pieces?.toLocaleString()}
+                                                   Original Pieces: {taskData.sub_batch?.estimated_pieces?.toLocaleString()}
                                                 </p>
                                             )}
                                         </div>
@@ -597,26 +612,6 @@ const TaskDetailsModal: React.FC<TaskDetailsModalProps> = ({ isOpen, onClose, ta
                                         )}
                                     </div>
                                 </div>
-
-                                {/* Attachments - Only show when card is COMPLETED */}
-                                {taskData.stage === 'COMPLETED' && taskData.sub_batch?.attachments && taskData.sub_batch.attachments.length > 0 && (
-                                    <div className="mt-6">
-                                        <h4 className="font-semibold mb-3">Attachments</h4>
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                                            {taskData.sub_batch.attachments.map((attachment: any) => (
-                                                <div
-                                                    key={attachment.id}
-                                                    className="flex items-center justify-between bg-gray-50 p-2 rounded border border-gray-200"
-                                                >
-                                                    <span className="text-sm font-medium text-gray-800">{attachment.attachment_name}</span>
-                                                    <span className="text-xs text-gray-600 bg-white px-2 py-1 rounded border border-gray-300">
-                                                        {attachment.quantity}
-                                                    </span>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    </div>
-                                )}
 
                                 {/* Rejection/Alteration Log - Only show if this is a rejected or altered sub-batch */}
                                 {(taskData.rejection_source || taskData.alteration_source || taskData.remarks?.toLowerCase().includes('reject') || taskData.remarks?.toLowerCase().includes('alter')) && (latestRejectionLog || latestAlterationLog) && (
@@ -666,26 +661,23 @@ const TaskDetailsModal: React.FC<TaskDetailsModalProps> = ({ isOpen, onClose, ta
                                                 </p>
                                             </div>
                                         </div>
+                                    </div>
+                                )}
 
-                                        {/* Attachments - Show only for rejected/altered items */}
-                                        {taskData.sub_batch?.attachments && taskData.sub_batch.attachments.length > 0 && (
-                                            <div className="mt-6 pt-6 border-t border-gray-200">
-                                                <h4 className="text-sm font-semibold mb-3 text-gray-700">Attachments</h4>
-                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                                                    {taskData.sub_batch.attachments.map((attachment: any) => (
-                                                        <div
-                                                            key={attachment.id}
-                                                            className="flex items-center justify-between bg-gray-50 p-2 rounded border border-gray-200"
-                                                        >
-                                                            <span className="text-sm font-medium text-gray-800">{attachment.attachment_name}</span>
-                                                            <span className="text-xs text-gray-600 bg-white px-2 py-1 rounded border border-gray-300">
-                                                                Qty: {attachment.quantity}
-                                                            </span>
-                                                        </div>
-                                                    ))}
+                                {/* Attachments - Same styling as batch/sub-batch fields */}
+                                {taskData.sub_batch?.attachments && taskData.sub_batch.attachments.length > 0 && (
+                                    <div className="mt-8">
+                                        <h4 className="font-semibold text-black mb-4">Attachments</h4>
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                            {taskData.sub_batch.attachments.map((attachment: any) => (
+                                                <div key={attachment.id}>
+                                                    <label className="text-medium font-semibold text-black">{attachment.attachment_name}</label>
+                                                    <p className="text-gray-900 border border-gray-200 rounded-lg min-w-[90px] max-w-[150px] px-6 py-2 mt-1">
+                                                        {attachment.quantity}
+                                                    </p>
                                                 </div>
-                                            </div>
-                                        )}
+                                            ))}
+                                        </div>
                                     </div>
                                 )}
 
@@ -816,6 +808,7 @@ const TaskDetailsModal: React.FC<TaskDetailsModalProps> = ({ isOpen, onClose, ta
                                     <WorkerAssignmentTable
                                         records={workerRecords}
                                         onDelete={handleDeleteRecord}
+                                        onEdit={handleEditRecord}
                                         onPreview={handlePreviewRecord}
                                         loading={loading}
                                     />
@@ -849,7 +842,11 @@ const TaskDetailsModal: React.FC<TaskDetailsModalProps> = ({ isOpen, onClose, ta
             {/* Add Record Modal */}
             <AddRecordModal
                 isOpen={isAddRecordOpen}
-                onClose={() => setIsAddRecordOpen(false)}
+                onClose={() => {
+                    setIsAddRecordOpen(false);
+                    setEditRecord(null);
+                    setModalMode('add');
+                }}
                 onSave={handleSaveRecord}
                 subBatch={{
                     ...taskData.sub_batch,
@@ -859,6 +856,10 @@ const TaskDetailsModal: React.FC<TaskDetailsModalProps> = ({ isOpen, onClose, ta
                     rejection_source: taskData.rejection_source,
                     alteration_source: taskData.alteration_source
                 }}
+                editRecord={editRecord}
+                mode={modalMode}
+                quantityToWork={quantityToWork}
+                existingRecords={workerRecords}
             />
 
             {/* Preview Modal */}
