@@ -15,6 +15,7 @@ import workerLogRoutes from "./src/routes/workerLog";
 import subBatchRejectedRoutes from "./src/routes/subBatchRejected";
 import subBatchAlteredRoutes from "./src/routes/subBatchAltered";
 import subBatchWorkflowRoutes from "./src/routes/subBatchWorkflow";
+import wageRoutes from "./src/routes/wage";
 
 
 dotenv.config();
@@ -67,6 +68,9 @@ app.use("/api/sub-batch-altered", subBatchAlteredRoutes);
 
 // sub-batch Workflow Routes
 app.use("/api/sub-batches/workflow", subBatchWorkflowRoutes);
+
+// Wage Calculation Routes
+app.use("/api/wages", wageRoutes);
 
 
 // Optional test route
