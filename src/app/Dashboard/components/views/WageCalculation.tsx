@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from "react";
 import axios from "axios";
-import { Trash2, Edit2 } from "lucide-react";
+import { Trash2 } from "lucide-react";
 import Loader from "@/app/Components/Loader";
 
 interface Worker {
@@ -69,8 +69,18 @@ const WageCalculation = () => {
 
       const { detailed_logs } = response.data;
 
+      interface DetailedLog {
+        id: number;
+        work_date?: string;
+        particulars?: string;
+        sub_batch_name?: string;
+        quantity_worked?: number;
+        unit_price?: number;
+        amount?: number;
+      }
+
       // Transform API data to table format
-      const transformedData: WageDetail[] = detailed_logs.map((log: any) => ({
+      const transformedData: WageDetail[] = detailed_logs.map((log: DetailedLog) => ({
         id: log.id.toString(),
         date: log.work_date ? new Date(log.work_date).toLocaleDateString("en-US") : "",
         size: "XL", // Placeholder - adjust based on your actual data structure

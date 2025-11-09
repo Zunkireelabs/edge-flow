@@ -978,7 +978,7 @@ const TaskDetailsModal: React.FC<TaskDetailsModalProps> = ({ isOpen, onClose, ta
 
                             <div className="mb-4">
                                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                                    Type <strong className="text-red-600">"yes"</strong> to confirm:
+                                    Type <strong className="text-red-600">&quot;yes&quot;</strong> to confirm:
                                 </label>
                                 <input
                                     type="text"

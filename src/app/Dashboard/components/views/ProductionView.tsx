@@ -35,13 +35,25 @@ interface SubBatch {
   completed_at?: string | null;
 }
 
+interface Attachment {
+  id: number;
+  attachment_name: string;
+  quantity: number;
+}
+
+interface SizeDetail {
+  id: number;
+  size_category: string;
+  quantity: number;
+}
+
 interface SubBatchInDepartment extends SubBatch {
   department_stage: string;
   quantity_remaining: number | null;
   assigned_worker_id: number | null;
   assigned_worker_name: string | null;
-  size_details: any[];
-  attachments: any[];
+  size_details: SizeDetail[];
+  attachments: Attachment[];
   createdAt: string;
   remarks: string | null;
 }
