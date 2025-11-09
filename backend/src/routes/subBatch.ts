@@ -5,6 +5,9 @@ import {
   moveStage,
   advanceDepartment,
   sendSubBatchToProduction,
+  markAsCompleted,
+  getByStatus,
+  getCompleted,
 } from "../controllers/subBatchController";
 
 const router = Router();
@@ -21,5 +24,10 @@ router.post("/move-stage", moveStage);
 
 // Advance to next department
 router.post("/advance-department", advanceDepartment);
+
+// Completion management
+router.post("/mark-completed", markAsCompleted);
+router.get("/status/:status", getByStatus);
+router.get("/completed/all", getCompleted);
 
 export default router;

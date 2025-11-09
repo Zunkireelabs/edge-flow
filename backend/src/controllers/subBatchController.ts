@@ -5,6 +5,9 @@ import { sendToProduction } from "../services/subBatchService";
 import {
   moveSubBatchStage,
   advanceSubBatchToNextDepartment,
+  markSubBatchAsCompleted,
+  getSubBatchesByStatus,
+  getCompletedSubBatches,
 } from "../services/subBatchService";
 
 // Create Sub-Batch
@@ -126,6 +129,71 @@ export const advanceDepartment = async (req: Request, res: Response) => {
 
     const nextDept = await advanceSubBatchToNextDepartment(departmentSubBatchId, toDepartmentId);
     res.status(200).json({ success: true, nextDept });
+  } catch (err: any) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+// Mark sub-batch as completed
+export const markAsCompleted = async (req: Request, res: Response) => {
+  try {
+    const { subBatchId } = req.body;
+
+    if (!subBatchId) {
+      return res.status(400).json({
+        success: false,
+        message: "subBatchId is required"
+      });
+    }
+
+    const completedSubBatch = await markSubBatchAsCompleted(Number(subBatchId));
+    res.status(200).json({
+      success: true,
+      message: "Sub-batch marked as completed",
+      subBatch: completedSubBatch
+    });
+  } catch (err: any) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+// Get sub-batches by status
+export const getByStatus = async (req: Request, res: Response) => {
+  try {
+    const { status } = req.params;
+
+    if (!['DRAFT', 'IN_PRODUCTION', 'COMPLETED', 'CANCELLED'].includes(status)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid status. Must be DRAFT, IN_PRODUCTION, COMPLETED, or CANCELLED"
+      });
+    }
+
+    const subBatches = await getSubBatchesByStatus(status as any);
+    res.status(200).json({
+      success: true,
+      count: subBatches.length,
+      subBatches
+    });
+  } catch (err: any) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+// Get completed sub-batches with optional date filtering
+export const getCompleted = async (req: Request, res: Response) => {
+  try {
+    const { start_date, end_date } = req.query;
+
+    const startDate = start_date ? new Date(start_date as string) : undefined;
+    const endDate = end_date ? new Date(end_date as string) : undefined;
+
+    const completedSubBatches = await getCompletedSubBatches(startDate, endDate);
+    res.status(200).json({
+      success: true,
+      count: completedSubBatches.length,
+      subBatches: completedSubBatches
+    });
   } catch (err: any) {
     res.status(500).json({ success: false, message: err.message });
   }

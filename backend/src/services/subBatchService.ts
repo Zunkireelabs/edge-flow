@@ -327,3 +327,92 @@ export async function advanceSubBatchToNextDepartment(
     },
   });
 }
+
+/**
+ * Mark a sub-batch as completed
+ * This should be called when all work on a sub-batch is finished
+ */
+export async function markSubBatchAsCompleted(subBatchId: number) {
+  // 1️⃣ Verify sub-batch exists
+  const subBatch = await prisma.sub_batches.findUnique({
+    where: { id: subBatchId },
+  });
+
+  if (!subBatch) {
+    throw new Error(`Sub-batch with id ${subBatchId} not found`);
+  }
+
+  // 2️⃣ Check if already completed
+  if (subBatch.status === 'COMPLETED') {
+    throw new Error(`Sub-batch ${subBatchId} is already marked as completed`);
+  }
+
+  // 3️⃣ Update status to COMPLETED and set completed_at timestamp
+  const updatedSubBatch = await prisma.sub_batches.update({
+    where: { id: subBatchId },
+    data: {
+      status: 'COMPLETED',
+      completed_at: new Date(),
+    },
+  });
+
+  console.log(`✅ Sub-batch #${subBatchId} marked as COMPLETED at ${updatedSubBatch.completed_at}`);
+
+  return updatedSubBatch;
+}
+
+/**
+ * Get sub-batches by status
+ */
+export async function getSubBatchesByStatus(status: 'DRAFT' | 'IN_PRODUCTION' | 'COMPLETED' | 'CANCELLED') {
+  return await prisma.sub_batches.findMany({
+    where: { status },
+    include: {
+      size_details: true,
+      attachments: true,
+      department: true,
+      workflows: {
+        include: {
+          steps: {
+            include: {
+              department: true,
+            },
+          },
+        },
+      },
+    },
+    orderBy: {
+      start_date: 'desc',
+    },
+  });
+}
+
+/**
+ * Get completed sub-batches with completion date
+ */
+export async function getCompletedSubBatches(startDate?: Date, endDate?: Date) {
+  const whereClause: any = {
+    status: 'COMPLETED',
+    completed_at: {
+      not: null,
+    },
+  };
+
+  if (startDate || endDate) {
+    whereClause.completed_at = {};
+    if (startDate) whereClause.completed_at.gte = startDate;
+    if (endDate) whereClause.completed_at.lte = endDate;
+  }
+
+  return await prisma.sub_batches.findMany({
+    where: whereClause,
+    include: {
+      size_details: true,
+      attachments: true,
+      department: true,
+    },
+    orderBy: {
+      completed_at: 'desc',
+    },
+  });
+}

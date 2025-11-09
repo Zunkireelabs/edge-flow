@@ -51,6 +51,7 @@ model sub_batches {
   department_id    Int?
   name             String
   status           SubBatchStatus           @default(DRAFT)
+  completed_at     DateTime?
   dept_links       department_sub_batches[]
   altered          sub_batch_altered[]
   attachments      sub_batch_attachments[]
