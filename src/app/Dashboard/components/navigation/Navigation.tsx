@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import { useRouter } from "next/navigation";
 import SidebarItem from "./SidebarItem";
 import { LogOut } from "lucide-react";
 import { NavigationItem } from "../../types/navigation";
@@ -13,6 +14,7 @@ interface NavigationProps {
 
 const Navigation: React.FC<NavigationProps> = ({ activeView, onViewChange, items }) => {
   const [openItem, setOpenItem] = useState<string | null>(null);
+  const router = useRouter();
 
   const handleClick = (item: NavigationItem) => {
     if (item.children && item.children.length > 0) {
@@ -22,11 +24,21 @@ const Navigation: React.FC<NavigationProps> = ({ activeView, onViewChange, items
     }
   };
 
+  const handleLogout = () => {
+    // Clear all authentication data from localStorage
+    localStorage.removeItem("token");
+    localStorage.removeItem("role");
+    localStorage.removeItem("departmentId");
+
+    // Redirect to login page
+    router.push("/loginandsignup");
+  };
+
   return (
     <div className="w-64 bg-white shadow-lg flex flex-col h-full">
       {/* Header */}
       <div className="p-6">
-        <h2 className="text-xl font-extrabold text-[#4880FF]">Navigation</h2>
+        <h2 className="text-xl font-extrabold text-[#4880FF]">BlueShark</h2>
       </div>
 
       {/* Menu Items */}
@@ -68,7 +80,10 @@ const Navigation: React.FC<NavigationProps> = ({ activeView, onViewChange, items
 
       {/* Logout */}
       <div className="p-4">
-        <button className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-left text-gray-600 hover:bg-gray-100 hover:text-gray-900 transition-colors">
+        <button
+          onClick={handleLogout}
+          className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-left text-gray-600 hover:bg-gray-100 hover:text-gray-900 transition-colors"
+        >
           <LogOut className="w-5 h-5" />
           <span className="font-medium">Logout</span>
         </button>

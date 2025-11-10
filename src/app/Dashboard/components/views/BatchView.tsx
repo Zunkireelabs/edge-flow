@@ -5,8 +5,8 @@ import axios from "axios";
 import { Plus, X, Edit2, Trash2, MoreVertical, BrickWall, Package, Palette, Scale, Shell, Truck, Eye } from "lucide-react";
 import Loader from "@/app/Components/Loader";
 
-type Vendor = { 
-  id: number; 
+type Vendor = {
+  id: number;
   name: string;
   vat_pan?: string;
   address?: string;
@@ -14,7 +14,14 @@ type Vendor = {
   comment?: string;
 };
 
-type Roll = { id: number; name: string };
+type Roll = {
+  id: number;
+  name: string;
+  quantity: number;
+  unit: string;
+  color: string;
+  vendor: Vendor | null;
+};
 
 type Batch = {
   id: number;
@@ -107,13 +114,27 @@ const BatchView = () => {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     let value: string | number | null = e.target.value;
-    
+
     if (e.target.name === "roll_id" || e.target.name === "vendor_id") {
       value = value === "" || value === "0" ? null : Number(value);
     } else if (e.target.type === "number") {
       value = Number(value);
     }
-    
+
+    // Auto-fill color and vendor when roll is selected
+    if (e.target.name === "roll_id" && value !== null) {
+      const selectedRoll = rolls.find((roll) => roll.id === value);
+      if (selectedRoll) {
+        setFormData({
+          ...formData,
+          roll_id: value as number,
+          color: selectedRoll.color,
+          vendor_id: selectedRoll.vendor?.id || null,
+        });
+        return;
+      }
+    }
+
     setFormData({ ...formData, [e.target.name]: value });
   };
 
@@ -253,7 +274,7 @@ const BatchView = () => {
       </div>
 
       {/* Table */}
-      <div className="bg-white rounded-lg shadow border-gray-200 p-6 flex flex-col gap-4 mb-8">
+      <div className="bg-white rounded-lg shadow p-6 flex flex-col gap-4 mb-8">
         {loading ? (
          <Loader loading={true} message="Loading Batches..." />
         ) : batches.length === 0 ? (
@@ -267,53 +288,53 @@ const BatchView = () => {
         ) : (
           <table className="w-full table-auto border-collapse">
             <thead>
-              <tr className="bg-gray-200">
-                <th className="p-2 text-left">S.N.</th>
-                <th className="p-2 text-left">ID</th>
-                <th className="p-2 text-left">Name</th>
-                <th className="p-2 text-left">Quantity</th>
-                <th className="p-2 text-left">Unit</th>
-                <th className="p-2 text-left">Color</th>
-                <th className="p-2 text-left">Roll</th>
-                <th className="p-2 text-left">Vendor</th>
-                <th className="p-2 text-left">Actions</th>
+              <tr className="bg-[#E5E7EB]">
+                <th className="px-4 py-3 text-left text-sm font-medium  uppercase tracking-wider">SN</th>
+                <th className="px-4 py-3 text-left text-sm font-medium  uppercase tracking-wider">ID</th>
+                <th className="px-4 py-3 text-left text-sm font-medium  uppercase tracking-wider">BATCH</th>
+                <th className="px-4 py-3 text-left text-sm font-medium  uppercase tracking-wider">QUANTITY</th>
+                <th className="px-4 py-3 text-left text-sm font-medium  uppercase tracking-wider">UNIT</th>
+                <th className="px-4 py-3 text-left text-sm font-medium  uppercase tracking-wider">COLOR</th>
+                <th className="px-4 py-3 text-left text-sm font-medium  uppercase tracking-wider">ROLL</th>
+                <th className="px-4 py-3 text-left text-sm font-medium  uppercase tracking-wider">VENDOR</th>
+                <th className="px-4 py-3"></th>
               </tr>
             </thead>
-            <tbody>
+            <tbody className="bg-white divide-y divide-gray-200">
               {batches.map((batch, index) => (
-                <tr key={batch.id} className="border-b border-gray-200">
-                  <td className="p-2 bg-gray-50">{index + 1}</td>
-                  <td className="p-2 bg-gray-50">BA{batch.id}</td>
-                  <td className="p-2 bg-gray-50">{batch.name}</td>
-                  <td className="p-2 bg-gray-50">{batch.quantity}</td>
-                  <td className="p-2 bg-gray-50">{batch.unit}</td>
-                  <td className="p-2 bg-gray-50">{batch.color}</td>
-                  <td className="p-2 bg-gray-50">{batch.roll?.name || "-"}</td>
-                  <td className="p-2 bg-gray-50">{batch.vendor?.name || "-"}</td>
-                  <td className="p-2 flex justify-center relative">
+                <tr key={batch.id} className="hover:bg-gray-50 transition-colors">
+                  <td className="px-4 py-4 text-sm ">{index + 1}</td>
+                  <td className="px-4 py-4 text-sm ">BA00{batch.id}</td>
+                  <td className="px-4 py-4 text-sm ">{batch.name}</td>
+                  <td className="px-4 py-4 text-sm ">{batch.quantity}</td>
+                  <td className="px-4 py-4 text-sm ">{batch.unit}</td>
+                  <td className="px-4 py-4 text-sm ">{batch.color}</td>
+                  <td className="px-4 py-4 text-sm ">{batch.roll?.name || "-"}</td>
+                  <td className="px-4 py-4 text-sm ">{batch.vendor?.name || "-"}</td>
+                  <td className="px-4 py-4 text-sm relative">
                     {/* 3-dot menu */}
                     <button
-                      className="p-1 rounded hover:bg-gray-100"
+                      className="p-1 rounded hover:bg-gray-200 transition-colors"
                       onClick={() => setOpenMenuId(openMenuId === batch.id ? null : batch.id)}
                     >
-                      <MoreVertical size={20} />
+                      <MoreVertical size={18} className="" />
                     </button>
                     {openMenuId === batch.id && (
-                      <div className="absolute right-0 top-full mt-2 w-32 bg-white rounded shadow-lg z-50">
+                      <div className="absolute right-0 top-full mt-2 w-32 bg-white rounded shadow-lg z-50 border border-gray-200">
                         <button
-                          className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2"
+                          className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 text-sm"
                           onClick={() => { handlePreview(batch); setOpenMenuId(null); }}
                         >
                           <Eye size={14} /> Preview
                         </button>
                         <button
-                          className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2"
+                          className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 text-sm"
                           onClick={() => { handleEdit(batch); setOpenMenuId(null); }}
                         >
                           <Edit2 size={14} /> Edit
                         </button>
                         <button
-                          className="w-full text-left px-4 py-2 hover:bg-gray-100 text-red-500 flex items-center gap-2"
+                          className="w-full text-left px-4 py-2 hover:bg-gray-100 text-red-500 flex items-center gap-2 text-sm"
                           onClick={() => { handleDelete(batch.id); setOpenMenuId(null); }}
                         >
                           <Trash2 size={14} /> Delete
@@ -344,12 +365,63 @@ const BatchView = () => {
               <X size={20} />
             </button>
 
-            <h3 className="text-lg font-semibold mb-4 flex gap-2">
-              <Shell size={20} className="text-black" />
-              {isPreview ? "Batch Preview" : editingBatch ? "Edit Batch" : "Add New Batch"}
-            </h3>
+            {isPreview ? (
+              // Preview Layout
+              <>
+                <h3 className="text-lg font-semibold mb-6 flex items-center gap-2">
+                  <Package size={20} className="text-blue-600" />
+                  Batch Details
+                </h3>
 
-            <div className="space-y-4">
+                <div className="space-y-4">
+                  {/* ID */}
+                  <div className="flex justify-between items-center py-2 border-b border-gray-100">
+                    <span className="font-semibold text-black">ID</span>
+                    <span className="text-sm text-gray-500">BA00{editingBatch?.id}</span>
+                  </div>
+
+                  {/* Roll */}
+                  <div className="flex justify-between items-center py-2 border-b border-gray-100">
+                    <span className="font-semibold text-black">Roll</span>
+                    <span className="text-sm text-gray-500">{editingBatch?.roll?.name || "-"}</span>
+                  </div>
+
+                  {/* Name */}
+                  <div className="flex justify-between items-center py-2 border-b border-gray-100">
+                    <span className="font-semibold text-black">Name</span>
+                    <span className="text-sm text-gray-500">{formData.name}</span>
+                  </div>
+
+                  {/* Quantity */}
+                  <div className="flex justify-between items-center py-2 border-b border-gray-100">
+                    <span className="font-semibold text-black">Quantity</span>
+                    <span className="text-sm text-gray-500">{formData.quantity} {formData.unit}</span>
+                  </div>
+
+                  {/* Color */}
+                  <div className="flex justify-between items-center py-2 border-b border-gray-100">
+                    <span className="font-semibold text-black">Color</span>
+                    <span className="text-sm text-gray-500">{formData.color || "-"}</span>
+                  </div>
+
+                  {/* Vendor */}
+                  <div className="flex justify-between items-center py-2 border-b border-gray-100">
+                    <span className="font-semibold text-black">Vendor</span>
+                    <span className="text-sm text-gray-500">{editingBatch?.vendor?.name || "-"}</span>
+                  </div>
+                </div>
+
+                
+              </>
+            ) : (
+              // Edit/Add Layout
+              <>
+                <h3 className="text-lg font-semibold mb-4 flex gap-2">
+                  <Shell size={20} className="text-black" />
+                  {editingBatch ? "Edit Batch" : "Add New Batch"}
+                </h3>
+
+                <div className="space-y-4">
               {/* Batch Name */}
               <div className="flex items-center gap-2">
                 <Package size={20} className="text-black" />
@@ -365,6 +437,26 @@ const BatchView = () => {
                 className="w-full border border-gray-300 rounded-[10px] px-3 py-2 focus:outline-none focus:ring-1 focus:ring-blue-500"
                 required
               />
+
+              {/* Roll - Moved up for better auto-fill UX */}
+              <div className="flex items-center gap-2">
+                <Package size={20} className="text-black" />
+                <p className="text-black font-semibold">Roll</p>
+              </div>
+              <select
+                name="roll_id"
+                value={formData.roll_id ?? ""}
+                onChange={handleChange}
+                disabled={isPreview}
+                className="w-full border border-gray-300 rounded-[10px] px-3 py-2 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              >
+                <option value="">Select Roll</option>
+                {rolls.map((roll) => (
+                  <option key={roll.id} value={roll.id}>
+                    {roll.name}
+                  </option>
+                ))}
+              </select>
 
               {/* Quantity + Unit */}
               <div className="flex gap-4">
@@ -405,10 +497,11 @@ const BatchView = () => {
                 </div>
               </div>
 
-              {/* Color */}
+              {/* Color - Auto-filled from Roll */}
               <div className="flex items-center gap-2">
                 <Palette size={20} className="text-black" />
                 <p className="text-black font-semibold">Color</p>
+                {formData.roll_id && <span className="text-xs text-gray-500">(Auto-filled from Roll)</span>}
               </div>
               <input
                 type="text"
@@ -417,40 +510,21 @@ const BatchView = () => {
                 value={formData.color}
                 onChange={handleChange}
                 readOnly={isPreview}
-                className="w-full border border-gray-300 rounded-[10px] px-3 py-2 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                className={`w-full border border-gray-300 rounded-[10px] px-3 py-2 focus:outline-none focus:ring-1 focus:ring-blue-500 ${formData.roll_id ? 'bg-blue-50' : ''}`}
               />
-
-              {/* Roll */}
-              <div className="flex items-center gap-2">
-                <Package size={20} className="text-black" />
-                <p className="text-black font-semibold">Roll</p>
-              </div>
-              <select
-                name="roll_id"
-                value={formData.roll_id ?? ""}
-                onChange={handleChange}
-                disabled={isPreview}
-                className="w-full border border-gray-300 rounded-[10px] px-3 py-2 focus:outline-none focus:ring-1 focus:ring-blue-500"
-              >
-                <option value="">Select Roll</option>
-                {rolls.map((roll) => (
-                  <option key={roll.id} value={roll.id}>
-                    {roll.name}
-                  </option>
-                ))}
-              </select>
 
               {/* Vendor */}
               <div className="flex items-center gap-2">
                 <Truck size={20} className="text-black" />
                 <p className="text-black font-semibold">Vendor</p>
+                {formData.roll_id && <span className="text-xs text-gray-500">(Auto-filled from Roll)</span>}
               </div>
               <select
                 name="vendor_id"
                 value={formData.vendor_id ?? ""}
                 onChange={handleChange}
                 disabled={isPreview}
-                className="w-full border border-gray-300 rounded-[10px] px-3 py-2 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                className={`w-full border border-gray-300 rounded-[10px] px-3 py-2 focus:outline-none focus:ring-1 focus:ring-blue-500 ${formData.roll_id ? 'bg-blue-50' : ''}`}
               >
                 <option value="">Select Vendor</option>
                 {vendors.map((vendor) => (
@@ -467,18 +541,18 @@ const BatchView = () => {
                 onClick={closeDrawer}
                 disabled={saveLoading}
               >
-                {isPreview ? "Close" : "Cancel"}
+                Cancel
               </button>
-              {!isPreview && (
-                <button
-                  className="px-4 py-2 rounded-[10px] bg-blue-500 text-white hover:bg-blue-700 disabled:opacity-50"
-                  onClick={handleSaveBatch}
-                  disabled={saveLoading}
-                >
-                  {saveLoading ? "Saving..." : editingBatch ? "Update Batch" : "Save Batch"}
-                </button>
-              )}
+              <button
+                className="px-4 py-2 rounded-[10px] bg-blue-500 text-white hover:bg-blue-700 disabled:opacity-50"
+                onClick={handleSaveBatch}
+                disabled={saveLoading}
+              >
+                {saveLoading ? "Saving..." : editingBatch ? "Update Batch" : "Save Batch"}
+              </button>
             </div>
+          </>
+        )}
           </div>
         </div>
       )}

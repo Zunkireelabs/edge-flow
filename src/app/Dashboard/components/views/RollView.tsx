@@ -275,7 +275,7 @@ const RollView = () => {
       </div>
 
       {/* Main Content */}
-      <div className="bg-white rounded-lg shadow border-gray-200 p-6 flex flex-col gap-4 mb-8">
+      <div className="bg-white rounded-lg shadow p-6 flex flex-col gap-4 mb-8">
         {loading ? (
           <Loader loading={true} message="Loading Rolls.." />
 
@@ -290,55 +290,55 @@ const RollView = () => {
         ) : (
           <table className="w-full table-auto border-collapse">
             <thead>
-              <tr className="bg-gray-200">
-                <th className="p-2 text-left">S.N.</th>
-                <th className="p-2 text-left">ID</th>
-                <th className="p-2 text-left">Name</th>
-                <th className="p-2 text-left">Quantity</th>
-                <th className="p-2 text-left">Unit</th>
-                <th className="p-2 text-left">Color</th>
-                <th className="p-2 text-left">Vendor</th>
-                <th className="p-2 text-left">Actions</th>
+              <tr className="bg-[#E5E7EB]">
+                <th className="px-4 py-3 text-left text-sm font-medium  uppercase tracking-wider">SN</th>
+                <th className="px-4 py-3 text-left text-sm font-medium  uppercase tracking-wider">ID</th>
+                <th className="px-4 py-3 text-left text-sm font-medium  uppercase tracking-wider">ROLL</th>
+                <th className="px-4 py-3 text-left text-sm font-medium  uppercase tracking-wider">QUANTITY</th>
+                <th className="px-4 py-3 text-left text-sm font-medium  uppercase tracking-wider">UNIT</th>
+                <th className="px-4 py-3 text-left text-sm font-medium  uppercase tracking-wider">COLOR</th>
+                <th className="px-4 py-3 text-left text-sm font-medium  uppercase tracking-wider">VENDOR</th>
+                <th className="px-4 py-3"></th>
               </tr>
             </thead>
-            <tbody>
+            <tbody className="bg-white divide-y divide-gray-200">
               {rolls.map((roll, index) => (
-                <tr key={roll.id} className="border-b border-gray-200 ">
-                  <td className="p-2 bg-gray-50">{index + 1}</td>
-                  <td className="p-2 bg-gray-50">BO{roll.id}</td>
-                  <td className="p-2 bg-gray-50">{roll.name}</td>
-                  <td className="p-2 bg-gray-50">{roll.quantity}</td>
-                  <td className="p-2 bg-gray-50">{roll.unit}</td>
-                  <td className="p-2 bg-gray-50">{roll.color}</td>
-                  <td className="p-2 bg-gray-50">{roll.vendor?.name || "-"}</td>
-                  <td className="p-2 flex justify-center relative">
+                <tr key={roll.id} className="hover:bg-gray-50 transition-colors">
+                  <td className="px-4 py-4 text-sm text-gray-900">{index + 1}</td>
+                  <td className="px-4 py-4 text-sm text-gray-900">B00{roll.id}</td>
+                  <td className="px-4 py-4 text-sm text-gray-900">{roll.name}</td>
+                  <td className="px-4 py-4 text-sm text-gray-900">{roll.quantity}</td>
+                  <td className="px-4 py-4 text-sm text-gray-900">{roll.unit}</td>
+                  <td className="px-4 py-4 text-sm text-gray-900">{roll.color}</td>
+                  <td className="px-4 py-4 text-sm text-gray-900">{roll.vendor?.name || "-"}</td>
+                  <td className="px-4 py-4 text-sm relative">
                     {/* 3-dot button */}
                     <button
-                      className="p-1 rounded hover:bg-gray-100"
+                      className="p-1 rounded hover:bg-gray-200 transition-colors"
                       onClick={() =>
                         setOpenMenuId(openMenuId === roll.id ? null : roll.id)
                       }
                     >
-                      <MoreVertical size={20} />
+                      <MoreVertical size={18} className="" />
                     </button>
 
                     {/* Dropdown menu */}
                     {openMenuId === roll.id && (
-                      <div className="absolute right-0 top-full mt-2 w-32 bg-white rounded shadow-lg z-50">
+                      <div className="absolute right-0 top-full mt-2 w-32 bg-white rounded shadow-lg z-50 border border-gray-200">
                         <button
-                          className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2"
+                          className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 text-sm"
                           onClick={() => { setOpenMenuId(null); handlePreview(roll); }}
                         >
                           <Eye size={14} /> Preview
                         </button>
                         <button
-                          className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2"
+                          className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 text-sm"
                           onClick={() => { setOpenMenuId(null); handleEdit(roll); }}
                         >
                           <Edit2 size={14} /> Edit
                         </button>
                         <button
-                          className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 text-red-500"
+                          className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 text-sm text-red-500"
                           onClick={() => { setOpenMenuId(null); handleDelete(roll.id); }}
                         >
                           <Trash2 size={14} /> Delete
@@ -367,12 +367,60 @@ const RollView = () => {
             >
               <X size={20} />
             </button>
-            <h3 className="text-lg font-semibold mb-4 flex gap-2">
-              <Shell size={20} className="text-black" />
-              {isPreview ? "Roll Preview" : editingRoll ? "Edit Roll" : "Add New Roll"}
-            </h3>
 
-            <div className="space-y-4">
+            {isPreview ? (
+              // Preview Layout
+              <>
+                <h3 className="text-lg font-semibold mb-6 flex items-center gap-2">
+                  <Package size={20} className="text-blue-600" />
+                  Roll Details
+                </h3>
+
+                <div className="space-y-4">
+                  {/* ID */}
+                  <div className="flex justify-between items-center py-2 border-b border-gray-100">
+                    <span className="font-semibold text-black">ID</span>
+                    <span className="text-sm text-gray-500">R00{formData.id}</span>
+                  </div>
+
+                  {/* Name */}
+                  <div className="flex justify-between items-center py-2 border-b border-gray-100">
+                    <span className="font-semibold text-black">Name</span>
+                    <span className="text-sm text-gray-500">{formData.name}</span>
+                  </div>
+
+                  {/* Quantity */}
+                  <div className="flex justify-between items-center py-2 border-b border-gray-100">
+                    <span className="font-semibold text-black">Quantity</span>
+                    <span className="text-sm text-gray-500">{formData.quantity} {formData.unit}</span>
+                  </div>
+
+                  {/* Color */}
+                  <div className="flex justify-between items-center py-2 border-b border-gray-100">
+                    <span className="font-semibold text-black">Color</span>
+                    <span className="text-sm text-gray-500">{formData.color || "-"}</span>
+                  </div>
+
+                  {/* Vendor */}
+                  <div className="flex justify-between items-center py-2 border-b border-gray-100">
+                    <span className="font-semibold text-black">Vendor</span>
+                    <span className="text-sm text-gray-500">
+                      {vendors.find(v => v.id.toString() === formData.vendorId)?.name || "-"}
+                    </span>
+                  </div>
+                </div>
+
+               
+              </>
+            ) : (
+              // Edit/Add Layout
+              <>
+                <h3 className="text-lg font-semibold mb-4 flex gap-2">
+                  <Shell size={20} className="text-black" />
+                  {editingRoll ? "Edit Roll" : "Add New Roll"}
+                </h3>
+
+                <div className="space-y-4">
               {/* ID field - Show only for existing rolls */}
               {editingRoll && (
                 <>
@@ -483,18 +531,18 @@ const RollView = () => {
                 onClick={closeDrawer}
                 disabled={saveLoading}
               >
-                {isPreview ? "Close" : "Cancel"}
+                Cancel
               </button>
-              {!isPreview && (
-                <button
-                  className="px-4 py-2 rounded-[10px] bg-blue-500 text-white hover:bg-blue-700 disabled:opacity-50"
-                  onClick={handleSave}
-                  disabled={saveLoading}
-                >
-                  {saveLoading ? "Saving..." : "Save Roll"}
-                </button>
-              )}
+              <button
+                className="px-4 py-2 rounded-[10px] bg-blue-500 text-white hover:bg-blue-700 disabled:opacity-50"
+                onClick={handleSave}
+                disabled={saveLoading}
+              >
+                {saveLoading ? "Saving..." : "Save Roll"}
+              </button>
             </div>
+          </>
+        )}
           </div>
         </div>
       )}

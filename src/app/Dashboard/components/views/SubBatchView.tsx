@@ -802,12 +802,10 @@ const SubBatchView = () => {
               <div className="bg-white px-6 pt-6 pb-4 h-full overflow-y-auto">
 
                 <div className="flex items-center justify-between mb-6">
-
-
                   <div className="flex items-center gap-3">
                     <Layers size={28} className="text-blue-600" />
                     <h3 className="text-lg font-extrabold text-gray-900">
-                      {editingSubBatch ? "Edit Sub Batch" : "Add Sub Batch"}
+                      {isPreview ? "Sub Batch Item Details" : editingSubBatch ? "Edit Sub Batch" : "Add Sub Batch"}
                     </h3>
                   </div>
                   <button
@@ -818,7 +816,108 @@ const SubBatchView = () => {
                   </button>
                 </div>
 
-                <div className="space-y-4">
+                {isPreview ? (
+                  // Preview Layout
+                  <div className="space-y-4">
+                    {/* ID */}
+                    <div className="flex justify-between items-center py-2 border-b border-gray-100">
+                      <span className=" font-semibold text-black">ID</span>
+                      <span className="text-sm text-gray-500">B{editingSubBatch?.id.toString().padStart(4, "0")}</span>
+                    </div>
+
+                    {/* Parent Roll */}
+                    <div className="flex justify-between items-center py-2 border-b border-gray-100">
+                      <span className=" font-semibold text-black">Parent Roll</span>
+                      <span className="text-sm text-gray-500">{getRollName(editingSubBatch?.roll_id)}</span>
+                    </div>
+
+                    {/* Parent Batch */}
+                    <div className="flex justify-between items-center py-2 border-b border-gray-100">
+                      <span className=" font-semibold text-black">Parent Batch</span>
+                      <span className="text-sm text-gray-500">{getBatchName(editingSubBatch?.batch_id)}</span>
+                    </div>
+
+                    {/* Sub Batch Name */}
+                    <div className="flex justify-between items-center py-2 border-b border-gray-100">
+                      <span className="font-semibold text-black">Sub Batch Name</span>
+                      <span className="text-sm text-gray-500">{formData.name}</span>
+                    </div>
+
+                    {/* Estimated Pieces */}
+                    <div className="flex justify-between items-center py-2 border-b border-gray-100">
+                      <span className=" font-semibold text-black">Estimated Pieces</span>
+                      <span className="text-sm text-gray-500">{formData.estimatedPieces} kg</span>
+                    </div>
+
+                    {/* Expected Items */}
+                    <div className="flex justify-between items-center py-2 border-b border-gray-100">
+                      <span className=" font-semibold text-black">Expected Items</span>
+                      <span className="text-sm text-gray-500">{formData.expectedItems || editingSubBatch?.expected_items}</span>
+                    </div>
+
+                    {/* Size Details */}
+                    {sizesList.length > 0 && (
+                      <div className="py-2">
+                        <p className="font-semibold text-black mb-3">Size Details</p>
+                        <table className="w-full border border-gray-400">
+                          <thead>
+                            <tr className="bg-gray-50 ">
+                              <th className="text-left text-xs font-medium text-gray-600 px-3 py-2 border-b">Size</th>
+                              <th className="text-left text-xs font-medium text-gray-600 px-3 py-2 border-b">Number of Pieces</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {sizesList.map((size, index) => (
+                              <tr key={index} className=" border-gray-100">
+                                <td className="text-sm text-gray-500 px-3 py-2">{size.size}</td>
+                                <td className="text-sm text-gray-500 px-3 py-2">{size.number_of_pieces}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+
+                    {/* Attachment */}
+                    {attachments.length > 0 && (
+                      <div className="py-2">
+                        <p className="font-semibold text-black mb-3">Attachment</p>
+                        <table className="w-full  border border-gray-400">
+                          <thead>
+                            <tr className="bg-gray-50">
+                              <th className="text-left text-xs font-medium text-gray-600 px-3 py-2 border-b">Attachment Name</th>
+                              <th className="text-left text-xs font-medium text-gray-600 px-3 py-2 border-b">Quantity</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {attachments.map((att, index) => (
+                              <tr key={index} className=" ">
+                                <td className="text-sm text-gray-500 px-3 py-2">{att.name}</td>
+                                <td className="text-sm text-gray-500 px-3 py-2">{att.quantity}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+
+                    {/* Start Date */}
+                    <div className="flex justify-between items-center py-2 border-b border-gray-100">
+                      <span className="font-semibold text-black">Start Date</span>
+                      <span className="text-sm text-gray-500">{formatDate(formData.startDate)}</span>
+                    </div>
+
+                    {/* End Date */}
+                    <div className="flex justify-between items-center py-2 border-b border-gray-100">
+                      <span className="font-semibold text-black">End Date</span>
+                      <span className="text-sm text-gray-500">{formatDate(formData.dueDate)}</span>
+                    </div>
+
+                    
+                  </div>
+                ) : (
+                  // Edit/Add Layout
+                  <div className="space-y-4">
                   {/* ID */}
                   <div className="flex flex-col">
                     <label className="text-xxl font-semibold  text-gray-700 mb-1"># ID</label>
@@ -1094,10 +1193,8 @@ const SubBatchView = () => {
                       />
                     </div>
                   </div>
-                </div>
 
-                {/* Buttons */}
-                {!isPreview && (
+                  {/* Buttons */}
                   <div className="mt-6 flex justify-between ">
                     <button
                       onClick={() => setIsModalOpen(false)}
@@ -1115,8 +1212,8 @@ const SubBatchView = () => {
                     >
                       Save
                     </button>
-
                   </div>
+                </div>
                 )}
               </div>
             </div>
