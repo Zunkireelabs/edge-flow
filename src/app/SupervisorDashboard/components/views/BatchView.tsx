@@ -2,7 +2,7 @@ import React from 'react'
 
 const BatchView = () => {
   return (
-    <div>BatchView</div>
+    <div>This is batch view</div>
   )
 }
 
