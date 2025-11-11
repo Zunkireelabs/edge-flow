@@ -30,6 +30,7 @@ interface AlteredInput {
 export interface WorkerLogInput {
   worker_id: number;
   sub_batch_id: number;
+  department_id?: number;
   worker_name?: string;
   work_date?: string;
   size_category?: string;
@@ -50,6 +51,7 @@ export const createWorkerLog = async (data: WorkerLogInput) => {
     data: {
       worker_id: data.worker_id,
       sub_batch_id: data.sub_batch_id,
+      department_id: data.department_id,
       worker_name: data.worker_name,
       work_date: data.work_date ? new Date(data.work_date) : undefined,
       size_category: data.size_category,
@@ -210,6 +212,7 @@ export const createWorkerLog = async (data: WorkerLogInput) => {
     include: {
       worker: true,
       sub_batch: true,
+      departments: true,
       rejected_entry: true,
       altered_entry: true,
     },
@@ -223,6 +226,7 @@ export const getAllWorkerLogs = async () => {
       include: {
         worker: true,
         sub_batch: true,
+        departments: true,
         rejected_entry: true,
         altered_entry: true,
       },
@@ -236,6 +240,7 @@ export const getWorkerLogById = async (id: number) => {
     include: {
       worker: true,
       sub_batch: true,
+      departments: true,
       rejected_entry: true,
       altered_entry: true,
     },
@@ -249,6 +254,7 @@ export const updateWorkerLog = async (id: number, data: WorkerLogInput) => {
     data: {
       worker_id: data.worker_id,
       sub_batch_id: data.sub_batch_id,
+      department_id: data.department_id,
       worker_name: data.worker_name,
       work_date: data.work_date ? new Date(data.work_date) : undefined,
       size_category: data.size_category,
@@ -262,6 +268,7 @@ export const updateWorkerLog = async (id: number, data: WorkerLogInput) => {
     include: {
       worker: true,
       sub_batch: true,
+      departments: true,
       rejected_entry: true,
       altered_entry: true,
     },
@@ -417,6 +424,7 @@ export const getWorkerLogsBySubBatch = async (sub_batch_id: number) => {
     include: {
       worker: true,
       sub_batch: true,
+      departments: true,
       rejected_entry: true,
       altered_entry: true,
     },

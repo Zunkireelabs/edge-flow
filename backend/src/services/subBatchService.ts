@@ -307,12 +307,15 @@ export async function advanceSubBatchToNextDepartment(
 
   if (!targetDepartment) throw new Error("Target department not found");
 
-  // 3️⃣ Mark this specific entry as inactive
+  // 3️⃣ Mark this specific entry as inactive and record where it was sent
   await prisma.department_sub_batches.update({
     where: {
       id: currentDept.id,
     },
-    data: { is_current: false },
+    data: {
+      is_current: false,
+      sent_to_department_id: toDepartmentId, // ✅ Track where it was sent
+    },
   });
 
   // 4️⃣ Create new entry in target department with correct quantity

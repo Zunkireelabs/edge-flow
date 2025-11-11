@@ -114,18 +114,20 @@ model sub_batch_altered {
 }
 
 model departments {
-  id              Int                        @id @default(autoincrement())
-  name            String
-  remarks         String?
-  supervisor      Supervisor?
-  dept_batches    department_sub_batches[]
-  dept_workers    department_workers[]
-  altered         sub_batch_altered[]        @relation("AlteredDept")
-  rejected        sub_batch_rejected[]       @relation("RejectedDept")
-  sub_batch_steps sub_batch_workflow_steps[]
-  sub_batches     sub_batches[]
-  workers         workers[]
-  workflow_steps  workflow_steps[]
+  id                      Int                        @id @default(autoincrement())
+  name                    String
+  remarks                 String?
+  supervisor              Supervisor?
+  dept_batches            department_sub_batches[]
+  dept_workers            department_workers[]
+  altered                 sub_batch_altered[]        @relation("AlteredDept")
+  rejected                sub_batch_rejected[]       @relation("RejectedDept")
+  sub_batch_steps         sub_batch_workflow_steps[]
+  sub_batches             sub_batches[]
+  worker_logs             worker_logs[]
+  workers                 workers[]
+  workflow_steps          workflow_steps[]
+  received_from_departments department_sub_batches[] @relation("SentToDepartment")
 }
 
 model department_workers {
@@ -138,24 +140,26 @@ model department_workers {
 }
 
 model department_sub_batches {
-  id                 Int                            @id @default(autoincrement())
-  department_id      Int?
-  sub_batch_id       Int?
-  assigned_worker_id Int?
-  createdAt          DateTime                       @default(now())
-  is_current         Boolean                        @default(false)
-  stage              DepartmentStage                @default(NEW_ARRIVAL)
-  updatedAt          DateTime                       @updatedAt
-  quantity_remaining Int?
-  remarks            String?
-  history            department_sub_batch_history[]
-  assigned_worker    workers?                       @relation(fields: [assigned_worker_id], references: [id])
-  department         departments?                   @relation(fields: [department_id], references: [id])
-  sub_batch          sub_batches?                   @relation(fields: [sub_batch_id], references: [id])
-  rejected_source    sub_batch_rejected[]           @relation("RejectedSource")
-  rejected_created   sub_batch_rejected[]           @relation("RejectedCreated")
-  altered_source     sub_batch_altered[]            @relation("AlteredSource")
-  altered_created    sub_batch_altered[]            @relation("AlteredCreated")
+  id                     Int                            @id @default(autoincrement())
+  department_id          Int?
+  sub_batch_id           Int?
+  assigned_worker_id     Int?
+  createdAt              DateTime                       @default(now())
+  is_current             Boolean                        @default(false)
+  stage                  DepartmentStage                @default(NEW_ARRIVAL)
+  updatedAt              DateTime                       @updatedAt
+  quantity_remaining     Int?
+  remarks                String?
+  sent_to_department_id  Int?
+  history                department_sub_batch_history[]
+  assigned_worker        workers?                       @relation(fields: [assigned_worker_id], references: [id])
+  department             departments?                   @relation(fields: [department_id], references: [id])
+  sub_batch              sub_batches?                   @relation(fields: [sub_batch_id], references: [id])
+  sent_to_department     departments?                   @relation("SentToDepartment", fields: [sent_to_department_id], references: [id])
+  rejected_source        sub_batch_rejected[]           @relation("RejectedSource")
+  rejected_created       sub_batch_rejected[]           @relation("RejectedCreated")
+  altered_source         sub_batch_altered[]            @relation("AlteredSource")
+  altered_created        sub_batch_altered[]            @relation("AlteredCreated")
 }
 
 model clients {
@@ -194,8 +198,10 @@ model worker_logs {
   worker_name       String?
   activity_type     String?
   is_billable       Boolean              @default(true)
+  department_id     Int?
   altered_entry     sub_batch_altered[]
   rejected_entry    sub_batch_rejected[]
+  departments       departments?         @relation(fields: [department_id], references: [id])
   sub_batch         sub_batches          @relation(fields: [sub_batch_id], references: [id])
   worker            workers              @relation(fields: [worker_id], references: [id])
 }
