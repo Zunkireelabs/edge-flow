@@ -158,9 +158,6 @@ const TaskDetailsModal: React.FC<TaskDetailsModalProps> = ({ isOpen, onClose, ta
             }
 
             const result = await response.json();
-            console.log('======= SUB-BATCH HISTORY API RESPONSE =======');
-            console.log('API Result:', result);
-            console.log('==============================================');
 
             if (result.success) {
                 setSubBatchHistory(result);
