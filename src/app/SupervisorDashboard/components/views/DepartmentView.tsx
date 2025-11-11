@@ -465,7 +465,7 @@ const SupervisorKanban = () => {
                             Alteration
                           </span>
                         )}
-                        {stage.key === 'completed' && !isRejected && !isAltered && (
+                        {stage.key === 'completed' && (
                           <span className="absolute bottom-3 right-3 inline-flex items-center gap-1 px-3 py-1 bg-blue-500 text-white text-xs rounded-md font-medium rounded-xl">
                             Send To <ChevronDown size={18} />
                           </span>

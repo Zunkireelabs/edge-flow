@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useState, useEffect, useCallback } from 'react';
-import { Calendar, X, CheckCircle, Edit3, XCircle, Clock } from 'lucide-react';
+import { Calendar, X, CheckCircle, Edit3, XCircle, Clock, ChevronDown } from 'lucide-react';
 import AddRecordModal from './AddRecordModal';
 import WorkerAssignmentTable from './WorkerAssignmentTable';
 import PreviewModal from './PreviewModal';
@@ -26,6 +26,7 @@ const TaskDetailsModal: React.FC<TaskDetailsModalProps> = ({ isOpen, onClose, ta
     const [sendToDepartment, setSendToDepartment] = useState('');
     const [showCompletionDialog, setShowCompletionDialog] = useState(false);
     const [confirmationText, setConfirmationText] = useState('');
+    const [departments, setDepartments] = useState<any[]>([]);
 
     const fetchWorkerLogs = useCallback(async () => {
         if (!taskData?.sub_batch?.id) return;
@@ -126,16 +127,34 @@ const TaskDetailsModal: React.FC<TaskDetailsModalProps> = ({ isOpen, onClose, ta
         }
     }, [taskData?.sub_batch?.id]);
 
-    useEffect(() => {
-        if (isOpen && taskData?.sub_batch?.id) fetchWorkerLogs();
-    }, [isOpen, fetchWorkerLogs, taskData?.sub_batch?.id]);
+    // Fetch departments
+    const fetchDepartments = useCallback(async () => {
+        try {
+            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/departments`);
+            if (response.ok) {
+                const data = await response.json();
+                setDepartments(data);
+            }
+        } catch (error) {
+            console.error('Error fetching departments:', error);
+        }
+    }, []);
 
-    // Initialize status from taskData
+    useEffect(() => {
+        if (isOpen && taskData?.sub_batch?.id) {
+            fetchWorkerLogs();
+            fetchDepartments();
+        }
+    }, [isOpen, fetchWorkerLogs, fetchDepartments, taskData?.sub_batch?.id]);
+
+    // Initialize status from taskData and reset sendToDepartment
     useEffect(() => {
         if (taskData?.stage) {
             setStatus(taskData.stage);
         }
-    }, [taskData?.stage]);
+        // Reset sendToDepartment when modal opens with new task
+        setSendToDepartment('');
+    }, [taskData?.id, taskData?.stage]);
 
     // Handle save - update stage via API or advance to next department
     const handleSave = async () => {
@@ -173,10 +192,11 @@ const TaskDetailsModal: React.FC<TaskDetailsModalProps> = ({ isOpen, onClose, ta
 
         console.log('Using subBatchId:', subBatchId);
 
-        // If card is ALREADY COMPLETED and sending to another department
-        if (taskData.stage === 'COMPLETED' && sendToDepartment) {
-            console.log('✅ Advancing to next department...');
+        // If sending to another department (works for any stage)
+        if (sendToDepartment) {
+            console.log('✅ Sending to another department...');
             console.log('Card type:', taskData.remarks || 'Regular');
+            console.log('Current stage:', taskData.stage);
 
             try {
                 setSaving(true);
@@ -251,12 +271,8 @@ const TaskDetailsModal: React.FC<TaskDetailsModalProps> = ({ isOpen, onClose, ta
             } finally {
                 setSaving(false);
             }
-        } else if (taskData.stage === 'COMPLETED' && !sendToDepartment) {
-            // Card is COMPLETED but no department selected - require selection
-            alert('Please select a department to send this completed task to');
-            return;
         } else {
-            // Normal stage update (not COMPLETED)
+            // Normal stage update (no department selected)
             try {
                 setSaving(true);
                 const token = localStorage.getItem('token');
@@ -557,7 +573,7 @@ const TaskDetailsModal: React.FC<TaskDetailsModalProps> = ({ isOpen, onClose, ta
                                         </div>
                                     </div>
 
-                                    {/* Row 4: Status and Sent from Department */}
+                                    {/* Row 4: Status and Send to Department */}
                                     <div>
                                         <label className="text-sm font-medium text-gray-700 block mb-1">Status</label>
                                         <select
@@ -571,9 +587,34 @@ const TaskDetailsModal: React.FC<TaskDetailsModalProps> = ({ isOpen, onClose, ta
                                             <option value="COMPLETED">Completed</option>
                                         </select>
                                     </div>
-                                    <div>
+                                    {taskData.stage === 'COMPLETED' && (
+                                        <div>
+                                            <label className="text-sm font-medium text-gray-700 block mb-1">Send to Department</label>
+                                            <div className="relative">
+                                                <select
+                                                    value={sendToDepartment}
+                                                    onChange={(e) => setSendToDepartment(e.target.value)}
+                                                    disabled={taskData.sub_batch?.status === 'COMPLETED'}
+                                                    className="w-full bg-gray-50 border border-gray-300 rounded px-3 py-2 text-sm text-gray-900 disabled:opacity-50 disabled:cursor-not-allowed appearance-none pr-10"
+                                                >
+                                                    <option value="">Select Department</option>
+                                                    {departments
+                                                        .filter(dept => dept.id !== taskData.department_id)
+                                                        .map((dept) => (
+                                                            <option key={dept.id} value={dept.id}>
+                                                                {dept.name}
+                                                            </option>
+                                                        ))}
+                                                </select>
+                                                <ChevronDown size={16} className="absolute right-3 top-1/2 -translate-y-1/2  pointer-events-none" />
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* Row 5: Sent from Department (full width) */}
+                                    <div className="col-span-2">
                                         <label className="text-sm font-medium text-gray-700 block mb-1">Sent from Department</label>
-                                        <div className="bg-gray-50 border border-gray-300 rounded px-3 py-2 text-sm text-gray-900">
+                                        <div className=" w-fit bg-gray-50 border border-gray-300 rounded px-3 py-2 text-sm text-gray-900">
                                             {taskData.rejection_source?.from_department_name ||
                                              taskData.alteration_source?.from_department_name ||
                                              taskData.department?.name || 'Department 1'}
@@ -913,7 +954,13 @@ const TaskDetailsModal: React.FC<TaskDetailsModalProps> = ({ isOpen, onClose, ta
                                     className="px-6 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
                                     title={taskData.sub_batch?.status === 'COMPLETED' ? 'Cannot modify - Sub-batch is completed' : ''}
                                 >
-                                    {saving ? 'Saving...' : taskData.sub_batch?.status === 'COMPLETED' ? 'Locked' : 'Save'}
+                                    {saving
+                                        ? 'Saving...'
+                                        : taskData.sub_batch?.status === 'COMPLETED'
+                                        ? 'Locked'
+                                        : sendToDepartment
+                                        ? 'Send to Department'
+                                        : 'Save'}
                                 </button>
                             </div>
                         </div>
