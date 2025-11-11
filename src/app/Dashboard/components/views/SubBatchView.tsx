@@ -4,7 +4,7 @@
 
 import React, { useState, useEffect } from "react";
 import axios from "axios";
-import { Plus, Edit2, Trash2, X, FileX, Layers, Package, Volleyball, PackageMinus, ClockAlert, Clock, MoreVertical, Eye, Save } from "lucide-react";
+import { Plus, Edit2, Trash2, X, FileX, Layers, Package, Volleyball, PackageMinus, ClockAlert, Clock, MoreVertical, Eye } from "lucide-react";
 import Loader from "@/app/Components/Loader";
 
 const API = process.env.NEXT_PUBLIC_API_URL ;
@@ -867,7 +867,7 @@ const SubBatchView = () => {
                     {/* Estimated Pieces */}
                     <div className="flex justify-between items-center py-2 border-b border-gray-100">
                       <span className=" font-semibold text-black">Estimated Pieces</span>
-                      <span className="text-sm text-gray-500">{formData.estimatedPieces} kg</span>
+                      <span className="text-sm text-gray-500">{formData.estimatedPieces} </span>
                     </div>
 
                     {/* Expected Items */}
@@ -1045,7 +1045,6 @@ const SubBatchView = () => {
                                 : 'bg-blue-600 text-white hover:bg-green-700'
                             }`}
                           >
-                            <Save size={16} />
                             {isSavingCategory ? 'Saving...' : 'Save'}
                           </button>
                         </div>

@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useState, useEffect, useCallback } from 'react';
-import { Calendar, X, CheckCircle, Edit3, XCircle, Clock, ChevronDown } from 'lucide-react';
+import { Calendar, X, CheckCircle, Edit3, XCircle, Clock, ChevronDown, Inbox } from 'lucide-react';
 import AddRecordModal from './AddRecordModal';
 import WorkerAssignmentTable from './WorkerAssignmentTable';
 import PreviewModal from './PreviewModal';
@@ -634,7 +634,7 @@ const TaskDetailsModal: React.FC<TaskDetailsModalProps> = ({ isOpen, onClose, ta
                                                 >
                                                     <span className="font-medium text-gray-700">{attachment.attachment_name}</span>
                                                     <span className="text-gray-600">:</span>
-                                                    <span className="font-semibold text-gray-900">{attachment.quantity}</span>
+                                                    <span className="font-semibold text-gray-700">{attachment.quantity}</span>
                                                 </div>
                                             ))}
                                         </div>
@@ -713,44 +713,53 @@ const TaskDetailsModal: React.FC<TaskDetailsModalProps> = ({ isOpen, onClose, ta
                                 )}
 
                                 {/* Production Summary */}
-                                <div className="mt-6 px-6 py-4">
+                                <div className="mt-6 ">
                                     <h4 className="font-semibold text-base mb-4">Production Summary</h4>
 
-                                    <div className="grid grid-cols-4 gap-4">
-                                        {/* Worked */}
-                                        <div className="flex flex-col items-center">
+                                    <div className="flex items-start gap-8">
+                                        {/* Received */}
+                                        <div className="flex flex-col">
                                             <div className="flex items-center gap-2 mb-2">
-                                                <CheckCircle className="text-green-500" size={20} />
+                                                <Inbox className="text-blue-500" size={18} />
+                                                <span className="text-sm text-gray-600">Received</span>
+                                            </div>
+                                            <p className="text-[16px] text-center font-semibold text-gray-900">{quantityToWork.toLocaleString()}</p>
+                                        </div>
+
+                                        {/* Worked */}
+                                        <div className="flex flex-col">
+                                            <div className="flex items-center gap-2 mb-2">
+                                                <CheckCircle className="text-green-500" size={18} />
                                                 <span className="text-sm text-gray-600">Worked</span>
                                             </div>
-                                            <p className="text-2xl font-bold text-gray-900">{totalWorkDone.toLocaleString()}</p>
+                                            <p className="text-[16px] text-center font-semibold text-gray-900">{totalWorkDone.toLocaleString()}</p>
                                         </div>
 
                                         {/* Altered */}
-                                        <div className="flex flex-col items-center">
+                                        <div className="flex flex-col">
                                             <div className="flex items-center gap-2 mb-2">
-                                                <Edit3 className="text-yellow-500" size={20} />
+                                                <Edit3 className="text-yellow-500" size={18} />
                                                 <span className="text-sm text-gray-600">Altered</span>
                                             </div>
-                                            <p className="text-2xl font-bold text-gray-900">{totalAltered.toLocaleString()}</p>
+                                            <p className="text-[16px] text-center font-semibold text-gray-900">{totalAltered.toLocaleString()}</p>
                                         </div>
 
                                         {/* Rejected */}
-                                        <div className="flex flex-col items-center">
+                                        <div className="flex flex-col">
                                             <div className="flex items-center gap-2 mb-2">
-                                                <XCircle className="text-red-500" size={20} />
+                                                <XCircle className="text-red-500" size={18} />
                                                 <span className="text-sm text-gray-600">Rejected</span>
                                             </div>
-                                            <p className="text-2xl font-bold text-gray-900">{totalRejected.toLocaleString()}</p>
+                                            <p className="text-[16px] text-center font-semibold text-gray-900">{totalRejected.toLocaleString()}</p>
                                         </div>
 
                                         {/* Remaining */}
-                                        <div className="flex flex-col items-center">
+                                        <div className="flex flex-col">
                                             <div className="flex items-center gap-2 mb-2">
-                                                <Clock className="text-orange-500" size={20} />
+                                                <Clock className="text-orange-500" size={18} />
                                                 <span className="text-sm text-gray-600">Remaining</span>
                                             </div>
-                                            <p className="text-2xl font-bold text-gray-900">{remainingWork.toLocaleString()}</p>
+                                            <p className="text-[16px] text-center font-semibold text-gray-900">{remainingWork.toLocaleString()}</p>
                                         </div>
                                     </div>
                                 </div>
@@ -957,7 +966,7 @@ const TaskDetailsModal: React.FC<TaskDetailsModalProps> = ({ isOpen, onClose, ta
                                     {saving
                                         ? 'Saving...'
                                         : taskData.sub_batch?.status === 'COMPLETED'
-                                        ? 'Locked'
+                                        ? 'Completed'
                                         : sendToDepartment
                                         ? 'Send to Department'
                                         : 'Save'}

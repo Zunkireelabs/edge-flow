@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import React, { useState, useEffect } from 'react';
-import { X, Calendar, ChevronDown, Plus, Trash2 } from 'lucide-react';
+import { X, Calendar, ChevronDown, Plus, Trash2, Inbox, CheckCircle, Clock } from 'lucide-react';
 
 interface RejectedTaskData {
     id: number;
@@ -49,6 +49,8 @@ const RejectedTaskDetailsModal: React.FC<RejectedTaskDetailsModalProps> = ({
     const [newWorkerDate, setNewWorkerDate] = useState('');
     const [sendToDepartment, setSendToDepartment] = useState('');
     const [departments, setDepartments] = useState<any[]>([]);
+    const [showCompletionDialog, setShowCompletionDialog] = useState(false);
+    const [confirmationText, setConfirmationText] = useState('');
 
     useEffect(() => {
         if (taskData) {
@@ -229,6 +231,75 @@ const RejectedTaskDetailsModal: React.FC<RejectedTaskDetailsModalProps> = ({
             } finally {
                 setSaving(false);
             }
+        }
+    };
+
+    // Handle marking sub-batch as completed
+    const handleMarkAsCompleted = async () => {
+        if (confirmationText.toLowerCase() !== 'yes') {
+            alert('Please type "yes" to confirm marking this sub-batch as completed');
+            return;
+        }
+
+        try {
+            setSaving(true);
+            const token = localStorage.getItem('token');
+
+            if (!token) {
+                alert('Authentication required. Please login again.');
+                return;
+            }
+
+            const subBatchId = taskData.id;
+
+            if (!subBatchId) {
+                alert('Cannot mark as completed: Sub-batch ID is missing');
+                return;
+            }
+
+            const response = await fetch(
+                `${process.env.NEXT_PUBLIC_API_URL}/sub-batches/mark-completed`,
+                {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`,
+                    },
+                    body: JSON.stringify({
+                        subBatchId: Number(subBatchId),
+                    }),
+                }
+            );
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.message || 'Failed to mark sub-batch as completed');
+            }
+
+            const result = await response.json();
+
+            if (result.success) {
+                alert('Sub-batch has been marked as COMPLETED! It can no longer be moved.');
+                setShowCompletionDialog(false);
+                setConfirmationText('');
+                onClose();
+
+                // Refresh the Kanban board
+                setTimeout(() => {
+                    if (onStageChange) {
+                        onStageChange();
+                    } else {
+                        window.location.reload();
+                    }
+                }, 500);
+            } else {
+                throw new Error(result.message || 'Failed to mark sub-batch as completed');
+            }
+        } catch (error: any) {
+            console.error('Error marking as completed:', error);
+            alert(`Failed to mark as completed: ${error.message}`);
+        } finally {
+            setSaving(false);
         }
     };
 
@@ -428,6 +499,45 @@ const RejectedTaskDetailsModal: React.FC<RejectedTaskDetailsModalProps> = ({
                             </div>
                         )}
 
+                        {/* Production Summary */}
+                        <div className="mb-8">
+                            <h4 className="text-lg font-semibold mb-6 text-gray-900">Production Summary</h4>
+                            <div className="flex items-start gap-12">
+                                {/* Received */}
+                                <div className="flex flex-col">
+                                    <div className="flex items-center gap-2 mb-2">
+                                        <Inbox className="text-blue-500" size={18} />
+                                        <span className="text-sm text-gray-600">Received</span>
+                                    </div>
+                                    <p className="text-[16px] text-center font-semibold text-gray-900">
+                                        {(taskData.quantity_remaining ?? taskData.rejected_quantity).toLocaleString()}
+                                    </p>
+                                </div>
+
+                                {/* Worked */}
+                                <div className="flex flex-col">
+                                    <div className="flex items-center gap-2 mb-2">
+                                        <CheckCircle className="text-green-500" size={18} />
+                                        <span className="text-sm text-gray-600">Worked</span>
+                                    </div>
+                                    <p className="text-[16px] text-center font-semibold text-gray-900">
+                                        {workerRecords.reduce((sum, record) => sum + (record.quantity || 0), 0).toLocaleString()}
+                                    </p>
+                                </div>
+
+                                {/* Remaining */}
+                                <div className="flex flex-col">
+                                    <div className="flex items-center gap-2 mb-2">
+                                        <Clock className="text-blue-500" size={18} />
+                                        <span className="text-sm text-gray-600">Remaining</span>
+                                    </div>
+                                    <p className="text-[16px] text-center font-semibold text-gray-900">
+                                        {((taskData.quantity_remaining ?? taskData.rejected_quantity) - workerRecords.reduce((sum, record) => sum + (record.quantity || 0), 0)).toLocaleString()}
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+
                         {/* Assign Workers Section */}
                         <div>
                             <h4 className="text-lg font-semibold mb-4 text-gray-900">Assign Workers</h4>
@@ -462,7 +572,6 @@ const RejectedTaskDetailsModal: React.FC<RejectedTaskDetailsModalProps> = ({
                                             onChange={(e) => setNewWorkerDate(e.target.value)}
                                             className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white pr-9"
                                         />
-                                        <Calendar size={14} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
                                     </div>
                                 </div>
                                 <button
@@ -529,17 +638,92 @@ const RejectedTaskDetailsModal: React.FC<RejectedTaskDetailsModalProps> = ({
                             >
                                 Cancel
                             </button>
-                            <button
-                                onClick={handleSave}
-                                disabled={saving}
-                                className="px-8 py-2.5 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:opacity-50 font-medium"
-                            >
-                                {saving ? 'Saving...' : 'Save'}
-                            </button>
+                            <div className="flex gap-3">
+                                {/* Show Mark as Completed button only when stage is COMPLETED */}
+                                {taskData.status === 'COMPLETED' && (
+                                    <button
+                                        onClick={() => setShowCompletionDialog(true)}
+                                        disabled={saving}
+                                        className="px-6 py-2 bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50"
+                                    >
+                                        Mark Sub-batch as Completed
+                                    </button>
+                                )}
+                                <button
+                                    onClick={handleSave}
+                                    disabled={saving}
+                                    className="px-8 py-2.5 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:opacity-50 font-medium"
+                                >
+                                    {saving ? 'Saving...' : 'Save'}
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
+
+            {/* Completion Confirmation Dialog */}
+            {showCompletionDialog && (
+                <div className="fixed inset-0 z-[60] flex items-center justify-center">
+                    <div className="absolute inset-0 bg-black/60" onClick={() => setShowCompletionDialog(false)} />
+                    <div className="bg-white rounded-lg w-[500px] mx-4 relative shadow-2xl">
+                        {/* Header */}
+                        <div className="p-6 border-b border-gray-300">
+                            <h3 className="text-lg font-bold text-gray-900">Confirm Sub-batch Completion</h3>
+                        </div>
+
+                        {/* Content */}
+                        <div className="p-6">
+                            <div className="mb-4">
+                                <p className="text-gray-700 mb-2">
+                                    Are you sure you want to mark this sub-batch as <strong>COMPLETED</strong>?
+                                </p>
+                                <p className="text-sm text-red-600 font-semibold mb-4">
+                                    Once completed, this sub-batch can NO LONGER be moved to other departments or stages.
+                                </p>
+                                <p className="text-sm text-gray-600 mb-4">
+                                    Sub-batch: <strong>{taskData.sub_batch_name}</strong>
+                                </p>
+                            </div>
+
+                            <div className="mb-4">
+                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                    Type <strong className="text-red-600">&quot;yes&quot;</strong> to confirm:
+                                </label>
+                                <input
+                                    type="text"
+                                    value={confirmationText}
+                                    onChange={(e) => setConfirmationText(e.target.value)}
+                                    placeholder="Type yes"
+                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                                    autoFocus
+                                />
+                            </div>
+                        </div>
+
+                        {/* Footer */}
+                        <div className="p-6 border-t border-gray-300 bg-gray-50 flex justify-end gap-3">
+                            <button
+                                onClick={() => {
+                                    setShowCompletionDialog(false);
+                                    setConfirmationText('');
+                                }}
+                                disabled={saving}
+                                className="px-4 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-100 disabled:opacity-50"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={handleMarkAsCompleted}
+                                disabled={saving || confirmationText.toLowerCase() !== 'yes'}
+                                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                                {saving ? 'Processing...' : 'Mark as Completed'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </>
     );
 };

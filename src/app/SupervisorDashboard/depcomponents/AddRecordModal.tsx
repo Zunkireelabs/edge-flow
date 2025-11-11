@@ -287,6 +287,7 @@ const AddRecordModal: React.FC<AddRecordModalProps> = ({
         work_date: formData.date,
         activity_type: 'NORMAL', // Default activity type
         is_billable: formData.isBillable, // Add billable status
+        department_id: subBatch?.department_id, // Add department ID
       };
 
       // Add optional fields only if they have values

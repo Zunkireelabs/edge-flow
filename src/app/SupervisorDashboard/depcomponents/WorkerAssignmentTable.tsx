@@ -105,8 +105,12 @@ const WorkerAssignmentTable: React.FC<WorkerAssignmentTableProps> = ({
           </tr>
         </thead>
         <tbody className="divide-y divide-gray-200">
-          {records.map((record) => (
-            <tr key={record.id} className="hover:bg-gray-50">
+          {records.map((record) => {
+            const hasRejectionOrAlteration = (record.rejectReturn ?? 0) > 0 || (record.alteration ?? 0) > 0;
+            const rowBgClass = hasRejectionOrAlteration ? 'bg-[#FEF2F2]' : 'bg-[#ECFDF5]';
+
+            return (
+            <tr key={record.id} className={rowBgClass}>
               <td className="p-3 text-sm text-gray-900 min-w-[120px] whitespace-nowrap">{record.worker}</td>
               <td className="p-3 text-sm text-gray-600 min-w-[100px] whitespace-nowrap">{record.date}</td>
               <td className="p-3 text-sm text-gray-600 min-w-[120px]">{record.realCategory}</td>
@@ -160,7 +164,8 @@ const WorkerAssignmentTable: React.FC<WorkerAssignmentTableProps> = ({
                 </div>
               </td>
             </tr>
-          ))}
+            );
+          })}
         </tbody>
       </table>
     </div>

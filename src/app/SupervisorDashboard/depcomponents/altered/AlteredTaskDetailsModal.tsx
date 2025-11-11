@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Calendar, Plus, Trash2, ChevronDown } from 'lucide-react';
+import { X, Calendar, Plus, Trash2, ChevronDown, CheckCircle, Clock, Inbox } from 'lucide-react';
 
 interface AlteredTaskData {
     id: number;
@@ -47,6 +47,8 @@ const AlteredTaskDetailsModal: React.FC<AlteredTaskDetailsModalProps> = ({
     const [newWorkerDate, setNewWorkerDate] = useState('');
     const [sendToDepartment, setSendToDepartment] = useState('');
     const [departments, setDepartments] = useState<Array<{ id: number; name: string }>>([]);
+    const [showCompletionDialog, setShowCompletionDialog] = useState(false);
+    const [confirmationText, setConfirmationText] = useState('');
 
     useEffect(() => {
         if (taskData) {
@@ -230,6 +232,76 @@ const AlteredTaskDetailsModal: React.FC<AlteredTaskDetailsModalProps> = ({
         }
     };
 
+    // Handle marking sub-batch as completed
+    const handleMarkAsCompleted = async () => {
+        if (confirmationText.toLowerCase() !== 'yes') {
+            alert('Please type "yes" to confirm marking this sub-batch as completed');
+            return;
+        }
+
+        try {
+            setSaving(true);
+            const token = localStorage.getItem('token');
+
+            if (!token) {
+                alert('Authentication required. Please login again.');
+                return;
+            }
+
+            const subBatchId = taskData.id;
+
+            if (!subBatchId) {
+                alert('Cannot mark as completed: Sub-batch ID is missing');
+                return;
+            }
+
+            const response = await fetch(
+                `${process.env.NEXT_PUBLIC_API_URL}/sub-batches/mark-completed`,
+                {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`,
+                    },
+                    body: JSON.stringify({
+                        subBatchId: Number(subBatchId),
+                    }),
+                }
+            );
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.message || 'Failed to mark sub-batch as completed');
+            }
+
+            const result = await response.json();
+
+            if (result.success) {
+                alert('Sub-batch has been marked as COMPLETED! It can no longer be moved.');
+                setShowCompletionDialog(false);
+                setConfirmationText('');
+                onClose();
+
+                // Refresh the Kanban board
+                setTimeout(() => {
+                    if (onStageChange) {
+                        onStageChange();
+                    } else {
+                        window.location.reload();
+                    }
+                }, 500);
+            } else {
+                throw new Error(result.message || 'Failed to mark sub-batch as completed');
+            }
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        } catch (error: any) {
+            console.error('Error marking as completed:', error);
+            alert(`Failed to mark as completed: ${error.message}`);
+        } finally {
+            setSaving(false);
+        }
+    };
+
     if (!isOpen || !taskData) return null;
 
     return (
@@ -366,146 +438,186 @@ const AlteredTaskDetailsModal: React.FC<AlteredTaskDetailsModalProps> = ({
                                 </div>
                             </div>
 
-                        {/* Alteration Log Section */}
-                        <div className="mb-8 pb-8 border-b border-gray-200">
-                            <h4 className="text-lg font-semibold mb-6 text-gray-900">Alteration Log</h4>
-                            <div className="space-y-6">
-                                {/* Row 1: Date & Altered By */}
-                                <div className="grid grid-cols-2 gap-6">
-                                    <div>
-                                        <label className="text-sm font-medium text-gray-900 block mb-2">Date</label>
-                                        <div className="bg-gray-50 border border-gray-200 rounded-lg px-4 py-2.5 text-sm text-gray-600 flex items-center justify-between">
-                                            <span>{formatDate(taskData.alteration_date)}</span>
-                                            <Calendar size={16} className="text-gray-400" />
-                                        </div>
-                                    </div>
-                                    <div>
-                                        <label className="text-sm font-medium text-gray-900 block mb-2">Altered By</label>
-                                        <div className="bg-gray-50 border border-gray-200 rounded-lg px-4 py-2.5 text-sm text-gray-600">
-                                            {taskData.altered_by}
-                                        </div>
-                                    </div>
-                                </div>
-
-                                {/* Row 2: Quantity (half width) */}
-                                <div className="grid grid-cols-2 gap-6">
-                                    <div>
-                                        <label className="text-sm font-medium text-gray-900 block mb-2">Quantity</label>
-                                        <div className="bg-gray-50 border border-gray-200 rounded-lg px-4 py-2.5 text-sm text-gray-600">
-                                            {taskData.altered_quantity.toLocaleString()}
-                                        </div>
-                                    </div>
-                                </div>
-
-                                {/* Row 3: Alteration Note (full width) */}
-                                <div>
-                                    <label className="text-sm font-medium text-gray-900 block mb-2">Alteration Note</label>
-                                    <div className="bg-gray-50 border border-gray-200 rounded-lg px-4 py-2.5 text-sm text-gray-600">
-                                        {taskData.alteration_reason || '-'}
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Attachments */}
-                        {taskData.attachments && taskData.attachments.length > 0 && (
+                            {/* Alteration Log Section */}
                             <div className="mb-8 pb-8 border-b border-gray-200">
-                                <h4 className="text-lg font-semibold mb-4 text-gray-900">Attachments</h4>
-                                <div className="flex flex-wrap gap-3">
-                                    {taskData.attachments.map((attachment, index) => (
-                                        <div
-                                            key={index}
-                                            className="inline-flex items-center gap-2 bg-gray-100 px-4 py-2 rounded-lg text-sm border border-gray-200"
-                                        >
-                                            <span className="text-gray-700">{attachment.name}</span>
-                                            <span className="text-gray-500">:</span>
-                                            <span className="font-medium text-gray-900">{attachment.count}</span>
+                                <h4 className="text-lg font-semibold mb-6 text-gray-900">Alteration Log</h4>
+                                <div className="space-y-6">
+                                    {/* Row 1: Date & Altered By */}
+                                    <div className="grid grid-cols-2 gap-6">
+                                        <div>
+                                            <label className="text-sm font-medium text-gray-900 block mb-2">Date</label>
+                                            <div className="bg-gray-50 border border-gray-200 rounded-lg px-4 py-2.5 text-sm text-gray-600 flex items-center justify-between">
+                                                <span>{formatDate(taskData.alteration_date)}</span>
+                                                <Calendar size={16} className="text-gray-400" />
+                                            </div>
                                         </div>
-                                    ))}
-                                </div>
-                            </div>
-                        )}
+                                        <div>
+                                            <label className="text-sm font-medium text-gray-900 block mb-2">Altered By</label>
+                                            <div className="bg-gray-50 border border-gray-200 rounded-lg px-4 py-2.5 text-sm text-gray-600">
+                                                {taskData.altered_by}
+                                            </div>
+                                        </div>
+                                    </div>
 
-                        {/* Assign Workers Section */}
-                        <div>
-                            <h4 className="text-lg font-semibold mb-4 text-gray-900">Assign Workers</h4>
+                                    {/* Row 2: Quantity (half width) */}
+                                    <div className="grid grid-cols-2 gap-6">
+                                        <div>
+                                            <label className="text-sm font-medium text-gray-900 block mb-2">Quantity</label>
+                                            <div className="bg-gray-50 border border-gray-200 rounded-lg px-4 py-2.5 text-sm text-gray-600">
+                                                {taskData.altered_quantity.toLocaleString()}
+                                            </div>
+                                        </div>
+                                    </div>
 
-                            {/* Input Row */}
-                            <div className="flex items-end gap-3 mb-4">
-                                <div className="flex-1">
-                                    <label className="text-sm font-medium text-gray-900 block mb-2">Worker Name</label>
-                                    <input
-                                        type="text"
-                                        value={newWorkerName}
-                                        onChange={(e) => setNewWorkerName(e.target.value)}
-                                        placeholder="Name"
-                                        className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
-                                    />
-                                </div>
-                                <div className="w-32">
-                                    <label className="text-sm font-medium text-gray-900 block mb-2">Quantity</label>
-                                    <input
-                                        type="number"
-                                        value={newWorkerQuantity}
-                                        onChange={(e) => setNewWorkerQuantity(e.target.value)}
-                                        className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
-                                    />
-                                </div>
-                                <div className="w-40">
-                                    <label className="text-sm font-medium text-gray-900 block mb-2">Date</label>
-                                    <div className="relative">
-                                        <input
-                                            type="date"
-                                            value={newWorkerDate}
-                                            onChange={(e) => setNewWorkerDate(e.target.value)}
-                                            className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white pr-9"
-                                        />
-                                        <Calendar size={14} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                                    {/* Row 3: Alteration Note (full width) */}
+                                    <div>
+                                        <label className="text-sm font-medium text-gray-900 block mb-2">Alteration Note</label>
+                                        <div className="bg-gray-50 border border-gray-200 rounded-lg px-4 py-2.5 text-sm text-gray-600">
+                                            {taskData.alteration_reason || '-'}
+                                        </div>
                                     </div>
                                 </div>
-                                <button
-                                    onClick={handleAddWorker}
-                                    className="inline-flex items-center justify-center w-9 h-9 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors flex-shrink-0"
-                                    title="Add worker"
-                                >
-                                    <Plus size={18} />
-                                </button>
                             </div>
 
-                            {/* Workers Table */}
-                            {workerRecords.length > 0 && (
-                                <div className="border border-gray-200 rounded-lg overflow-hidden">
-                                    <table className="min-w-full">
-                                        <thead className="bg-gray-50 border-b border-gray-200">
-                                            <tr>
-                                                <th className="px-4 py-3 text-left text-sm font-medium text-gray-900">Worker Name</th>
-                                                <th className="px-4 py-3 text-left text-sm font-medium text-gray-900">Quantity</th>
-                                                <th className="px-4 py-3 text-left text-sm font-medium text-gray-900">Date</th>
-                                                <th className="px-4 py-3 text-center text-sm font-medium text-gray-900 w-16"></th>
-                                            </tr>
-                                        </thead>
-                                        <tbody className="divide-y divide-gray-200 bg-white">
-                                            {workerRecords.map((record) => (
-                                                <tr key={record.id} className="hover:bg-gray-50">
-                                                    <td className="px-4 py-3 text-sm text-gray-900">{record.worker_name}</td>
-                                                    <td className="px-4 py-3 text-sm text-gray-900">{record.quantity}</td>
-                                                    <td className="px-4 py-3 text-sm text-gray-900">{record.date}</td>
-                                                    <td className="px-4 py-3 text-center">
-                                                        <button
-                                                            onClick={() => handleDeleteWorker(record.id)}
-                                                            className="text-gray-400 hover:text-red-600 transition-colors"
-                                                            title="Delete worker"
-                                                        >
-                                                            <Trash2 size={18} />
-                                                        </button>
-                                                    </td>
-                                                </tr>
-                                            ))}
-                                        </tbody>
-                                    </table>
+                            {/* Attachments */}
+                            {taskData.attachments && taskData.attachments.length > 0 && (
+                                <div className="mb-8 pb-8 border-b border-gray-200">
+                                    <h4 className="text-lg font-semibold mb-4 text-gray-900">Attachments</h4>
+                                    <div className="flex flex-wrap gap-3">
+                                        {taskData.attachments.map((attachment, index) => (
+                                            <div
+                                                key={index}
+                                                className="inline-flex items-center gap-2 bg-gray-100 px-4 py-2 rounded-lg text-sm border border-gray-200"
+                                            >
+                                                <span className="text-gray-700">{attachment.name}</span>
+                                                <span className="text-gray-500">:</span>
+                                                <span className="font-medium text-gray-900">{attachment.count}</span>
+                                            </div>
+                                        ))}
+                                    </div>
                                 </div>
                             )}
-                        </div>
+
+                            {/* Production Summary */}
+                            <div className="mb-8">
+                                <h4 className="text-lg font-semibold mb-6 text-gray-900">Production Summary</h4>
+                                <div className="flex items-start gap-12">
+                                    {/* Received */}
+                                    <div className="flex flex-col">
+                                        <div className="flex items-center gap-2 mb-2">
+                                            <Inbox className="text-blue-500" size={18} />
+                                            <span className="text-sm text-gray-600">Received</span>
+                                        </div>
+                                        <p className="text-[16px] text-center font-semibold text-gray-900">
+                                            {(taskData.quantity_remaining ?? taskData.altered_quantity).toLocaleString()}
+                                        </p>
+                                    </div>
+
+                                    {/* Worked */}
+                                    <div className="flex flex-col">
+                                        <div className="flex items-center gap-2 mb-2">
+                                            <CheckCircle className="text-green-500" size={18} />
+                                            <span className="text-sm text-gray-600">Worked</span>
+                                        </div>
+                                        <p className="text-[16px] text-center font-semibold text-gray-900">
+
+                                            {workerRecords.reduce((sum, record) => sum + (record.quantity || 0), 0).toLocaleString()}
+                                        </p>
+                                    </div>
+
+                                    {/* Remaining */}
+                                    <div className="flex flex-col">
+                                        <div className="flex items-center gap-2 mb-2">
+                                            <Clock className="text-blue-500" size={18} />
+                                            <span className="text-sm text-gray-600">Remaining</span>
+                                        </div>
+                                        <p className="text-[16px] text-center font-semibold text-gray-900">
+
+                                            {((taskData.quantity_remaining ?? taskData.altered_quantity) - workerRecords.reduce((sum, record) => sum + (record.quantity || 0), 0)).toLocaleString()}
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Assign Workers Section */}
+                            <div>
+                                <h4 className="text-lg font-semibold mb-4 text-gray-900">Assign Workers</h4>
+
+                                {/* Input Row */}
+                                <div className="flex items-end gap-3 mb-4">
+                                    <div className="flex-1">
+                                        <label className="text-sm font-medium text-gray-900 block mb-2">Worker Name</label>
+                                        <input
+                                            type="text"
+                                            value={newWorkerName}
+                                            onChange={(e) => setNewWorkerName(e.target.value)}
+                                            placeholder="Name"
+                                            className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                                        />
+                                    </div>
+                                    <div className="w-32">
+                                        <label className="text-sm font-medium text-gray-900 block mb-2">Quantity</label>
+                                        <input
+                                            type="number"
+                                            value={newWorkerQuantity}
+                                            onChange={(e) => setNewWorkerQuantity(e.target.value)}
+                                            className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                                        />
+                                    </div>
+                                    <div className="w-40">
+                                        <label className="text-sm font-medium text-gray-900 block mb-2">Date</label>
+                                        <div className="relative">
+                                            <input
+                                                type="date"
+                                                value={newWorkerDate}
+                                                onChange={(e) => setNewWorkerDate(e.target.value)}
+                                                className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white pr-9"
+                                            />
+                                        </div>
+                                    </div>
+                                    <button
+                                        onClick={handleAddWorker}
+                                        className="inline-flex items-center justify-center w-9 h-9 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors flex-shrink-0"
+                                        title="Add worker"
+                                    >
+                                        <Plus size={18} />
+                                    </button>
+                                </div>
+
+                                {/* Workers Table */}
+                                {workerRecords.length > 0 && (
+                                    <div className="border border-gray-200 rounded-lg overflow-hidden">
+                                        <table className="min-w-full">
+                                            <thead className="bg-gray-50 border-b border-gray-200">
+                                                <tr>
+                                                    <th className="px-4 py-3 text-left text-sm font-medium text-gray-900">Worker Name</th>
+                                                    <th className="px-4 py-3 text-left text-sm font-medium text-gray-900">Quantity</th>
+                                                    <th className="px-4 py-3 text-left text-sm font-medium text-gray-900">Date</th>
+                                                    <th className="px-4 py-3 text-center text-sm font-medium text-gray-900 w-16"></th>
+                                                </tr>
+                                            </thead>
+                                            <tbody className="divide-y divide-gray-200 bg-white">
+                                                {workerRecords.map((record) => (
+                                                    <tr key={record.id} className="hover:bg-gray-50">
+                                                        <td className="px-4 py-3 text-sm text-gray-900">{record.worker_name}</td>
+                                                        <td className="px-4 py-3 text-sm text-gray-900">{record.quantity}</td>
+                                                        <td className="px-4 py-3 text-sm text-gray-900">{record.date}</td>
+                                                        <td className="px-4 py-3 text-center">
+                                                            <button
+                                                                onClick={() => handleDeleteWorker(record.id)}
+                                                                className="text-gray-400 hover:text-red-600 transition-colors"
+                                                                title="Delete worker"
+                                                            >
+                                                                <Trash2 size={18} />
+                                                            </button>
+                                                        </td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                )}
+                            </div>
                         </div>
 
                         {/* Right Column - Work History (Full Height Sidebar) */}
@@ -527,17 +639,92 @@ const AlteredTaskDetailsModal: React.FC<AlteredTaskDetailsModalProps> = ({
                             >
                                 Cancel
                             </button>
-                            <button
-                                onClick={handleSave}
-                                disabled={saving}
-                                className="px-8 py-2.5 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:opacity-50 font-medium"
-                            >
-                                {saving ? 'Saving...' : 'Save'}
-                            </button>
+                            <div className="flex gap-3">
+                                {/* Show Mark as Completed button only when stage is COMPLETED */}
+                                {taskData.status === 'COMPLETED' && (
+                                    <button
+                                        onClick={() => setShowCompletionDialog(true)}
+                                        disabled={saving}
+                                        className="px-6 py-2 bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50"
+                                    >
+                                        Mark Sub-batch as Completed
+                                    </button>
+                                )}
+                                <button
+                                    onClick={handleSave}
+                                    disabled={saving}
+                                    className="px-8 py-2.5 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:opacity-50 font-medium"
+                                >
+                                    {saving ? 'Saving...' : 'Save'}
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
+
+            {/* Completion Confirmation Dialog */}
+            {showCompletionDialog && (
+                <div className="fixed inset-0 z-[60] flex items-center justify-center">
+                    <div className="absolute inset-0 bg-black/60" onClick={() => setShowCompletionDialog(false)} />
+                    <div className="bg-white rounded-lg w-[500px] mx-4 relative shadow-2xl">
+                        {/* Header */}
+                        <div className="p-6 border-b border-gray-300">
+                            <h3 className="text-lg font-bold text-gray-900">Confirm Sub-batch Completion</h3>
+                        </div>
+
+                        {/* Content */}
+                        <div className="p-6">
+                            <div className="mb-4">
+                                <p className="text-gray-700 mb-2">
+                                    Are you sure you want to mark this sub-batch as <strong>COMPLETED</strong>?
+                                </p>
+                                <p className="text-sm text-red-600 font-semibold mb-4">
+                                    Once completed, this sub-batch can NO LONGER be moved to other departments or stages.
+                                </p>
+                                <p className="text-sm text-gray-600 mb-4">
+                                    Sub-batch: <strong>{taskData.sub_batch_name}</strong>
+                                </p>
+                            </div>
+
+                            <div className="mb-4">
+                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                    Type <strong className="text-red-600">&quot;yes&quot;</strong> to confirm:
+                                </label>
+                                <input
+                                    type="text"
+                                    value={confirmationText}
+                                    onChange={(e) => setConfirmationText(e.target.value)}
+                                    placeholder="Type yes"
+                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                                    autoFocus
+                                />
+                            </div>
+                        </div>
+
+                        {/* Footer */}
+                        <div className="p-6 border-t border-gray-300 bg-gray-50 flex justify-end gap-3">
+                            <button
+                                onClick={() => {
+                                    setShowCompletionDialog(false);
+                                    setConfirmationText('');
+                                }}
+                                disabled={saving}
+                                className="px-4 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-100 disabled:opacity-50"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={handleMarkAsCompleted}
+                                disabled={saving || confirmationText.toLowerCase() !== 'yes'}
+                                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                                {saving ? 'Processing...' : 'Mark as Completed'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </>
     );
 };

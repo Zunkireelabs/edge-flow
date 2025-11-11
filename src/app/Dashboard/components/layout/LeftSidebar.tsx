@@ -11,7 +11,6 @@ import {
   Monitor,
   Archive,
   Settings,
-  Users,
   Truck,
   Users2,
   Building,
@@ -40,7 +39,6 @@ const navItems: NavigationItem[] = [
     label: "Settings",
     icon: Settings,
     children: [
-      { id: "clients", label: "Clients", icon: Users },
       { id: "vendors", label: "Vendors", icon: Truck },
       { id: "workers", label: "Workers", icon: Users2 },
       { id: "departmentform", label: "Department", icon: Building },

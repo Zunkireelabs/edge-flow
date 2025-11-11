@@ -206,8 +206,13 @@ const SupervisorKanban = () => {
         setCurrentSupervisorId(parseInt(departmentId, 10));
       }
 
+      const apiUrl = `${process.env.NEXT_PUBLIC_GET_SUBBATCH_SUPERVISOR}`;
+      console.log("======= API ENDPOINT =======");
+      console.log("Fetching kanban data from API:", apiUrl);
+      console.log("============================");
+
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_GET_SUBBATCH_SUPERVISOR}`,
+        apiUrl,
         {
           method: "GET",
           headers: {
