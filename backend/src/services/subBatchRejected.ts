@@ -54,6 +54,7 @@ export const createRejectedSubBatch = async (data: RejectedData) => {
         stage: DepartmentStage.NEW_ARRIVAL,
         is_current: true,
         quantity_remaining: data.quantity,
+        total_quantity: sourceEntry.total_quantity, // Copy the original total quantity
         remarks: "Rejected",
       },
     });

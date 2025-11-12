@@ -224,6 +224,7 @@ export async function sendToProduction(
       stage: DepartmentStage.NEW_ARRIVAL,
       is_current: true,
       quantity_remaining: subBatch.estimated_pieces, // automatically filled
+      total_quantity: subBatch.estimated_pieces, // total quantity that doesn't change
     },
   });
 
@@ -326,6 +327,7 @@ export async function advanceSubBatchToNextDepartment(
       stage: DepartmentStage.NEW_ARRIVAL,
       is_current: true,
       quantity_remaining: quantityToAdvance,
+      total_quantity: currentDept.total_quantity, // Copy the original total quantity
       remarks: currentDept.remarks, // Preserve remarks (Rejected/Altered/null)
     },
   });

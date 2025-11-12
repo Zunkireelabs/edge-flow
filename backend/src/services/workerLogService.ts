@@ -105,6 +105,7 @@ export const createWorkerLog = async (data: WorkerLogInput) => {
             stage: DepartmentStage.NEW_ARRIVAL,
             is_current: true,
             quantity_remaining: r.quantity,
+            total_quantity: sourceEntry.total_quantity, // Copy the original total quantity
             remarks: "Rejected",
           },
         });
@@ -175,6 +176,7 @@ export const createWorkerLog = async (data: WorkerLogInput) => {
             stage: DepartmentStage.NEW_ARRIVAL,
             is_current: true,
             quantity_remaining: a.quantity,
+            total_quantity: sourceEntry.total_quantity, // Copy the original total quantity
             remarks: "Altered",
           },
         });
