@@ -3,8 +3,13 @@ import * as inventorySubtractionService from "../services/inventorySubtractionSe
 
 export const createSubtraction = async (req: Request, res: Response) => {
   try {
+    const { date, ...rest } = req.body;
+    const subtractionData = {
+      ...rest,
+      date: date ? new Date(date) : undefined,
+    };
     const subtraction = await inventorySubtractionService.createInventorySubtraction(
-      req.body
+      subtractionData
     );
     res.status(201).json(subtraction);
   } catch (error: any) {

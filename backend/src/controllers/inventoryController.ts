@@ -3,7 +3,12 @@ import * as inventoryService from "../services/inventoryService";
 
 export const createInventory = async (req: Request, res: Response) => {
   try {
-    const inventory = await inventoryService.createInventory(req.body);
+    const { date, ...rest } = req.body;
+    const inventoryData = {
+      ...rest,
+      date: date ? new Date(date) : undefined,
+    };
+    const inventory = await inventoryService.createInventory(inventoryData);
     res.status(201).json(inventory);
   } catch (error: any) {
     res
@@ -40,9 +45,14 @@ export const getInventoryById = async (req: Request, res: Response) => {
 
 export const updateInventory = async (req: Request, res: Response) => {
   try {
+    const { date, ...rest } = req.body;
+    const updateData = {
+      ...rest,
+      date: date ? new Date(date) : undefined,
+    };
     const inventory = await inventoryService.updateInventory(
       Number(req.params.id),
-      req.body
+      updateData
     );
     res.json(inventory);
   } catch (error: any) {
@@ -66,7 +76,12 @@ export const deleteInventory = async (req: Request, res: Response) => {
 // Addition Controllers
 export const createAddition = async (req: Request, res: Response) => {
   try {
-    const addition = await inventoryService.createInventoryAddition(req.body);
+    const { date, ...rest } = req.body;
+    const additionData = {
+      ...rest,
+      date: date ? new Date(date) : undefined,
+    };
+    const addition = await inventoryService.createInventoryAddition(additionData);
     res.status(201).json(addition);
   } catch (error: any) {
     res.status(400).json({
