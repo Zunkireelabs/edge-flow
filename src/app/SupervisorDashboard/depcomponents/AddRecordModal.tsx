@@ -175,8 +175,19 @@ const AddRecordModal: React.FC<AddRecordModalProps> = ({
   const fetchWorkers = async () => {
     try {
       setLoading(true);
-      console.log('Fetching workers from:', `${process.env.NEXT_PUBLIC_API_URL}/workers`);
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/workers`);
+
+      // Get supervisor's department ID from localStorage
+      const departmentId = localStorage.getItem("departmentId");
+
+      if (!departmentId) {
+        console.error('No department ID found in localStorage');
+        setWorkers([]);
+        setLoading(false);
+        return;
+      }
+
+      console.log('Fetching workers for department:', departmentId);
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/workers/department/${departmentId}`);
       if (res.ok) {
         const data = await res.json();
         console.log('Workers data received:', data);
@@ -184,7 +195,7 @@ const AddRecordModal: React.FC<AddRecordModalProps> = ({
         setWorkers(data);
       } else {
         console.error('Failed to fetch workers. Status:', res.status);
-        alert('Failed to fetch workers');
+        alert('Failed to fetch workers for your department');
       }
     } catch (e) {
       console.error('Error fetching workers:', e);
@@ -229,6 +240,12 @@ const AddRecordModal: React.FC<AddRecordModalProps> = ({
   };
 
   const handleSave = async () => {
+    // Check if workers are available
+    if (workers.length === 0) {
+      alert('No workers available in your department. Please assign workers from Worker Management first.');
+      return;
+    }
+
     // Only require worker and date
     if (!formData.workerId || !formData.date) {
       alert('Worker and date are required');
@@ -464,18 +481,29 @@ const AddRecordModal: React.FC<AddRecordModalProps> = ({
                 name="workerId"
                 value={formData.workerId}
                 onChange={handleChange}
-                disabled={loading || isPreviewMode}
+                disabled={loading || isPreviewMode || workers.length === 0}
                 className={`w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                  isPreviewMode ? 'bg-gray-100 cursor-not-allowed' : ''
+                  isPreviewMode || workers.length === 0 ? 'bg-gray-100 cursor-not-allowed' : ''
                 }`}
               >
-                <option value="">{loading ? 'Loading...' : 'Select Worker'}</option>
+                <option value="">
+                  {loading
+                    ? 'Loading...'
+                    : workers.length === 0
+                    ? 'No workers available'
+                    : 'Select Worker'}
+                </option>
                 {workers.map(w => (
                   <option key={w.id} value={w.id}>
                     {w.name}
                   </option>
                 ))}
               </select>
+              {!loading && workers.length === 0 && (
+                <p className="text-xs text-orange-600 mt-1">
+                  No workers assigned to your department.
+                </p>
+              )}
             </div>
             <div>
               <label className="block text-sm font-semibold mb-2">Date</label>
@@ -788,7 +816,7 @@ const AddRecordModal: React.FC<AddRecordModalProps> = ({
           {!isPreviewMode && (
             <button
               onClick={handleSave}
-              disabled={isSubmitting || loading || (mode === 'add' && !subBatch)}
+              disabled={isSubmitting || loading || (mode === 'add' && !subBatch) || workers.length === 0}
               className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isSubmitting ? (mode === 'edit' ? 'Updating...' : 'Saving...') : mode === 'edit' ? 'Update Record' : 'Save Record'}

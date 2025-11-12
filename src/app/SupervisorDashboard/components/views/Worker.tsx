@@ -22,20 +22,29 @@ const Worker = () => {
   const [workers, setWorkers] = useState<Worker[]>([]);
   const [loading, setLoading] = useState(false);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [supervisorDepartmentId, setSupervisorDepartmentId] = useState<number | null>(null);
 
+  // Get supervisor's department ID from localStorage
   useEffect(() => {
-    fetchWorkers();
+    const departmentId = localStorage.getItem("departmentId");
+    if (departmentId) {
+      setSupervisorDepartmentId(parseInt(departmentId, 10));
+    }
   }, []);
 
   const fetchWorkers = async () => {
+    if (!supervisorDepartmentId) {
+      return;
+    }
+
     try {
       setLoading(true);
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/workers`);
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/workers/department/${supervisorDepartmentId}`);
       if (res.ok) {
         const data = await res.json();
         setWorkers(data);
       } else {
-        alert('Failed to fetch workers');
+        alert('Failed to fetch workers for your department');
       }
     } catch (e) {
       console.error(e);
@@ -44,6 +53,14 @@ const Worker = () => {
       setLoading(false);
     }
   };
+
+  // Fetch workers when department ID is available
+  useEffect(() => {
+    if (supervisorDepartmentId) {
+      fetchWorkers();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [supervisorDepartmentId]);
 
   const handleDelete = async (id: number) => {
     if (!confirm('Are you sure you want to delete this worker?')) return;
@@ -76,7 +93,10 @@ const Worker = () => {
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
           <Users className="text-blue-600" size={32} />
-          <h1 className="text-2xl font-bold text-gray-800">Worker Management</h1>
+          <div>
+            <h1 className="text-2xl font-bold text-gray-800">Worker Management</h1>
+            <p className="text-sm text-gray-500">Manage workers in your department</p>
+          </div>
         </div>
         <button
           onClick={() => setIsAddModalOpen(true)}
@@ -87,25 +107,7 @@ const Worker = () => {
         </button>
       </div>
 
-      {/* Statistics */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-        <div className="bg-white p-4 rounded-lg shadow">
-          <p className="text-gray-600 text-sm">Total Workers</p>
-          <p className="text-2xl font-bold text-gray-800">{workers.length}</p>
-        </div>
-        <div className="bg-white p-4 rounded-lg shadow">
-          <p className="text-gray-600 text-sm">Assigned to Department</p>
-          <p className="text-2xl font-bold text-gray-800">
-            {workers.filter(w => w.department_id).length}
-          </p>
-        </div>
-        <div className="bg-white p-4 rounded-lg shadow">
-          <p className="text-gray-600 text-sm">Unassigned</p>
-          <p className="text-2xl font-bold text-gray-800">
-            {workers.filter(w => !w.department_id).length}
-          </p>
-        </div>
-      </div>
+      
 
       {/* Workers Table */}
       <div className="bg-white rounded-lg shadow overflow-hidden">
@@ -114,7 +116,8 @@ const Worker = () => {
         ) : workers.length === 0 ? (
           <div className="p-8 text-center text-gray-500">
             <Users size={48} className="mx-auto mb-4 text-gray-300" />
-            <p>No workers found. Add your first worker to get started.</p>
+            <p>No workers assigned to your department yet.</p>
+            <p className="text-sm mt-2">Click &quot;Add Worker&quot; to assign workers to your department.</p>
           </div>
         ) : (
           <div className="overflow-x-auto">

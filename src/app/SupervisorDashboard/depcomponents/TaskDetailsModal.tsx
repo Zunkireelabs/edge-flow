@@ -226,6 +226,21 @@ const TaskDetailsModal: React.FC<TaskDetailsModalProps> = ({ isOpen, onClose, ta
             console.log('Card type:', taskData.remarks || 'Regular');
             console.log('Current stage:', taskData.stage);
 
+            // Calculate remaining work before allowing department transfer
+            const currentDepartmentRecords = workerRecords.filter(record => record.department_id === taskData.department_id);
+            const totalWorkDone = currentDepartmentRecords.reduce((sum, record) => sum + (record.qtyWorked || 0), 0);
+            const totalAltered = currentDepartmentRecords.reduce((sum, record) => sum + (record.alteration || 0), 0);
+            const totalRejected = currentDepartmentRecords.reduce((sum, record) => sum + (record.rejectReturn || 0), 0);
+            const totalProcessed = totalWorkDone + totalAltered + totalRejected;
+            const quantityToWork = taskData.quantity_remaining ?? taskData.sub_batch?.estimated_pieces ?? 0;
+            const remainingWork = quantityToWork - totalProcessed;
+
+            // Prevent moving if there's remaining work
+            if (remainingWork > 0) {
+                alert(`Cannot send to another department. You must complete all work first`);
+                return;
+            }
+
             try {
                 setSaving(true);
                 const token = localStorage.getItem('token');
@@ -998,9 +1013,9 @@ const TaskDetailsModal: React.FC<TaskDetailsModalProps> = ({ isOpen, onClose, ta
                                     <h4 className="font-semibold text-base">Current Assignment</h4>
                                     <button
                                         onClick={handleAddRecord}
-                                        disabled={(status === 'NEW_ARRIVAL' && !taskData.alteration_source) || taskData.stage === 'COMPLETED'}
+                                        disabled={(status === 'NEW_ARRIVAL' && !taskData.alteration_source) || taskData.stage === 'COMPLETED' || remainingWork <= 0}
                                         className={`px-4 py-1.5 rounded text-sm transition ${
-                                            (status === 'NEW_ARRIVAL' && !taskData.alteration_source) || taskData.stage === 'COMPLETED'
+                                            (status === 'NEW_ARRIVAL' && !taskData.alteration_source) || taskData.stage === 'COMPLETED' || remainingWork <= 0
                                                 ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
                                                 : 'border-blue-500 border text-blue-500 hover:bg-blue-700 hover:text-white'
                                         }`}
@@ -1009,6 +1024,8 @@ const TaskDetailsModal: React.FC<TaskDetailsModalProps> = ({ isOpen, onClose, ta
                                                 ? 'Move to In Progress to assign workers'
                                                 : taskData.stage === 'COMPLETED'
                                                 ? 'Cannot add records to completed tasks'
+                                                : remainingWork <= 0
+                                                ? 'All work has been completed. No more records can be added.'
                                                 : 'Add worker record'
                                         }
                                     >
@@ -1025,6 +1042,12 @@ const TaskDetailsModal: React.FC<TaskDetailsModalProps> = ({ isOpen, onClose, ta
                                 {taskData.stage === 'COMPLETED' && (
                                     <div className="px-8 py-2 text-sm text-green-800 bg-green-50 border-b">
                                         <strong>Note:</strong> This task is completed. You can only view records and send to another department.
+                                    </div>
+                                )}
+
+                                {remainingWork <= 0 && taskData.stage !== 'COMPLETED' && (
+                                    <div className="px-8 py-2 text-sm text-green-800 bg-green-50 border-b">
+                                        <strong>Work Complete!</strong> All {quantityToWork.toLocaleString()} pieces have been processed. You can now move this sub-batch to another department.
                                     </div>
                                 )}
 

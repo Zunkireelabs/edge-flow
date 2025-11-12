@@ -104,24 +104,24 @@ const STAGES = [
     key: 'newArrival',
     title: 'New Arrivals',
     icon: AlertCircle,
-    color: 'bg-blue-50',
-    headerColor: 'text-gray-700',
+    color: 'bg-[#DBEAFE]',
+    headerColor: 'text-black font-medium ',
     count: 0
   },
   {
     key: 'inProgress',
     title: 'In Progress',
     icon: Clock,
-    color: 'bg-yellow-50',
-    headerColor: 'text-gray-700',
+    color: 'bg-[#FDF3CE]',
+    headerColor: 'text-black font-medium',
     count: 0
   },
   {
     key: 'completed',
     title: 'Completed',
     icon: CheckCircle,
-    color: 'bg-green-50',
-    headerColor: 'text-gray-700',
+    color: 'bg-[#DCFCE7]',
+    headerColor: 'text-black font-medium',
     count: 0
   }
 ];
@@ -408,12 +408,13 @@ const SupervisorKanban = () => {
             <div key={stage.key} className={`${stage.color} rounded-lg p-4`}>
               {/* Stage Header */}
               <div className={`${stage.headerColor} p-2 mb-4 flex items-center justify-between`}>
-                <div className="flex items-center gap-2">
-                  <h3 className="font-semibold text-sm">{stage.title}</h3>
-                </div>
-                <span className="text-gray-500 text-xs">
-                  {stage.count} {stage.count === 1 ? 'item' : 'items'}
+                <div className="flex flex-col gap-1">
+                  <h3 className="font-semibold text-medium">{stage.title}</h3>
+                  <span className="text-sm ">
+                  {stage.count} {stage.count === 1 ? 'Item' : 'Items'}
                 </span>
+                </div>
+                
               </div>
 
               {/* Items */}
@@ -477,7 +478,7 @@ const SupervisorKanban = () => {
                         )}
                         {stage.key === 'newArrival' && !isRejected && !isAltered && (
                           <span className="absolute top-3 right-3 inline-block px-3 py-1 bg-gray-500 text-white text-xs rounded-md font-medium">
-                            Closed
+                          New Subbatch
                           </span>
                         )}
 

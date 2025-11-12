@@ -1,9 +1,23 @@
 import React, { useState, useEffect } from 'react';
-import { X } from 'lucide-react';
+import { X, AlertCircle } from 'lucide-react';
 
 interface Department {
   id: number;
   name: string;
+}
+
+interface Worker {
+  id: number;
+  name: string;
+  pan: string;
+  address: string;
+  department_id: number | null;
+  wage_type: string;
+  wage_rate: number;
+  department?: {
+    id: number;
+    name: string;
+  };
 }
 
 interface AddWorkerModalProps {
@@ -17,22 +31,28 @@ const AddWorkerModal: React.FC<AddWorkerModalProps> = ({
   onClose,
   onSuccess,
 }) => {
-  const [formData, setFormData] = useState({
-    name: '',
-    pan: '',
-    address: '',
-    department_id: '',
-    wage_type: 'hourly',
-    wage_rate: '',
-  });
-
+  const [selectedWorkerId, setSelectedWorkerId] = useState('');
+  const [, setSelectedDepartmentId] = useState('');
+  const [workers, setWorkers] = useState<Worker[]>([]);
   const [departments, setDepartments] = useState<Department[]>([]);
   const [loading, setLoading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [supervisorDepartmentId, setSupervisorDepartmentId] = useState<number | null>(null);
 
-  // Load departments when modal opens
+  // Get supervisor's department ID from localStorage
+  useEffect(() => {
+    const departmentId = localStorage.getItem("departmentId");
+    if (departmentId) {
+      const deptId = parseInt(departmentId, 10);
+      setSupervisorDepartmentId(deptId);
+      setSelectedDepartmentId(departmentId);
+    }
+  }, []);
+
+  // Load workers and departments when modal opens
   useEffect(() => {
     if (isOpen) {
+      fetchWorkers();
       fetchDepartments();
     }
   }, [isOpen]);
@@ -40,20 +60,35 @@ const AddWorkerModal: React.FC<AddWorkerModalProps> = ({
   // Reset form when modal closes
   useEffect(() => {
     if (!isOpen) {
-      setFormData({
-        name: '',
-        pan: '',
-        address: '',
-        department_id: '',
-        wage_type: 'hourly',
-        wage_rate: '',
-      });
+      setSelectedWorkerId('');
+      // Keep the supervisor's department selected
+      const departmentId = localStorage.getItem("departmentId");
+      if (departmentId) {
+        setSelectedDepartmentId(departmentId);
+      }
     }
   }, [isOpen]);
 
-  const fetchDepartments = async () => {
+  const fetchWorkers = async () => {
     try {
       setLoading(true);
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/workers`);
+      if (res.ok) {
+        const data = await res.json();
+        setWorkers(data);
+      } else {
+        alert('Failed to fetch workers');
+      }
+    } catch (e) {
+      console.error(e);
+      alert('Error fetching workers');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchDepartments = async () => {
+    try {
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/departments`);
       if (res.ok) {
         const data = await res.json();
@@ -64,28 +99,39 @@ const AddWorkerModal: React.FC<AddWorkerModalProps> = ({
     } catch (e) {
       console.error(e);
       alert('Error fetching departments');
-    } finally {
-      setLoading(false);
     }
   };
 
-  const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
-  ) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+  const getSelectedWorker = () => {
+    return workers.find(w => w.id === parseInt(selectedWorkerId));
   };
 
   const handleSubmit = async () => {
     // Validation
-    if (!formData.name || !formData.pan || !formData.address || !formData.wage_rate) {
-      alert('Please fill in all required fields (Name, PAN, Address, Wage Rate)');
+    if (!selectedWorkerId) {
+      alert('Please select a worker');
       return;
     }
 
-    const wageRate = parseFloat(formData.wage_rate);
-    if (isNaN(wageRate) || wageRate <= 0) {
-      alert('Please enter a valid wage rate');
+    if (!supervisorDepartmentId) {
+      alert('Unable to determine your department. Please try again.');
+      return;
+    }
+
+    const worker = getSelectedWorker();
+    if (!worker) {
+      alert('Invalid worker selection');
+      return;
+    }
+
+    // Check if worker is already assigned to any department (including this one)
+    if (worker.department_id) {
+      if (worker.department_id === supervisorDepartmentId) {
+        alert(`${worker.name} is already assigned to your department`);
+      } else {
+        const currentDept = departments.find(d => d.id === worker.department_id);
+        alert(`Cannot add worker. ${worker.name} is already assigned to ${currentDept?.name || 'another department'}`);
+      }
       return;
     }
 
@@ -93,32 +139,27 @@ const AddWorkerModal: React.FC<AddWorkerModalProps> = ({
 
     try {
       const payload = {
-        name: formData.name,
-        pan: formData.pan,
-        address: formData.address,
-        department_id: formData.department_id ? parseInt(formData.department_id) : null,
-        wage_type: formData.wage_type,
-        wage_rate: wageRate,
+        department_id: supervisorDepartmentId,
       };
 
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/workers`, {
-        method: 'POST',
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/workers/${worker.id}`, {
+        method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       });
 
       if (response.ok) {
-        const result = await response.json();
-        alert(`Worker "${result.name}" added successfully!`);
+        const selectedDept = departments.find(d => d.id === supervisorDepartmentId);
+        alert(`Worker "${worker.name}" has been assigned to ${selectedDept?.name || 'your department'} successfully!`);
         onSuccess();
         onClose();
       } else {
         const err = await response.json().catch(() => ({}));
-        alert(`Failed to add worker: ${err.message || 'Unknown error'}`);
+        alert(`Failed to assign worker: ${err.message || 'Unknown error'}`);
       }
     } catch (e) {
       console.error(e);
-      alert('Error adding worker');
+      alert('Error assigning worker to department');
     } finally {
       setIsSubmitting(false);
     }
@@ -126,13 +167,15 @@ const AddWorkerModal: React.FC<AddWorkerModalProps> = ({
 
   if (!isOpen) return null;
 
+  const selectedWorker = getSelectedWorker();
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       <div className="absolute inset-0 bg-black/50" onClick={onClose} />
       <div className="bg-white rounded-lg w-full max-w-md mx-4 relative shadow-xl max-h-[90vh] overflow-y-auto">
         {/* Header */}
         <div className="flex items-center justify-between p-6 bg-gray-50 border-b">
-          <h3 className="text-lg font-semibold">Add New Worker</h3>
+          <h3 className="text-lg font-semibold">Assign Worker to Department</h3>
           <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
             <X size={20} />
           </button>
@@ -140,105 +183,100 @@ const AddWorkerModal: React.FC<AddWorkerModalProps> = ({
 
         {/* Body */}
         <div className="p-6 space-y-4">
-          {/* Worker Name */}
+          {/* Worker Selection */}
           <div>
             <label className="block text-sm font-semibold mb-2">
-              Worker Name <span className="text-red-500">*</span>
-            </label>
-            <input
-              type="text"
-              name="name"
-              value={formData.name}
-              onChange={handleChange}
-              placeholder="Enter worker name"
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            />
-          </div>
-
-          {/* PAN Number */}
-          <div>
-            <label className="block text-sm font-semibold mb-2">
-              PAN Number <span className="text-red-500">*</span>
-            </label>
-            <input
-              type="text"
-              name="pan"
-              value={formData.pan}
-              onChange={handleChange}
-              placeholder="Enter PAN number"
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            />
-          </div>
-
-          {/* Address */}
-          <div>
-            <label className="block text-sm font-semibold mb-2">
-              Address <span className="text-red-500">*</span>
-            </label>
-            <textarea
-              name="address"
-              value={formData.address}
-              onChange={handleChange}
-              placeholder="Enter address"
-              rows={3}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            />
-          </div>
-
-          {/* Department */}
-          <div>
-            <label className="block text-sm font-semibold mb-2">
-              Department (Optional)
+              Select Worker <span className="text-red-500">*</span>
             </label>
             <select
-              name="department_id"
-              value={formData.department_id}
-              onChange={handleChange}
+              value={selectedWorkerId}
+              onChange={(e) => setSelectedWorkerId(e.target.value)}
               disabled={loading}
               className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             >
-              <option value="">{loading ? 'Loading...' : 'Select Department'}</option>
-              {departments.map(dept => (
-                <option key={dept.id} value={dept.id}>
-                  {dept.name}
+              <option value="">{loading ? 'Loading workers...' : 'Select a worker'}</option>
+              {workers.map(worker => (
+                <option key={worker.id} value={worker.id}>
+                  {worker.name} {worker.department_id ? `(Currently in ${worker.department?.name || 'a department'})` : '(Unassigned)'}
                 </option>
               ))}
             </select>
           </div>
 
-          {/* Wage Type */}
-          <div>
-            <label className="block text-sm font-semibold mb-2">
-              Wage Type <span className="text-red-500">*</span>
-            </label>
-            <select
-              name="wage_type"
-              value={formData.wage_type}
-              onChange={handleChange}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            >
-              <option value="hourly">Hourly</option>
-              <option value="daily">Daily</option>
-              <option value="piece">Piece Rate</option>
-              <option value="monthly">Monthly</option>
-            </select>
-          </div>
+          {/* Show current assignment if worker is selected */}
+          {selectedWorker && selectedWorker.department_id && (
+            <div className={`${
+              selectedWorker.department_id === supervisorDepartmentId
+                ? 'bg-green-50 border-green-200'
+                : 'bg-yellow-50 border-yellow-200'
+            } border rounded-lg p-4 flex items-start gap-3`}>
+              <AlertCircle className={`${
+                selectedWorker.department_id === supervisorDepartmentId
+                  ? 'text-green-600'
+                  : 'text-yellow-600'
+              } flex-shrink-0 mt-0.5`} size={20} />
+              <div className="text-sm">
+                {selectedWorker.department_id === supervisorDepartmentId ? (
+                  <>
+                    <p className="font-semibold text-green-900">Already in Your Department</p>
+                    <p className="text-green-800 mt-1">
+                      {selectedWorker.name} is already assigned to your department ({selectedWorker.department?.name}).
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    <p className="font-semibold text-yellow-900">Worker Already Assigned</p>
+                    <p className="text-yellow-800 mt-1">
+                      {selectedWorker.name} is currently assigned to <strong>{selectedWorker.department?.name || 'another department'}</strong>.
+                      You cannot add workers from other departments.
+                    </p>
+                  </>
+                )}
+              </div>
+            </div>
+          )}
 
-          {/* Wage Rate */}
+          {/* Show unassigned status if worker is selected and not assigned */}
+          {selectedWorker && !selectedWorker.department_id && (
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 flex items-start gap-3">
+              <AlertCircle className="text-blue-600 flex-shrink-0 mt-0.5" size={20} />
+              <div className="text-sm">
+                <p className="font-semibold text-blue-900">Worker Available</p>
+                <p className="text-blue-800 mt-1">
+                  {selectedWorker.name} is currently unassigned and can be added to your department.
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* Worker Details */}
+          {selectedWorker && (
+            <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 space-y-2">
+              <h4 className="text-sm font-semibold text-gray-900 mb-3">Worker Details</h4>
+              <div className="grid grid-cols-2 gap-2 text-sm">
+                <div className="text-gray-600">PAN:</div>
+                <div className="text-gray-900 font-medium">{selectedWorker.pan}</div>
+                <div className="text-gray-600">Wage Type:</div>
+                <div className="text-gray-900 font-medium capitalize">{selectedWorker.wage_type}</div>
+                <div className="text-gray-600">Wage Rate:</div>
+                <div className="text-gray-900 font-medium">₹{selectedWorker.wage_rate.toFixed(2)}</div>
+              </div>
+            </div>
+          )}
+
+          {/* Department Selection - Only showing supervisor's own department */}
           <div>
             <label className="block text-sm font-semibold mb-2">
-              Wage Rate <span className="text-red-500">*</span>
+              Assign to Department
             </label>
-            <input
-              type="number"
-              name="wage_rate"
-              value={formData.wage_rate}
-              onChange={handleChange}
-              placeholder="Enter wage rate"
-              step="0.01"
-              min="0"
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            />
+            <div className="w-full border border-gray-300 rounded-lg px-3 py-2 bg-gray-50 text-gray-900 font-medium">
+              {supervisorDepartmentId
+                ? departments.find(d => d.id === supervisorDepartmentId)?.name || 'Your Department'
+                : 'Loading...'}
+            </div>
+            <p className="text-xs text-gray-500 mt-1">
+              You can only assign workers to your own department
+            </p>
           </div>
         </div>
 
@@ -253,10 +291,10 @@ const AddWorkerModal: React.FC<AddWorkerModalProps> = ({
           </button>
           <button
             onClick={handleSubmit}
-            disabled={isSubmitting || loading}
+            disabled={isSubmitting || loading || !selectedWorkerId || !supervisorDepartmentId}
             className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {isSubmitting ? 'Adding...' : 'Add Worker'}
+            {isSubmitting ? 'Assigning...' : 'Assign Worker'}
           </button>
         </div>
       </div>
