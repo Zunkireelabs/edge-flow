@@ -223,6 +223,7 @@ export async function sendToProduction(
       department_id: firstDeptId,
       stage: DepartmentStage.NEW_ARRIVAL,
       is_current: true,
+      quantity_received: subBatch.estimated_pieces, // ✅ Initial quantity received
       quantity_remaining: subBatch.estimated_pieces, // automatically filled
       total_quantity: subBatch.estimated_pieces, // total quantity that doesn't change
     },
@@ -278,7 +279,8 @@ export async function moveSubBatchStage(
 
 export async function advanceSubBatchToNextDepartment(
   departmentSubBatchId: number,
-  toDepartmentId: number
+  toDepartmentId: number,
+  quantityBeingSent: number
 ) {
   // 1️⃣ Get the specific department_sub_batch entry to advance
   const currentDept = await prisma.department_sub_batches.findUnique({
@@ -299,7 +301,17 @@ export async function advanceSubBatchToNextDepartment(
     );
   }
 
-  const quantityToAdvance = currentDept.quantity_remaining || 0;
+  // Validate quantity being sent
+  if (quantityBeingSent <= 0) {
+    throw new Error("Quantity being sent must be greater than 0");
+  }
+
+  const currentRemaining = currentDept.quantity_remaining || 0;
+  if (quantityBeingSent > currentRemaining) {
+    throw new Error(
+      `Cannot send ${quantityBeingSent} pieces. Only ${currentRemaining} pieces remaining.`
+    );
+  }
 
   // 2️⃣ Validate that the target department exists
   const targetDepartment = await prisma.departments.findUnique({
@@ -319,14 +331,15 @@ export async function advanceSubBatchToNextDepartment(
     },
   });
 
-  // 4️⃣ Create new entry in target department with correct quantity
+  // 4️⃣ Create new entry in target department with quantity_received and quantity_remaining both set to quantityBeingSent
   return await prisma.department_sub_batches.create({
     data: {
       sub_batch_id: currentDept.sub_batch_id,
       department_id: toDepartmentId,
       stage: DepartmentStage.NEW_ARRIVAL,
       is_current: true,
-      quantity_remaining: quantityToAdvance,
+      quantity_received: quantityBeingSent, // ✅ Set received quantity (constant baseline)
+      quantity_remaining: quantityBeingSent, // ✅ Set remaining quantity (can change with reject/alter)
       total_quantity: currentDept.total_quantity, // Copy the original total quantity
       remarks: currentDept.remarks, // Preserve remarks (Rejected/Altered/null)
     },

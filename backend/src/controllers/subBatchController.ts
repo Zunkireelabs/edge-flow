@@ -118,16 +118,27 @@ export const moveStage = async (req: Request, res: Response) => {
 // Advance to next department
 export const advanceDepartment = async (req: Request, res: Response) => {
   try {
-    const { departmentSubBatchId, toDepartmentId } = req.body;
+    const { departmentSubBatchId, toDepartmentId, quantityBeingSent } = req.body;
 
-    if (!departmentSubBatchId || !toDepartmentId) {
+    if (!departmentSubBatchId || !toDepartmentId || !quantityBeingSent) {
       return res.status(400).json({
         success: false,
-        message: "departmentSubBatchId and toDepartmentId are required"
+        message: "departmentSubBatchId, toDepartmentId, and quantityBeingSent are required"
       });
     }
 
-    const nextDept = await advanceSubBatchToNextDepartment(departmentSubBatchId, toDepartmentId);
+    if (typeof quantityBeingSent !== 'number' || quantityBeingSent <= 0) {
+      return res.status(400).json({
+        success: false,
+        message: "quantityBeingSent must be a positive number"
+      });
+    }
+
+    const nextDept = await advanceSubBatchToNextDepartment(
+      departmentSubBatchId,
+      toDepartmentId,
+      quantityBeingSent
+    );
     res.status(200).json({ success: true, nextDept });
   } catch (err: any) {
     res.status(500).json({ success: false, message: err.message });

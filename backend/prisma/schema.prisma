@@ -149,6 +149,7 @@ model department_sub_batches {
   stage                  DepartmentStage                @default(NEW_ARRIVAL)
   updatedAt              DateTime                       @updatedAt
   quantity_remaining     Int?
+  quantity_received      Int?
   total_quantity         Int?
   remarks                String?
   sent_to_department_id  Int?
