@@ -62,6 +62,7 @@ const AlteredTaskDetailsModal: React.FC<AlteredTaskDetailsModalProps> = ({
     const [newWorkerQuantity, setNewWorkerQuantity] = useState('');
     const [newWorkerDate, setNewWorkerDate] = useState('');
     const [sendToDepartment, setSendToDepartment] = useState('');
+    const [quantityBeingSent, setQuantityBeingSent] = useState('');
     const [departments, setDepartments] = useState<Array<{ id: number; name: string }>>([]);
     const [showCompletionDialog, setShowCompletionDialog] = useState(false);
     const [confirmationText, setConfirmationText] = useState('');
@@ -514,10 +515,33 @@ const AlteredTaskDetailsModal: React.FC<AlteredTaskDetailsModalProps> = ({
                     return;
                 }
 
+                // Validate quantityBeingSent
+                if (!quantityBeingSent || !quantityBeingSent.trim()) {
+                    alert('Please enter the quantity you want to send to the next department');
+                    setSaving(false);
+                    return;
+                }
+
+                const quantity = parseInt(quantityBeingSent);
+                const availableQuantity = taskData.quantity_remaining ?? taskData.altered_quantity;
+
+                if (isNaN(quantity) || quantity <= 0) {
+                    alert('Please enter a valid quantity greater than 0');
+                    setSaving(false);
+                    return;
+                }
+
+                if (quantity > availableQuantity) {
+                    alert(`Cannot send ${quantity} pieces!\n\nOnly ${availableQuantity} pieces are available.\n\nPlease enter a quantity between 1 and ${availableQuantity}.`);
+                    setSaving(false);
+                    return;
+                }
+
                 const apiUrl = process.env.NEXT_PUBLIC_SEND_TO_ANOTHER_DEPARTMENT;
                 const requestBody = {
                     departmentSubBatchId: taskData.id,
                     toDepartmentId: parseInt(sendToDepartment),
+                    quantityBeingSent: quantity,
                 };
 
                 console.log('Sending altered task to another department:', requestBody);
@@ -542,6 +566,7 @@ const AlteredTaskDetailsModal: React.FC<AlteredTaskDetailsModalProps> = ({
                     alert('Successfully sent to department!');
                     onClose();
                     setSendToDepartment('');
+                    setQuantityBeingSent('');
 
                     setTimeout(() => {
                         if (onStageChange) {
@@ -802,7 +827,13 @@ const AlteredTaskDetailsModal: React.FC<AlteredTaskDetailsModalProps> = ({
                                                 <div className="relative">
                                                     <select
                                                         value={sendToDepartment}
-                                                        onChange={(e) => setSendToDepartment(e.target.value)}
+                                                        onChange={(e) => {
+                                                            setSendToDepartment(e.target.value);
+                                                            // Auto-fill quantity with available quantity when department is selected
+                                                            if (e.target.value && !quantityBeingSent) {
+                                                                setQuantityBeingSent((taskData.quantity_remaining ?? taskData.altered_quantity).toString());
+                                                            }
+                                                        }}
                                                         className="w-full bg-gray-50 border border-gray-200 rounded-lg px-4 py-2.5 text-sm text-gray-900 appearance-none pr-10 focus:outline-none focus:ring-2 focus:ring-blue-500"
                                                     >
                                                         <option value="">Select Department</option>
@@ -817,6 +848,30 @@ const AlteredTaskDetailsModal: React.FC<AlteredTaskDetailsModalProps> = ({
                                             </div>
                                         )}
                                     </div>
+
+                                    {/* Row 6: Quantity to Send (only when sending to another department) */}
+                                    {taskData.status === 'COMPLETED' && status === 'COMPLETED' && sendToDepartment && (
+                                        <div className="grid grid-cols-2 gap-6">
+                                            <div>
+                                                <label className="text-sm font-medium text-gray-900 block mb-2">
+                                                    Quantity to Send <span className="text-red-500">*</span>
+                                                </label>
+                                                <input
+                                                    type="number"
+                                                    value={quantityBeingSent}
+                                                    onChange={(e) => setQuantityBeingSent(e.target.value)}
+                                                    placeholder="Enter quantity"
+                                                    min="1"
+                                                    max={taskData.quantity_remaining ?? taskData.altered_quantity}
+                                                    className="w-full bg-white border border-gray-200 rounded-lg px-4 py-2.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                    required
+                                                />
+                                                <p className="text-xs text-gray-500 mt-1">
+                                                    Available: {(taskData.quantity_remaining ?? taskData.altered_quantity).toLocaleString()} pieces
+                                                </p>
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
 
