@@ -153,7 +153,11 @@ model department_sub_batches {
   total_quantity         Int?
   remarks                String?
   sent_to_department_id  Int?
+  sent_from_department   Int?
+  alter_reason           String?
+  reject_reason          String?
   history                department_sub_batch_history[]
+  worker_logs            worker_logs[]
   assigned_worker        workers?                       @relation(fields: [assigned_worker_id], references: [id])
   department             departments?                   @relation(fields: [department_id], references: [id])
   sub_batch              sub_batches?                   @relation(fields: [sub_batch_id], references: [id])
@@ -188,24 +192,26 @@ model workers {
 }
 
 model worker_logs {
-  id                Int                  @id @default(autoincrement())
-  worker_id         Int
-  sub_batch_id      Int
-  particulars       String?
-  quantity_received Int?
-  quantity_worked   Int?
-  size_category     String?
-  unit_price        Float?
-  work_date         DateTime?
-  worker_name       String?
-  activity_type     String?
-  is_billable       Boolean              @default(true)
-  department_id     Int?
-  altered_entry     sub_batch_altered[]
-  rejected_entry    sub_batch_rejected[]
-  departments       departments?         @relation(fields: [department_id], references: [id])
-  sub_batch         sub_batches          @relation(fields: [sub_batch_id], references: [id])
-  worker            workers              @relation(fields: [worker_id], references: [id])
+  id                       Int                     @id @default(autoincrement())
+  worker_id                Int
+  sub_batch_id             Int
+  particulars              String?
+  quantity_received        Int?
+  quantity_worked          Int?
+  size_category            String?
+  unit_price               Float?
+  work_date                DateTime?
+  worker_name              String?
+  activity_type            String?
+  is_billable              Boolean                 @default(true)
+  department_id            Int?
+  department_sub_batch_id  Int?
+  altered_entry            sub_batch_altered[]
+  rejected_entry           sub_batch_rejected[]
+  departments              departments?            @relation(fields: [department_id], references: [id])
+  sub_batch                sub_batches             @relation(fields: [sub_batch_id], references: [id])
+  worker                   workers                 @relation(fields: [worker_id], references: [id])
+  department_sub_batch     department_sub_batches? @relation(fields: [department_sub_batch_id], references: [id])
 }
 
 model vendors {

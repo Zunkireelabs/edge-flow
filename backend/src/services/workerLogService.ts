@@ -46,12 +46,31 @@ export interface WorkerLogInput {
 
 /// ✅ Create Worker Log with optional rejected/altered
 export const createWorkerLog = async (data: WorkerLogInput) => {
-  // 1️⃣ Create main worker log first (separate transaction)
+  // 1️⃣ Find the active department_sub_batch entry for this sub-batch and department
+  let departmentSubBatchId: number | null = null;
+
+  if (data.department_id) {
+    const activeDeptSubBatch = await prisma.department_sub_batches.findFirst({
+      where: {
+        sub_batch_id: data.sub_batch_id,
+        department_id: data.department_id,
+        is_current: true,  // Only get active entries
+      },
+      orderBy: {
+        createdAt: 'desc',  // Get the most recent one if multiple exist
+      },
+    });
+
+    departmentSubBatchId = activeDeptSubBatch?.id ?? null;
+  }
+
+  // 2️⃣ Create main worker log with department_sub_batch_id
   const log = await prisma.worker_logs.create({
     data: {
       worker_id: data.worker_id,
       sub_batch_id: data.sub_batch_id,
       department_id: data.department_id,
+      department_sub_batch_id: departmentSubBatchId,  // ✅ Automatically link to department sub-batch
       worker_name: data.worker_name,
       work_date: data.work_date ? new Date(data.work_date) : undefined,
       size_category: data.size_category,
@@ -107,6 +126,7 @@ export const createWorkerLog = async (data: WorkerLogInput) => {
             quantity_remaining: r.quantity,
             total_quantity: sourceEntry.total_quantity, // Copy the original total quantity
             remarks: "Rejected",
+            reject_reason: r.reason, // ✅ Store reject reason
           },
         });
 
@@ -178,6 +198,7 @@ export const createWorkerLog = async (data: WorkerLogInput) => {
             quantity_remaining: a.quantity,
             total_quantity: sourceEntry.total_quantity, // Copy the original total quantity
             remarks: "Altered",
+            alter_reason: a.reason, // ✅ Store alter reason
           },
         });
 
@@ -215,6 +236,7 @@ export const createWorkerLog = async (data: WorkerLogInput) => {
       worker: true,
       sub_batch: true,
       departments: true,
+      department_sub_batch: true,  // ✅ Include department sub-batch relation
       rejected_entry: true,
       altered_entry: true,
     },
@@ -229,6 +251,7 @@ export const getAllWorkerLogs = async () => {
         worker: true,
         sub_batch: true,
         departments: true,
+        department_sub_batch: true,  // ✅ Include department sub-batch relation
         rejected_entry: true,
         altered_entry: true,
       },
@@ -243,6 +266,7 @@ export const getWorkerLogById = async (id: number) => {
       worker: true,
       sub_batch: true,
       departments: true,
+      department_sub_batch: true,  // ✅ Include department sub-batch relation
       rejected_entry: true,
       altered_entry: true,
     },
@@ -251,12 +275,31 @@ export const getWorkerLogById = async (id: number) => {
 
 /// ✅ Update Worker Log (with optional rejected/altered updates)
 export const updateWorkerLog = async (id: number, data: WorkerLogInput) => {
+  // Find the active department_sub_batch entry if department_id is being updated
+  let departmentSubBatchId: number | null | undefined = undefined;
+
+  if (data.department_id !== undefined) {
+    const activeDeptSubBatch = await prisma.department_sub_batches.findFirst({
+      where: {
+        sub_batch_id: data.sub_batch_id,
+        department_id: data.department_id,
+        is_current: true,
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
+
+    departmentSubBatchId = activeDeptSubBatch?.id ?? null;
+  }
+
   return await prisma.worker_logs.update({
     where: { id },
     data: {
       worker_id: data.worker_id,
       sub_batch_id: data.sub_batch_id,
       department_id: data.department_id,
+      department_sub_batch_id: departmentSubBatchId,  // ✅ Update department sub-batch link
       worker_name: data.worker_name,
       work_date: data.work_date ? new Date(data.work_date) : undefined,
       size_category: data.size_category,
@@ -271,6 +314,7 @@ export const updateWorkerLog = async (id: number, data: WorkerLogInput) => {
       worker: true,
       sub_batch: true,
       departments: true,
+      department_sub_batch: true,  // ✅ Include department sub-batch relation
       rejected_entry: true,
       altered_entry: true,
     },
@@ -427,6 +471,7 @@ export const getWorkerLogsBySubBatch = async (sub_batch_id: number) => {
       worker: true,
       sub_batch: true,
       departments: true,
+      department_sub_batch: true,  // ✅ Include department sub-batch relation
       rejected_entry: true,
       altered_entry: true,
     },

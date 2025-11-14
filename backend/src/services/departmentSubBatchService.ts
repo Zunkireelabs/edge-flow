@@ -164,3 +164,44 @@ export const getSubBatchHistory = async (subBatchId: number) => {
     department_details: departmentDetails,
   };
 };
+
+// ✅ Assign worker to a department_sub_batch entry
+export const assignWorkerToDepartmentSubBatch = async (
+  departmentSubBatchId: number,
+  workerId: number | null
+) => {
+  // Verify the department_sub_batch exists
+  const deptSubBatch = await prisma.department_sub_batches.findUnique({
+    where: { id: departmentSubBatchId },
+  });
+
+  if (!deptSubBatch) {
+    throw new Error(`Department sub-batch with id ${departmentSubBatchId} not found`);
+  }
+
+  // If workerId is provided, verify the worker exists
+  if (workerId !== null) {
+    const worker = await prisma.workers.findUnique({
+      where: { id: workerId },
+    });
+
+    if (!worker) {
+      throw new Error(`Worker with id ${workerId} not found`);
+    }
+  }
+
+  // Update the assigned_worker_id
+  const updated = await prisma.department_sub_batches.update({
+    where: { id: departmentSubBatchId },
+    data: {
+      assigned_worker_id: workerId,
+    },
+    include: {
+      assigned_worker: true,
+      department: true,
+      sub_batch: true,
+    },
+  });
+
+  return updated;
+};

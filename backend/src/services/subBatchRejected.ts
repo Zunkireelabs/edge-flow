@@ -56,6 +56,7 @@ export const createRejectedSubBatch = async (data: RejectedData) => {
         quantity_remaining: data.quantity,
         total_quantity: sourceEntry.total_quantity, // Copy the original total quantity
         remarks: "Rejected",
+        reject_reason: data.reason, // ✅ Store reject reason
       },
     });
 

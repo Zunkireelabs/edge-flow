@@ -16,4 +16,7 @@ router.get("/sub-batch-history/:subBatchId", departmentSubBatchController.getSub
 // Get all department_sub_batches entries for a specific sub-batch
 router.get("/sub-batch/:subBatchId", departmentSubBatchController.getAllEntriesForSubBatch);
 
+// ✅ Assign worker to a department_sub_batch entry
+router.put("/assign-worker", departmentSubBatchController.assignWorkerToDepartmentSubBatch);
+
 export default router;

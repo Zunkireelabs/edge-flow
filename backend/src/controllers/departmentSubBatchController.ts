@@ -105,3 +105,44 @@ export const getSubBatchHistory = async (
     });
   }
 };
+
+// ✅ Assign worker to a department_sub_batch entry
+export const assignWorkerToDepartmentSubBatch = async (
+  req: Request,
+  res: Response
+) => {
+  try {
+    const { departmentSubBatchId, workerId } = req.body;
+
+    if (!departmentSubBatchId) {
+      return res.status(400).json({
+        success: false,
+        message: "departmentSubBatchId is required",
+      });
+    }
+
+    // workerId can be null (to unassign), so we only check if it's provided
+    if (workerId !== null && workerId !== undefined && typeof workerId !== 'number') {
+      return res.status(400).json({
+        success: false,
+        message: "workerId must be a number or null",
+      });
+    }
+
+    const updated = await departmentSubBatchService.assignWorkerToDepartmentSubBatch(
+      Number(departmentSubBatchId),
+      workerId === null ? null : Number(workerId)
+    );
+
+    res.status(200).json({
+      success: true,
+      message: workerId ? "Worker assigned successfully" : "Worker unassigned successfully",
+      data: updated,
+    });
+  } catch (err: any) {
+    res.status(500).json({
+      success: false,
+      message: err.message || "Error assigning worker",
+    });
+  }
+};

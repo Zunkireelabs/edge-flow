@@ -342,6 +342,7 @@ export async function advanceSubBatchToNextDepartment(
       quantity_remaining: quantityBeingSent, // ✅ Set remaining quantity (can change with reject/alter)
       total_quantity: currentDept.total_quantity, // Copy the original total quantity
       remarks: currentDept.remarks, // Preserve remarks (Rejected/Altered/null)
+      sent_from_department: currentDept.department_id, // ✅ Track which department it came from
     },
   });
 }

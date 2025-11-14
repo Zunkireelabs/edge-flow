@@ -56,6 +56,7 @@ export const createAlteredSubBatch = async (data: AlteredPieceInput) => {
         quantity_remaining: data.quantity, // only altered quantity
         total_quantity: sourceEntry.total_quantity, // Copy the original total quantity
         remarks: "Altered",
+        alter_reason: data.reason, // ✅ Store alter reason
       },
     });
 
