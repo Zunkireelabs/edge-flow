@@ -89,8 +89,9 @@ interface WorkItem {
   department: Department;
   remarks?: string | null;
   quantity_remaining?: number | null;
-  rejection_source?: RejectionSource | null;
-  alteration_source?: AlterationSource | null;
+  sent_from_department?: number | null;
+  alter_reason?: string | null;
+  reject_reason?: string | null;
 }
 
 interface KanbanData {
@@ -296,16 +297,16 @@ const SupervisorKanban = () => {
     console.log('Assigned worker:', item.assigned_worker);
     console.log('Assigned worker ID:', item.assigned_worker_id);
     console.log('Department:', item.department);
-    console.log('Rejection source:', item.rejection_source);
-    console.log('Alteration source:', item.alteration_source);
+    console.log('Alter reason:', item.alter_reason);
+    console.log('Reject reason:', item.reject_reason);
     console.log('Current supervisor ID:', currentSupervisorId);
 
     // Check if this is an altered task
-    const isAltered = !!item.alteration_source || (item.remarks?.toLowerCase().includes('alter') ?? false);
+    const isAltered = item.remarks?.toLowerCase().includes('alter') ?? false;
     console.log('Is Altered Task:', isAltered);
 
     // Check if this is a rejected task
-    const isRejected = !!item.rejection_source || (item.remarks?.toLowerCase().includes('reject') ?? false);
+    const isRejected = item.remarks?.toLowerCase().includes('reject') ?? false;
     console.log('Is Rejected Task:', isRejected);
     console.log('================================');
 
@@ -427,8 +428,8 @@ const SupervisorKanban = () => {
                 ) : (
                   items.map((item) => {
                     // Determine if item is rejected or altered based on remarks
-                    const isRejected = item.remarks?.toLowerCase().includes('reject') || !!item.rejection_source;
-                    const isAltered = item.remarks?.toLowerCase().includes('alter') || !!item.alteration_source;
+                    const isRejected = item.remarks?.toLowerCase().includes('reject') ?? false;
+                    const isAltered = item.remarks?.toLowerCase().includes('alter') ?? false;
                     const workQuantity = item.quantity_remaining ?? item.sub_batch.estimated_pieces;
 
                     console.log(`--- Rendering item ${item.id} in ${stage.title} ---`);
@@ -443,8 +444,8 @@ const SupervisorKanban = () => {
                       isRejected,
                       isAltered,
                       workQuantity,
-                      rejectionSource: item.rejection_source,
-                      alterationSource: item.alteration_source,
+                      alterReason: item.alter_reason,
+                      rejectReason: item.reject_reason,
                       assignedWorkerId: item.assigned_worker_id
                     });
 
@@ -522,18 +523,18 @@ const SupervisorKanban = () => {
           onClose={closeTaskDetails}
           taskData={selectedItem ? {
             id: selectedItem.id,
-            roll_name: selectedItem.sub_batch?.batch?.name || 'Roll 1',
-            batch_name: selectedItem.sub_batch?.batch?.name || 'Batch B',
-            sub_batch_name: selectedItem.sub_batch?.name || '-',
+            roll_name: selectedItem.sub_batch?.batch?.name ,
+            batch_name: selectedItem.sub_batch?.batch?.name ,
+            sub_batch_name: selectedItem.sub_batch?.name ,
             total_quantity: selectedItem.quantity_remaining ?? selectedItem.sub_batch?.estimated_pieces ?? 0,
-            estimated_start_date: selectedItem.sub_batch?.start_date || '',
-            due_date: selectedItem.sub_batch?.due_date || '',
+            estimated_start_date: selectedItem.sub_batch?.start_date ,
+            due_date: selectedItem.sub_batch?.due_date ,
             status: selectedItem.stage || 'NEW_ARRIVAL',
-            sent_from_department: selectedItem.alteration_source?.from_department_name || selectedItem.department?.name || 'Department 1',
+            sent_from_department: selectedItem.sent_from_department || selectedItem.department?.name || 'Unknown',
             alteration_date: new Date().toISOString(),
-            altered_by: selectedItem.alteration_source?.from_department_name || 'Department Worker',
-            altered_quantity: selectedItem.alteration_source?.quantity ?? selectedItem.quantity_remaining ?? 0,
-            alteration_reason: selectedItem.alteration_source?.reason || selectedItem.remarks || '',
+            altered_by: selectedItem.department?.name || 'Department Worker',
+            altered_quantity: selectedItem.quantity_remaining ?? 0,
+            alter_reason: selectedItem.alter_reason || selectedItem.remarks || '',
             attachments: selectedItem.sub_batch?.attachments?.map((att: Attachment) => ({
               name: att.attachment_name,
               count: att.quantity
@@ -557,11 +558,11 @@ const SupervisorKanban = () => {
             estimated_start_date: selectedItem.sub_batch?.start_date || '',
             due_date: selectedItem.sub_batch?.due_date || '',
             status: selectedItem.stage || 'NEW_ARRIVAL',
-            sent_from_department: selectedItem.rejection_source?.from_department_name || selectedItem.department?.name || 'Department 1',
+            sent_from_department: selectedItem.sent_from_department || selectedItem.department?.name || 'Unknown',
             rejection_date: new Date().toISOString(),
-            rejected_by: selectedItem.rejection_source?.from_department_name || 'Department Worker',
-            rejected_quantity: selectedItem.rejection_source?.quantity ?? selectedItem.quantity_remaining ?? 0,
-            rejection_reason: selectedItem.rejection_source?.reason || 'Quality issue',
+            rejected_by: selectedItem.department?.name || 'Department Worker',
+            rejected_quantity: selectedItem.quantity_remaining ?? 0,
+            reject_reason: selectedItem.reject_reason || '',
             attachments: selectedItem.sub_batch?.attachments?.map((att: Attachment) => ({
               name: att.attachment_name,
               count: att.quantity

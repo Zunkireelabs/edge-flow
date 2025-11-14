@@ -16,7 +16,7 @@ interface AlteredTaskData {
     alteration_date: string;
     altered_by: string;
     altered_quantity: number;
-    alteration_reason?: string;  // Alteration reason from database
+    alter_reason?: string;  // Alteration reason from database
     attachments?: { name: string; count: number }[];
     quantity_remaining?: number;
     sub_batch?: any;  // Add sub_batch object for accessing estimated_pieces
@@ -86,7 +86,6 @@ const AlteredTaskDetailsModal: React.FC<AlteredTaskDetailsModalProps> = ({
         }
 
         const apiUrl = `${process.env.NEXT_PUBLIC_SUB_BATCH_HISTORY}/${subBatchId}`;
-        console.log('Fetching sub-batch history from:', apiUrl);
 
         try {
             const response = await fetch(apiUrl);
@@ -218,7 +217,7 @@ const AlteredTaskDetailsModal: React.FC<AlteredTaskDetailsModalProps> = ({
             console.log('Altered Quantity:', taskData.altered_quantity);
             console.log('Altered By:', taskData.altered_by);
             console.log('Alteration Date:', taskData.alteration_date);
-            console.log('Alteration Reason:', taskData.alteration_reason);
+            console.log('Alteration Reason:', taskData.alter_reason);
             console.log('Sub-batch:', taskData.sub_batch);
             console.log('================================');
 
@@ -910,7 +909,7 @@ const AlteredTaskDetailsModal: React.FC<AlteredTaskDetailsModalProps> = ({
                                     <div>
                                         <label className="text-sm font-medium text-gray-900 block mb-2">Alteration Note</label>
                                         <div className="bg-gray-50 border border-gray-200 rounded-lg px-4 py-2.5 text-sm text-gray-600">
-                                            {taskData.alteration_reason || '-'}
+                                            {taskData.alter_reason || '-'}
                                         </div>
                                     </div>
                                 </div>

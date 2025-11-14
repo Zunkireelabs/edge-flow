@@ -255,6 +255,7 @@ const TaskDetailsModal: React.FC<TaskDetailsModalProps> = ({ isOpen, onClose, ta
                 const requestBody = {
                     departmentSubBatchId: taskData.id,  // The department_sub_batches.id
                     toDepartmentId: parseInt(sendToDepartment),
+                    quantityBeingSent: totalWorkDone, // The total quantity completed in current department
                 };
 
                 console.log('API URL:', apiUrl);

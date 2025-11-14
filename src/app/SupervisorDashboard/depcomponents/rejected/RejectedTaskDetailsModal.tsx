@@ -16,7 +16,7 @@ interface RejectedTaskData {
     rejection_date: string;
     rejected_by: string;
     rejected_quantity: number;
-    rejection_reason: string;
+    reject_reason: string;
     attachments?: { name: string; count: number }[];
     quantity_remaining?: number;
     sub_batch?: any;  // Add sub_batch object for accessing ID
@@ -451,9 +451,13 @@ const RejectedTaskDetailsModal: React.FC<RejectedTaskDetailsModalProps> = ({
                 }
 
                 const apiUrl = process.env.NEXT_PUBLIC_SEND_TO_ANOTHER_DEPARTMENT;
+                // Calculate total quantity worked by all workers
+                const totalWorkedQuantity = workerRecords.reduce((sum, record) => sum + (record.quantity || 0), 0);
+
                 const requestBody = {
                     departmentSubBatchId: taskData.id,
                     toDepartmentId: parseInt(sendToDepartment),
+                    quantityBeingSent: totalWorkedQuantity, // The total quantity completed by workers
                 };
 
                 console.log('Sending rejected task to another department:', requestBody);
@@ -791,7 +795,7 @@ const RejectedTaskDetailsModal: React.FC<RejectedTaskDetailsModalProps> = ({
                                 <div>
                                     <label className="text-sm font-medium text-gray-900 block mb-2">Rejection Reason</label>
                                     <div className="bg-gray-50 border border-gray-200 rounded-lg px-4 py-2.5 text-sm text-gray-600">
-                                        {taskData.rejection_reason || '-'}
+                                        {taskData.reject_reason || '-'}
                                     </div>
                                 </div>
                             </div>
