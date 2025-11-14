@@ -986,7 +986,7 @@ const AlteredTaskDetailsModal: React.FC<AlteredTaskDetailsModalProps> = ({
                                             .map((dept: any) => {
                                                 const isExpanded = expandedDepartments.includes(dept.department_entry_id);
                                                 return (
-                                                    <div key={dept.department_entry_id} className="border border-gray-300 rounded-lg">
+                                                    <div key={dept.department_entry_id} className="border border-gray-300 rounded-lg w-[450px]">
                                                         <button
                                                             onClick={() => {
                                                                 if (isExpanded) {
@@ -1006,8 +1006,8 @@ const AlteredTaskDetailsModal: React.FC<AlteredTaskDetailsModalProps> = ({
 
                                                         {isExpanded && dept.worker_logs && dept.worker_logs.length > 0 && (
                                                             <div className="border-t border-gray-200 bg-gray-50">
-                                                                <div className="overflow-x-auto">
-                                                                    <table className="min-w-full border-collapse">
+                                                                <div className="overflow-x-auto ">
+                                                                    <table className="border-collapse w-auto">
                                                                         <thead className="bg-gray-100">
                                                                             <tr>
                                                                                 <th className="p-3 text-left text-xs font-medium text-gray-700 whitespace-nowrap">Worker</th>

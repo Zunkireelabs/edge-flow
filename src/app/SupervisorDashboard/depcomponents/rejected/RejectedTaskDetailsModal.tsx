@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { X, Calendar, ChevronDown, Plus, Trash2, Inbox, CheckCircle, Clock, Pencil, MoreVertical } from 'lucide-react';
+import { X, Calendar, ChevronDown, Plus, Trash2, Inbox, CheckCircle, Clock, Pencil, MoreVertical, ChevronRight } from 'lucide-react';
 
 interface RejectedTaskData {
     id: number;
@@ -71,7 +71,7 @@ const RejectedTaskDetailsModal: React.FC<RejectedTaskDetailsModalProps> = ({
     const [isBillable, setIsBillable] = useState(true);
     const [openMenuId, setOpenMenuId] = useState<number | null>(null);
     const [subBatchHistory, setSubBatchHistory] = useState<any>(null);
-    const [] = useState<number[]>([]);
+    const [expandedDepartments, setExpandedDepartments] = useState<number[]>([]);
 
     const fetchSubBatchHistory = useCallback(async () => {
         const subBatchId = taskData?.sub_batch?.id;
@@ -854,6 +854,102 @@ const RejectedTaskDetailsModal: React.FC<RejectedTaskDetailsModalProps> = ({
                                 </div>
                             </div>
                         </div>
+
+                        {/* Completed Departments */}
+                        {subBatchHistory && subBatchHistory.department_details && subBatchHistory.department_details.length > 0 && (
+                            <div className="mb-8">
+                                <h4 className="text-lg font-semibold mb-4 text-gray-900">Completed Departments</h4>
+                                <div className="space-y-2">
+                                    {subBatchHistory.department_details
+                                        .filter((dept: any) => dept.worker_logs && dept.worker_logs.length > 0)
+                                        .map((dept: any) => {
+                                            const isExpanded = expandedDepartments.includes(dept.department_entry_id);
+                                            return (
+                                                <div key={dept.department_entry_id} className="border border-gray-300 rounded-lg w-[450px]">
+                                                    <button
+                                                        onClick={() => {
+                                                            if (isExpanded) {
+                                                                setExpandedDepartments(expandedDepartments.filter(id => id !== dept.department_entry_id));
+                                                            } else {
+                                                                setExpandedDepartments([...expandedDepartments, dept.department_entry_id]);
+                                                            }
+                                                        }}
+                                                        className="w-full flex items-center justify-between px-4 py-3 hover:bg-gray-50 rounded-t-lg"
+                                                    >
+                                                        <span className="text-sm font-medium text-gray-900">{dept.department_name}</span>
+                                                        <ChevronRight
+                                                            size={16}
+                                                            className={`text-gray-500 transition-transform ${isExpanded ? 'rotate-90' : ''}`}
+                                                        />
+                                                    </button>
+
+                                                    {isExpanded && dept.worker_logs && dept.worker_logs.length > 0 && (
+                                                        <div className="border-t border-gray-200 bg-gray-50">
+                                                            <div className="overflow-x-auto ">
+                                                                <table className="border-collapse w-auto">
+                                                                    <thead className="bg-gray-100">
+                                                                        <tr>
+                                                                            <th className="p-3 text-left text-xs font-medium text-gray-700 whitespace-nowrap">Worker</th>
+                                                                            <th className="p-3 text-left text-xs font-medium text-gray-700 whitespace-nowrap">Date</th>
+                                                                            <th className="p-3 text-left text-xs font-medium text-gray-700 whitespace-nowrap">Size/Category</th>
+                                                                            <th className="p-3 text-left text-xs font-medium text-gray-700 whitespace-nowrap">Particulars</th>
+                                                                            <th className="p-3 text-right text-xs font-medium text-gray-700 whitespace-nowrap">Qty Received</th>
+                                                                            <th className="p-3 text-right text-xs font-medium text-gray-700 whitespace-nowrap">Qty Worked</th>
+                                                                            <th className="p-3 text-right text-xs font-medium text-gray-700 whitespace-nowrap">Unit Price</th>
+                                                                            <th className="p-3 text-right text-xs font-medium text-gray-700 whitespace-nowrap">Rejected</th>
+                                                                            <th className="p-3 text-left text-xs font-medium text-gray-700 whitespace-nowrap">Returned Dept</th>
+                                                                            <th className="p-3 text-left text-xs font-medium text-gray-700 whitespace-nowrap">Rejection Reason</th>
+                                                                            <th className="p-3 text-right text-xs font-medium text-gray-700 whitespace-nowrap">Alteration</th>
+                                                                            <th className="p-3 text-left text-xs font-medium text-gray-700 whitespace-nowrap">Alteration Note</th>
+                                                                        </tr>
+                                                                    </thead>
+                                                                    <tbody className="divide-y divide-gray-200">
+                                                                        {dept.worker_logs.map((log: any, index: number) => {
+                                                                            // Extract rejection data from rejected array
+                                                                            const rejectedData = log.rejected && log.rejected.length > 0 ? log.rejected[0] : null;
+                                                                            const rejectedQty = rejectedData?.quantity ?? 0;
+                                                                            const rejectedDept = rejectedData?.sent_to_department_name || '-';
+                                                                            const rejectionReason = rejectedData?.reason || '-';
+
+                                                                            // Extract alteration data from altered array
+                                                                            const alteredData = log.altered && log.altered.length > 0 ? log.altered[0] : null;
+                                                                            const alteredQty = alteredData?.quantity ?? 0;
+                                                                            const alterationNote = alteredData?.reason || '-';
+
+                                                                            return (
+                                                                                <tr key={index} className="hover:bg-gray-100">
+                                                                                    <td className="p-3 text-xs text-gray-900 whitespace-nowrap">{log.worker_name || 'Unknown'}</td>
+                                                                                    <td className="p-3 text-xs text-gray-600 whitespace-nowrap">
+                                                                                        {log.work_date ? new Date(log.work_date).toLocaleDateString('en-US') : '-'}
+                                                                                    </td>
+                                                                                    <td className="p-3 text-xs text-gray-600">{log.size_category || '-'}</td>
+                                                                                    <td className="p-3 text-xs text-gray-600">{log.particulars || '-'}</td>
+                                                                                    <td className="p-3 text-xs text-gray-600 text-right">{log.quantity_received ?? 0}</td>
+                                                                                    <td className="p-3 text-xs text-gray-600 text-right">{log.quantity_worked ?? 0}</td>
+                                                                                    <td className="p-3 text-xs text-gray-600 text-right">${log.unit_price ?? 0}</td>
+                                                                                    <td className={`p-3 text-xs text-right font-semibold ${rejectedQty > 0 ? 'text-red-600' : 'text-gray-600'}`}>
+                                                                                        {rejectedQty}
+                                                                                    </td>
+                                                                                    <td className="p-3 text-xs text-gray-600">{rejectedDept}</td>
+                                                                                    <td className="p-3 text-xs text-gray-600">{rejectionReason}</td>
+                                                                                    <td className={`p-3 text-xs text-right font-semibold ${alteredQty > 0 ? 'text-orange-600' : 'text-gray-600'}`}>
+                                                                                        {alteredQty}
+                                                                                    </td>
+                                                                                    <td className="p-3 text-xs text-gray-600">{alterationNote}</td>
+                                                                                </tr>
+                                                                            );
+                                                                        })}
+                                                                    </tbody>
+                                                                </table>
+                                                            </div>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            );
+                                        })}
+                                </div>
+                            </div>
+                        )}
 
                         {/* Assign Workers Section */}
                         <div>

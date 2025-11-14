@@ -93,13 +93,13 @@ const ProductionView = () => {
   const getStatusColor = (stage: string) => {
     switch (stage) {
       case "IN_PROGRESS":
-        return "bg-orange-100 text-orange-700 border-orange-300";
+        return "bg-[#FFAD60] text-white";
       case "NEW_ARRIVAL":
-        return "bg-blue-100 text-blue-700 border-blue-300";
+        return "bg-[#7698FB] text-white";
       case "COMPLETED":
-        return "bg-green-100 text-green-700 border-green-300";
+        return "bg-[#6FB772] text-white";
       default:
-        return "bg-gray-100 text-gray-700 border-gray-300";
+        return "bg-[#979797] text-white";
     }
   };
 
@@ -151,15 +151,15 @@ const ProductionView = () => {
     fetchData();
   }, []);
 
-  // Toggle sub-batch visibility
+  // Toggle sub-batch visibility - only one at a time
   const toggleSubBatchVisibility = (id: number) => {
     setVisibleSubBatches((prev) => {
       if (prev.includes(id)) {
-        // Remove from visible (hide the card)
-        return prev.filter((sbId) => sbId !== id);
+        // If already selected, deselect it
+        return [];
       } else {
-        // Add to visible (show the card)
-        return [...prev, id];
+        // Select only this one, deselect all others
+        return [id];
       }
     });
   };
@@ -167,13 +167,6 @@ const ProductionView = () => {
   // Check if sub-batch should be visible
   const isSubBatchVisible = (subBatchId: number) => {
     return visibleSubBatches.includes(subBatchId);
-  };
-
-  // Get ordered sub-batches: visible ones first (in order of selection), then non-visible
-  const getOrderedSubBatches = () => {
-    const visible = data!.all_sub_batches.filter(sb => visibleSubBatches.includes(sb.id));
-    const nonVisible = data!.all_sub_batches.filter(sb => !visibleSubBatches.includes(sb.id));
-    return [...visible, ...nonVisible];
   };
 
   if (loading) return <Loader loading={true} message="Loading Production View..." />;
@@ -184,7 +177,7 @@ const ProductionView = () => {
       {/* Inject custom styles */}
       <style>{customStyles}</style>
 
-      <div className="h-screen bg-gray-50 flex flex-col">
+      <div className="h-screen bg-white flex flex-col">
       {/* Header */}
       <div className="bg-white border-b border-gray-200 p-6">
         <h1 className="text-2xl font-bold text-gray-900">Production Dashboard</h1>
@@ -192,203 +185,195 @@ const ProductionView = () => {
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 flex overflow-hidden">
-        {/* Left Sidebar - All Sub Batches */}
-        <div className="w-64 bg-white border-r border-gray-200 flex flex-col">
-          <div className="p-4 border-b border-gray-200 bg-white sticky top-0 z-20">
+      <div className="flex-1 flex overflow-hidden pt-4 px-4 py-4 bg-gray-50 ">
+        {/* Left Sidebar - Sub Batch Selector */}
+        <div className="w-80 bg-white flex flex-col rounded-lg border border-gray-300 shadow-sm overflow-hidden">
+          <div className="p-4 border-b border-gray-200 bg-gray-50 sticky top-0 z-20">
             <div className="flex items-center justify-between">
-              <h3 className="font-semibold text-gray-900">All Sub Batches</h3>
-              <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded-full">
+              <h3 className="text-lg font-semibold text-gray-900">Sub Batch Selector</h3>
+              <span className="text-sm text-gray-500 bg-white px-2.5 py-1 rounded-full font-medium border border-gray-300">
                 {data.total_sub_batches}
               </span>
             </div>
           </div>
-          <div className="flex-1 overflow-y-auto">
-            {/* Selected Sub-batches - shown first with row alignment */}
-            {getOrderedSubBatches().map((sb, index) => {
-              const isVisible = visibleSubBatches.includes(sb.id);
-              const isFirstNonVisible = !isVisible && index === visibleSubBatches.length;
+          <div className="flex-1 overflow-y-auto p-4 bg-white">
+            <div className="space-y-3">
+              {data.all_sub_batches.map((sb) => {
+                const isVisible = visibleSubBatches.includes(sb.id);
 
-              return (
-                <React.Fragment key={sb.id}>
-                  {/* Divider before non-visible items */}
-                  {isFirstNonVisible && visibleSubBatches.length > 0 && (
-                    <div className="px-4 py-2 bg-gray-100">
-                      <div className="text-xs font-medium text-gray-500 uppercase tracking-wide">
-                        Other Sub Batches
-                      </div>
-                    </div>
-                  )}
-
+                return (
                   <div
+                    key={sb.id}
                     onClick={() => toggleSubBatchVisibility(sb.id)}
-                    className={`px-4 border-b border-gray-100 cursor-pointer transition-all duration-200 ease-in-out flex items-center justify-between group ${
+                    className={` px-4 py-3 rounded-lg cursor-pointer transition-all duration-200 ease-in-out flex items-center justify-between group border-2 ${
                       isVisible
-                        ? "h-[188px] bg-blue-50 hover:bg-blue-100 border-l-4 border-l-blue-500"
-                        : "py-3 hover:bg-gray-50"
+                        ? "bg-blue-50 border-blue-500"
+                        : "bg-[#C4C4C4] border-gray-300 hover:border-gray-400"
                     }`}
                   >
-                    <div className="flex items-center gap-3 flex-1 min-w-0">
-                      {isVisible && (
-                        <div className="w-1 h-1 rounded-full bg-blue-500 flex-shrink-0"></div>
-                      )}
-                      <span className={`text-sm truncate ${
-                        isVisible ? "text-gray-900 font-medium" : "text-gray-700"
-                      }`}>
-                        {sb.name}
-                      </span>
-                    </div>
-                    <ChevronRight className={`w-4 h-4 flex-shrink-0 transition-transform duration-200 ${
+                    <span className={`text-base font-medium truncate ${
+                      isVisible ? "text-gray-900" : "text-gray-700"
+                    }`}>
+                      {sb.name}
+                    </span>
+                    <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-colors duration-200 ${
                       isVisible
-                        ? "text-blue-500 rotate-90"
-                        : "text-gray-400 group-hover:text-gray-600"
-                    }`} />
+                        ? "border-blue-500 bg-blue-500"
+                        : "border-gray-400 bg-white group-hover:border-gray-500"
+                    }`}>
+                      <ChevronRight className={`w-3.5 h-3.5 transition-all duration-200 ${
+                        isVisible
+                          ? "text-white"
+                          : "text-gray-400 group-hover:text-gray-600"
+                      }`} />
+                    </div>
                   </div>
-                </React.Fragment>
-              );
-            })}
+                );
+              })}
+            </div>
           </div>
         </div>
 
-        {/* Department Columns - Row-based Layout */}
-        <div className="flex-1 overflow-x-auto overflow-y-auto">
-          <div className="inline-flex flex-col min-w-max h-auto">
-            {/* Headers Row */}
-            <div className="flex sticky top-0 z-10">
-              {data.department_columns.map((dept) => (
+        {/* Department Cards - Horizontal Layout */}
+        <div className="flex-1 overflow-x-auto overflow-y-auto ml-4">
+          <div className="flex gap-4 h-full">
+            {/* Department Cards */}
+            {data.department_columns.map((dept) => {
+              // Get visible sub-batches for this department
+              const visibleSubBatchesInDept = dept.sub_batches.filter(sb => isSubBatchVisible(sb.id));
+
+              return (
                 <div
-                  key={`header-${dept.department_id}`}
-                  className="w-72 flex-shrink-0 border-r border-gray-200 bg-white border-b p-4"
+                  key={dept.department_id}
+                  className="w-80 flex-shrink-0 bg-white rounded-lg border border-gray-300 shadow-sm flex flex-col overflow-hidden"
                 >
-                  <div className="flex items-center justify-between">
-                    <h3 className="font-semibold text-gray-900">{dept.department_name}</h3>
-                    <span className="text-xs text-gray-500">
-                      {dept.sub_batches.filter(sb => isSubBatchVisible(sb.id)).length} tasks
-                    </span>
+                  {/* Department Header */}
+                  <div className="p-4 border-b border-gray-200 bg-gray-50 sticky top-0 z-20">
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-lg font-semibold text-gray-900">{dept.department_name}</h3>
+                      <span className="text-sm text-gray-500 bg-white px-2.5 py-1 rounded-full font-medium border border-gray-300">
+                        {visibleSubBatchesInDept.length}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Department Content */}
+                  <div className="flex-1 overflow-y-auto p-4 bg-white">
+                    {visibleSubBatchesInDept.length === 0 ? (
+                      <div className="text-center text-gray-400 text-sm py-8">
+                        No tasks
+                      </div>
+                    ) : (
+                      <div className="space-y-3">
+                        {visibleSubBatchesInDept.map((subBatchInDept) => (
+                          <div
+                            key={subBatchInDept.id}
+                            className="bg-gray-50 border-2 border-gray-300 rounded-lg p-4 "
+                          >
+                            {/* Top section with product name and badge */}
+                            <div className="flex items-start justify-between mb-3">
+                              <h4 className="text-base font-semibold text-gray-900 flex-1">{subBatchInDept.name}</h4>
+                              {/* Type Badge - Show if altered or rejected */}
+                              {subBatchInDept.remarks && (
+                                <span className="ml-2 text-xs font-medium px-2.5 py-1 rounded-md bg-gray-500 text-white">
+                                  Altered
+                                </span>
+                              )}
+                            </div>
+
+                            {/* Dates */}
+                            <div className="space-y-2 text-sm text-gray-600 mb-4">
+                              <div className="flex items-center gap-2">
+                                <Calendar className="w-4 h-4 text-gray-400" />
+                                <span>Start: {formatDate(subBatchInDept.start_date)}</span>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <Calendar className="w-4 h-4 text-gray-400" />
+                                <span>Due: {formatDate(subBatchInDept.due_date)}</span>
+                              </div>
+                            </div>
+
+                            {/* Batch and Status */}
+                            <div className="flex items-center justify-between pt-3 border-t border-gray-200">
+                              {subBatchInDept.batch_name && (
+                                <div className="text-sm text-gray-700">
+                                  <span className="font-medium">Batch:</span>
+                                  <span className="ml-1">{subBatchInDept.batch_name}</span>
+                                </div>
+                              )}
+                              <span
+                                className={`text-xs font-semibold px-3 py-1.5 rounded-md ${getStatusColor(
+                                  subBatchInDept.department_stage
+                                )}`}
+                              >
+                                {getStatusText(subBatchInDept.department_stage)}
+                              </span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 </div>
-              ))}
+              );
+            })}
+
+            {/* Completed Card */}
+            <div className="w-80 flex-shrink-0 bg-white rounded-lg border border-gray-300 shadow-sm flex flex-col overflow-hidden">
               {/* Completed Header */}
-              <div className="w-72 flex-shrink-0 border-r border-gray-200 bg-white border-b p-4">
+              <div className="p-4 border-b border-gray-200 bg-gray-50 sticky top-0 z-20">
                 <div className="flex items-center justify-between">
-                  <h3 className="font-semibold text-gray-900">Completed</h3>
-                  <span className="text-xs text-gray-500">
-                    {data.completed_sub_batches.length} tasks
+                  <h3 className="text-lg font-semibold text-gray-900">Completed</h3>
+                  <span className="text-sm text-gray-500 bg-white px-2.5 py-1 rounded-full font-medium border border-gray-300">
+                    {data.completed_sub_batches.length}
                   </span>
                 </div>
               </div>
-            </div>
 
-            {/* Content Area with two sections */}
-            <div className="flex-1 bg-gray-50 flex">
-              {/* Left section: Department columns with row-based layout */}
-              <div className="flex-1 overflow-y-auto">
-                {getOrderedSubBatches().map((subBatch) => {
-                  // Only render row if this sub-batch is visible
-                  if (!isSubBatchVisible(subBatch.id)) return null;
-
-                  return (
-                    <div key={`row-${subBatch.id}`} className="flex animate-fadeIn">
-                      {/* Department Columns */}
-                      {data.department_columns.map((dept) => {
-                        // Find if this sub-batch exists in this department
-                        const subBatchInDept = dept.sub_batches.find(sb => sb.id === subBatch.id);
-
-                        return (
-                          <div
-                            key={`cell-${dept.department_id}-${subBatch.id}`}
-                            className="w-72 flex-shrink-0 border-r border-b border-gray-200 p-4 bg-gray-50"
-                          >
-                            {subBatchInDept ? (
-                              <div className="bg-white rounded-lg border border-gray-200 p-4 shadow-sm hover:shadow-md transition-shadow duration-200">
-                                {/* Status Badge */}
-                                <div className="mb-3">
-                                  <span
-                                    className={`text-xs font-semibold px-2 py-1 rounded border ${getStatusColor(
-                                      subBatchInDept.department_stage
-                                    )}`}
-                                  >
-                                    {getStatusText(subBatchInDept.department_stage)}
-                                  </span>
-                                </div>
-
-                                {/* Sub-batch Name */}
-                                <h4 className="font-semibold text-gray-900 mb-3">{subBatchInDept.name}</h4>
-
-                                {/* Details */}
-                                <div className="space-y-2 text-xs text-gray-600">
-                                  <div className="flex items-center gap-2">
-                                    <Calendar className="w-3 h-3 text-gray-400" />
-                                    <span>Start: {formatDate(subBatchInDept.start_date)}</span>
-                                  </div>
-                                  <div className="flex items-center gap-2">
-                                    <Calendar className="w-3 h-3 text-gray-400" />
-                                    <span>Due: {formatDate(subBatchInDept.due_date)}</span>
-                                  </div>
-                                  {subBatchInDept.batch_name && (
-                                    <div className="flex items-center gap-2">
-                                      <span className="font-medium">Batch:</span>
-                                      <span>{subBatchInDept.batch_name}</span>
-                                    </div>
-                                  )}
-                                </div>
-                              </div>
-                            ) : (
-                              // Empty cell if sub-batch not in this department
-                              <div className="h-full"></div>
-                            )}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  );
-                })}
-              </div>
-
-              {/* Right section: Completed column - always shows all completed */}
-              <div className="w-72 flex-shrink-0 border-r border-gray-200 bg-gray-50 overflow-y-auto">
-                <div className="p-4 space-y-3">
-                  {data.completed_sub_batches.length === 0 ? (
-                    <div className="text-center text-gray-400 text-sm py-8">
-                      No completed sub-batches
-                    </div>
-                  ) : (
-                    data.completed_sub_batches.map((sb) => (
+              {/* Completed Content */}
+              <div className="flex-1 overflow-y-auto p-4 bg-white">
+                {data.completed_sub_batches.length === 0 ? (
+                  <div className="text-center text-gray-400 text-sm py-8">
+                    No completed sub-batches
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {data.completed_sub_batches.map((sb) => (
                       <div
                         key={`completed-${sb.id}`}
-                        className="bg-white rounded-lg border border-gray-200 p-4 shadow-sm hover:shadow-md transition-shadow duration-200"
+                        className="bg-gray-50 border-2 border-gray-300 rounded-lg p-4  "
                       >
-                        {/* Completed Badge */}
-                        <div className="mb-3">
-                          <span className="text-xs font-semibold px-2 py-1 rounded border bg-green-100 text-green-700 border-green-300">
-                            Completed
-                          </span>
-                        </div>
-
                         {/* Sub-batch Name */}
-                        <h4 className="font-semibold text-gray-900 mb-3">{sb.name}</h4>
+                        <h4 className="text-base font-semibold text-gray-900 mb-3">{sb.name}</h4>
 
-                        {/* Details */}
-                        <div className="space-y-2 text-xs text-gray-600">
+                        {/* Dates */}
+                        <div className="space-y-2 text-sm text-gray-600 mb-4">
                           <div className="flex items-center gap-2">
-                            <Calendar className="w-3 h-3 text-gray-400" />
+                            <Calendar className="w-4 h-4 text-gray-400" />
                             <span>Start: {formatDate(sb.start_date)}</span>
                           </div>
                           <div className="flex items-center gap-2">
-                            <Calendar className="w-3 h-3 text-gray-400" />
+                            <Calendar className="w-4 h-4 text-gray-400" />
                             <span>Due: {formatDate(sb.due_date)}</span>
                           </div>
+                        </div>
+
+                        {/* Batch and Status */}
+                        <div className="flex items-center justify-between pt-3 border-t border-gray-200">
                           {sb.batch_name && (
-                            <div className="flex items-center gap-2">
+                            <div className="text-sm text-gray-700">
                               <span className="font-medium">Batch:</span>
-                              <span>{sb.batch_name}</span>
+                              <span className="ml-1">{sb.batch_name}</span>
                             </div>
                           )}
+                          <span className="text-xs font-semibold px-3 py-1.5 rounded-md bg-green-500 text-white">
+                            Completed
+                          </span>
                         </div>
                       </div>
-                    ))
-                  )}
-                </div>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
           </div>
