@@ -24,6 +24,7 @@ const wage_1 = __importDefault(require("./src/routes/wage"));
 const productionView_1 = __importDefault(require("./src/routes/productionView"));
 const inventory_1 = __importDefault(require("./src/routes/inventory"));
 const inventorySubtraction_1 = __importDefault(require("./src/routes/inventorySubtraction"));
+const adminProduction_1 = __importDefault(require("./src/routes/adminProduction"));
 dotenv_1.default.config();
 const app = (0, express_1.default)();
 app.use((0, cors_1.default)());
@@ -65,6 +66,8 @@ app.use("/api/production-view", productionView_1.default);
 app.use("/api/inventory", inventory_1.default);
 // Inventory Subtraction Routes
 app.use("/api/inventory-subtraction", inventorySubtraction_1.default);
+// Admin Production Routes
+app.use("/api/admin/production", adminProduction_1.default);
 // Optional test route
 app.get("/", (req, res) => {
     res.send("Backend server is running!");

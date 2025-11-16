@@ -44,6 +44,7 @@ export const getTaskDetails = async (subBatchId: number, departmentId: number) =
           roll: true,
           batch: true,
           attachments: true,
+          dept_links: true, // Include department sub-batch links
           workflows: {
             include: {
               steps: {
@@ -135,7 +136,7 @@ export const getTaskDetails = async (subBatchId: number, departmentId: number) =
       // Check if this department has been completed
       // A department is completed if there's a dept_link with sent_to_department_id set
       const isCompleted = deptSubBatch.sub_batch?.dept_links.some(
-        (link) =>
+        (link: any) =>
           link.department_id === step.department_id &&
           link.sent_to_department_id !== null
       ) || false;
