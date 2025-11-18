@@ -337,51 +337,74 @@ export const getWorkerLogById = async (id: number) => {
   });
 };
 
-/// ✅ Update Worker Log (with optional rejected/altered updates)
+/// ✅ Update Worker Log (with department_sub_batch updates)
 export const updateWorkerLog = async (id: number, data: WorkerLogInput) => {
-  // Find the active department_sub_batch entry if department_id is being updated
-  let departmentSubBatchId: number | null | undefined = undefined;
-
-  if (data.department_id !== undefined) {
-    const activeDeptSubBatch = await prisma.department_sub_batches.findFirst({
-      where: {
-        sub_batch_id: data.sub_batch_id,
-        department_id: data.department_id,
-        is_current: true,
-      },
-      orderBy: {
-        createdAt: 'desc',
+  return await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+    // 1️⃣ Fetch the existing worker log
+    const existingLog = await tx.worker_logs.findUnique({
+      where: { id },
+      include: {
+        department_sub_batch: true,
       },
     });
 
-    departmentSubBatchId = activeDeptSubBatch?.id ?? null;
-  }
+    if (!existingLog) {
+      throw new Error(`Worker log ${id} not found`);
+    }
 
-  return await prisma.worker_logs.update({
-    where: { id },
-    data: {
-      worker_id: data.worker_id,
-      sub_batch_id: data.sub_batch_id,
-      department_id: data.department_id,
-      department_sub_batch_id: departmentSubBatchId,  // ✅ Update department sub-batch link
-      worker_name: data.worker_name,
-      work_date: data.work_date ? new Date(data.work_date) : undefined,
-      size_category: data.size_category,
-      particulars: data.particulars,
-      quantity_received: data.quantity_received,
-      quantity_worked: data.quantity_worked,
-      unit_price: data.unit_price,
-      activity_type: data.activity_type,
-      is_billable: data.is_billable,
-    },
-    include: {
-      worker: true,
-      sub_batch: true,
-      departments: true,
-      department_sub_batch: true,  // ✅ Include department sub-batch relation
-      rejected_entry: true,
-      altered_entry: true,
-    },
+    // 2️⃣ Check if quantity_worked or worker_id changed
+    const quantityChanged = data.quantity_worked !== undefined &&
+                           data.quantity_worked !== existingLog.quantity_worked;
+    const workerChanged = data.worker_id !== undefined &&
+                         data.worker_id !== existingLog.worker_id;
+
+    // 3️⃣ If quantity or worker changed, update the department_sub_batch entry
+    if ((quantityChanged || workerChanged) && existingLog.department_sub_batch_id) {
+      const deptSubBatch = existingLog.department_sub_batch;
+
+      if (deptSubBatch) {
+        // Update the department_sub_batch entry
+        await tx.department_sub_batches.update({
+          where: { id: deptSubBatch.id },
+          data: {
+            quantity_assigned: data.quantity_worked ?? existingLog.quantity_worked,
+            quantity_remaining: data.quantity_worked ?? existingLog.quantity_worked,
+            quantity_received: data.quantity_worked ?? existingLog.quantity_worked,
+            assigned_worker_id: data.worker_id ?? existingLog.worker_id,
+          },
+        });
+      }
+    }
+
+    // 4️⃣ Update the worker log
+    return await tx.worker_logs.update({
+      where: { id },
+      data: {
+        worker_id: data.worker_id,
+        sub_batch_id: data.sub_batch_id,
+        department_id: data.department_id,
+        worker_name: data.worker_name,
+        work_date: data.work_date ? new Date(data.work_date) : undefined,
+        size_category: data.size_category,
+        particulars: data.particulars,
+        quantity_received: data.quantity_received,
+        quantity_worked: data.quantity_worked,
+        unit_price: data.unit_price,
+        activity_type: data.activity_type,
+        is_billable: data.is_billable,
+      },
+      include: {
+        worker: true,
+        sub_batch: true,
+        departments: true,
+        department_sub_batch: true,
+        rejected_entry: true,
+        altered_entry: true,
+      },
+    });
+  }, {
+    maxWait: 10000,
+    timeout: 20000,
   });
 };
 
