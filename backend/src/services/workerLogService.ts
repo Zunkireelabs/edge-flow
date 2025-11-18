@@ -46,49 +46,90 @@ export interface WorkerLogInput {
 
 /// ✅ Create Worker Log with optional rejected/altered
 export const createWorkerLog = async (data: WorkerLogInput) => {
-  // 1️⃣ Find the active department_sub_batch entry for this sub-batch and department
-  let departmentSubBatchId: number | null = null;
+  const logId = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+    // 1️⃣ Find the active department_sub_batch entry for this sub-batch and department
+    let departmentSubBatchId: number | null = null;
+    let newDeptSubBatchId: number | null = null;
 
-  if (data.department_id) {
-    const activeDeptSubBatch = await prisma.department_sub_batches.findFirst({
-      where: {
+    if (data.department_id && data.quantity_worked && data.quantity_worked > 0) {
+      // Find unassigned entries (quantity_assigned is null or 0) with available quantity
+      const activeDeptSubBatch = await tx.department_sub_batches.findFirst({
+        where: {
+          sub_batch_id: data.sub_batch_id,
+          department_id: data.department_id,
+          is_current: true,  // Only get active entries
+          OR: [
+            { quantity_assigned: null },
+            { quantity_assigned: 0 },
+          ],
+          quantity_remaining: {
+            gte: data.quantity_worked,  // Must have enough pieces
+          },
+        },
+        orderBy: {
+          createdAt: 'desc',  // Get the most recent one if multiple exist
+        },
+      });
+
+      if (!activeDeptSubBatch) {
+        throw new Error(`No unassigned department_sub_batch entry found with sufficient quantity (${data.quantity_worked} pieces needed)`);
+      }
+
+      // 2️⃣ Split the sub-batch: Create a new entry for the assigned pieces
+      const newDeptSubBatch = await tx.department_sub_batches.create({
+        data: {
+          sub_batch_id: data.sub_batch_id,
+          department_id: data.department_id,
+          assigned_worker_id: data.worker_id,
+          stage: activeDeptSubBatch.stage,
+          is_current: true,
+          quantity_assigned: data.quantity_worked,  // ✅ Store assigned quantity
+          quantity_remaining: data.quantity_worked,  // Initially same as assigned
+          quantity_received: data.quantity_worked,
+          total_quantity: activeDeptSubBatch.total_quantity,
+          sent_from_department: activeDeptSubBatch.sent_from_department,
+          remarks: "Assigned",  // ✅ Mark as split/assigned
+        },
+      });
+
+      newDeptSubBatchId = newDeptSubBatch.id;
+
+      // 3️⃣ Reduce quantity from the original entry and mark as "Main" if no remarks
+      await tx.department_sub_batches.update({
+        where: { id: activeDeptSubBatch.id },
+        data: {
+          quantity_remaining: { decrement: data.quantity_worked },
+          remarks: activeDeptSubBatch.remarks || "Main",  // ✅ Mark as main if no existing remarks
+        },
+      });
+
+      departmentSubBatchId = newDeptSubBatchId;
+    }
+
+    // 4️⃣ Create main worker log with department_sub_batch_id
+    const log = await tx.worker_logs.create({
+      data: {
+        worker_id: data.worker_id,
         sub_batch_id: data.sub_batch_id,
         department_id: data.department_id,
-        is_current: true,  // Only get active entries
-      },
-      orderBy: {
-        createdAt: 'desc',  // Get the most recent one if multiple exist
+        department_sub_batch_id: departmentSubBatchId,  // ✅ Link to the new split sub-batch
+        worker_name: data.worker_name,
+        work_date: data.work_date ? new Date(data.work_date) : undefined,
+        size_category: data.size_category,
+        particulars: data.particulars,
+        quantity_received: data.quantity_received,
+        quantity_worked: data.quantity_worked,
+        unit_price: data.unit_price,
+        activity_type: data.activity_type ?? "NORMAL",
+        is_billable: data.is_billable ?? true,
       },
     });
 
-    departmentSubBatchId = activeDeptSubBatch?.id ?? null;
-  }
+    const logId = log.id;
 
-  // 2️⃣ Create main worker log with department_sub_batch_id
-  const log = await prisma.worker_logs.create({
-    data: {
-      worker_id: data.worker_id,
-      sub_batch_id: data.sub_batch_id,
-      department_id: data.department_id,
-      department_sub_batch_id: departmentSubBatchId,  // ✅ Automatically link to department sub-batch
-      worker_name: data.worker_name,
-      work_date: data.work_date ? new Date(data.work_date) : undefined,
-      size_category: data.size_category,
-      particulars: data.particulars,
-      quantity_received: data.quantity_received,
-      quantity_worked: data.quantity_worked,
-      unit_price: data.unit_price,
-      activity_type: data.activity_type ?? "NORMAL",
-      is_billable: data.is_billable ?? true,
-    },
-  });
-
-  const logId = log.id;
-
-  // 2️⃣ Handle rejected entries (if any)
-  if (data.rejected && data.rejected.length > 0) {
-    for (const r of data.rejected) {
-      await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+    // 5️⃣ Handle rejected entries (if any)
+    if (data.rejected && data.rejected.length > 0) {
+      for (const r of data.rejected) {
         // Verify source entry exists and has sufficient quantity
         const sourceEntry = await tx.department_sub_batches.findUnique({
           where: { id: r.source_department_sub_batch_id },
@@ -154,14 +195,12 @@ export const createWorkerLog = async (data: WorkerLogInput) => {
             reason: r.reason,
           },
         });
-      });
+      }
     }
-  }
 
-  // 3️⃣ Handle altered entries (if any)
-  if (data.altered && data.altered.length > 0) {
-    for (const a of data.altered) {
-      await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+    // 6️⃣ Handle altered entries (if any)
+    if (data.altered && data.altered.length > 0) {
+      for (const a of data.altered) {
         // Verify source entry exists and has sufficient quantity
         const sourceEntry = await tx.department_sub_batches.findUnique({
           where: { id: a.source_department_sub_batch_id },
@@ -227,11 +266,17 @@ export const createWorkerLog = async (data: WorkerLogInput) => {
             reason: a.reason,
           },
         });
-      });
+      }
     }
-  }
 
-  // 4️⃣ Fetch and return the full worker log including rejected/altered
+    // 7️⃣ Return the log ID to fetch outside transaction
+    return logId;
+  }, {
+    maxWait: 10000, // Maximum time to wait to start transaction (10s)
+    timeout: 20000, // Maximum time for transaction to complete (20s)
+  });
+
+  // 8️⃣ Fetch and return the full worker log outside of transaction
   return await prisma.worker_logs.findUnique({
     where: { id: logId },
     include: {
@@ -332,6 +377,7 @@ export const deleteWorkerLog = async (id: number) => {
       include: {
         rejected_entry: true,
         altered_entry: true,
+        department_sub_batch: true,
       },
     });
 
@@ -342,6 +388,71 @@ export const deleteWorkerLog = async (id: number) => {
     console.log(`=== Deleting Worker Log ${id} ===`);
     console.log(`Rejected entries: ${workerLog.rejected_entry?.length || 0}`);
     console.log(`Altered entries: ${workerLog.altered_entry?.length || 0}`);
+    console.log(`Department sub-batch ID: ${workerLog.department_sub_batch_id}`);
+
+    // 1.5️⃣ Handle the split sub-batch (if this log created a new department_sub_batch for assigned work)
+    if (workerLog.department_sub_batch_id && workerLog.department_sub_batch) {
+      const deptSubBatch = workerLog.department_sub_batch;
+
+      // Check if this is a split sub-batch (has quantity_assigned)
+      if (deptSubBatch.quantity_assigned && deptSubBatch.quantity_assigned > 0) {
+        console.log(`\n--- Reversing Split Sub-Batch ${deptSubBatch.id} ---`);
+        console.log(`Assigned quantity: ${deptSubBatch.quantity_assigned}`);
+
+        // Find the parent/sibling entry to restore quantity to
+        // Look for an unassigned entry in the same department and sub-batch
+        const parentEntry = await tx.department_sub_batches.findFirst({
+          where: {
+            sub_batch_id: deptSubBatch.sub_batch_id,
+            department_id: deptSubBatch.department_id,
+            is_current: true,
+            id: { not: deptSubBatch.id },  // Not the same entry
+            OR: [
+              { quantity_assigned: null },
+              { quantity_assigned: 0 },
+            ],
+          },
+          orderBy: {
+            createdAt: 'desc',
+          },
+        });
+
+        if (parentEntry) {
+          // Restore the quantity to the parent entry
+          await tx.department_sub_batches.update({
+            where: { id: parentEntry.id },
+            data: {
+              quantity_remaining: { increment: deptSubBatch.quantity_assigned },
+              remarks: parentEntry.remarks === "Main" ? null : parentEntry.remarks,  // ✅ Clear "Main" if restoring
+            },
+          });
+          console.log(`✓ Restored ${deptSubBatch.quantity_assigned} pieces to parent entry ${parentEntry.id}`);
+        } else {
+          console.warn(`⚠ No parent entry found for split sub-batch ${deptSubBatch.id}. Creating a new unassigned entry.`);
+          // If no parent found, create a new unassigned entry with the quantity
+          await tx.department_sub_batches.create({
+            data: {
+              sub_batch_id: deptSubBatch.sub_batch_id,
+              department_id: deptSubBatch.department_id,
+              stage: deptSubBatch.stage,
+              is_current: true,
+              quantity_remaining: deptSubBatch.quantity_assigned,
+              quantity_received: deptSubBatch.quantity_assigned,
+              total_quantity: deptSubBatch.total_quantity,
+              sent_from_department: deptSubBatch.sent_from_department,
+              remarks: null,  // ✅ No remarks for restored entry
+            },
+          });
+          console.log(`✓ Created new unassigned entry with ${deptSubBatch.quantity_assigned} pieces`);
+        }
+
+        // Delete the split sub-batch entry
+        await tx.department_sub_batches.delete({
+          where: { id: deptSubBatch.id },
+        });
+        console.log(`✓ Deleted split sub-batch entry ${deptSubBatch.id}`);
+      }
+    }
 
     // 2️⃣ Reverse rejected entries
     if (workerLog.rejected_entry && workerLog.rejected_entry.length > 0) {
