@@ -17,10 +17,6 @@ export default function NepaliDatePicker({
   value,
   onChange,
   className = "",
-  placeholder = "Select Date",
-  disabled = false,
-  required = false,
-  name,
 }: NepaliDatePickerProps) {
   // Handle date change from Nepali calendar
   const handleDateChange = (nepaliDate: string) => {

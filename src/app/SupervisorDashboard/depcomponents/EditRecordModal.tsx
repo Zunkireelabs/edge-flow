@@ -278,6 +278,7 @@ const EditRecordModal: React.FC<EditRecordModalProps> = ({ isOpen, onClose, reco
               <label className="block text-sm font-semibold mb-2">Date</label>
               <NepaliDatePicker
                 value={formData.date}
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 onChange={(value) => handleInputChange({ target: { name: 'date', value } } as any)}
                 placeholder="Select Date"
               />

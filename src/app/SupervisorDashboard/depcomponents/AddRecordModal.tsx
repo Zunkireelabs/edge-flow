@@ -32,6 +32,8 @@ interface SubBatch {
   department_id: number | null;
   department_sub_batch_id?: number;  // The ID from department_sub_batches table - required for reject/alter operations
   remaining_work?: number;  // Remaining work from production summary
+  quantity_remaining?: number | null;  // Remaining quantity for this card
+  quantity_assigned?: number | null;  // Assigned quantity for "Assigned" cards
   remarks?: string | null;  // Card type: "Main", "Assigned", "Rejected", "Altered"
   assigned_worker_id?: number | null;  // For "Assigned" cards - the worker assigned to this card
   assigned_worker?: any | null;  // Worker details for "Assigned" cards
@@ -103,6 +105,7 @@ const AddRecordModal: React.FC<AddRecordModalProps> = ({
     if (!isOpen) return;
     fetchWorkers();
     fetchDepartments();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen]);
 
   // Initialize form when opening modal in edit/preview mode
@@ -199,7 +202,7 @@ const AddRecordModal: React.FC<AddRecordModalProps> = ({
         });
       }
     }
-  }, [isOpen, editRecord, mode]);
+  }, [isOpen, editRecord, mode, subBatch]);
 
   // Set workerId when workers are loaded in edit/preview mode
   useEffect(() => {

@@ -2,7 +2,7 @@ import React from 'react'
 
 const GenericView = () => {
   return (
-    <div>GenericView</div>
+    <div>This is generic view update</div>
   )
 }
 
