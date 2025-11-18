@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
+import NepaliDatePicker from '@/app/Components/NepaliDatePicker';
 
 interface Worker {
     id: number;
@@ -154,11 +155,10 @@ const AssignRejectedWorkerModal: React.FC<AssignRejectedWorkerModalProps> = ({
                         <label className="block text-sm font-semibold text-gray-700 mb-2">
                             Assignment Date <span className="text-red-500">*</span>
                         </label>
-                        <input
-                            type="date"
+                        <NepaliDatePicker
                             value={date}
-                            onChange={(e) => setDate(e.target.value)}
-                            className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                            onChange={(value) => setDate(value)}
+                            placeholder="Select Date"
                         />
                     </div>
                 </div>

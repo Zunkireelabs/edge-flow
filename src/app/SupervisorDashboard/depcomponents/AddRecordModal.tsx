@@ -3,6 +3,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
+import NepaliDatePicker from '@/app/Components/NepaliDatePicker';
 
 interface Worker {
   id: number;
@@ -31,6 +32,10 @@ interface SubBatch {
   department_id: number | null;
   department_sub_batch_id?: number;  // The ID from department_sub_batches table - required for reject/alter operations
   remaining_work?: number;  // Remaining work from production summary
+  remarks?: string | null;  // Card type: "Main", "Assigned", "Rejected", "Altered"
+  assigned_worker_id?: number | null;  // For "Assigned" cards - the worker assigned to this card
+  assigned_worker?: any | null;  // Worker details for "Assigned" cards
+  sent_from_department?: string | null;  // Name of department that sent this card
 }
 
 export interface WorkerRecord {
@@ -144,24 +149,55 @@ const AddRecordModal: React.FC<AddRecordModalProps> = ({
         selectedAttachments: [],
       });
     } else if (mode === 'add') {
-      setFormData({
-        workerId: '',
-        workerName: '',
-        date: '',
-        sizeCategory: '',
-        particulars: '',
-        qtyReceived: '',
-        qtyWorked: '',
-        unitPrice: '',
-        isBillable: true,
-        rejectReturn: '',
-        returnTo: '',
-        rejectionReason: '',
-        alteration: '',
-        alterationReturnTo: '',
-        alterationNote: '',
-        selectedAttachments: [],
-      });
+      // For "Assigned" cards, pre-select the assigned worker ONLY if from current department
+      const departmentId = localStorage.getItem("departmentId");
+      const currentDeptId = departmentId ? parseInt(departmentId) : null;
+      const assignedWorkerDeptId = subBatch?.assigned_worker?.department_id;
+
+      const shouldPreSelectWorker =
+        subBatch?.remarks === 'Assigned' &&
+        subBatch?.assigned_worker &&
+        assignedWorkerDeptId === currentDeptId;
+
+      if (shouldPreSelectWorker) {
+        setFormData({
+          workerId: subBatch.assigned_worker.id.toString(),
+          workerName: subBatch.assigned_worker.name,
+          date: '',
+          sizeCategory: '',
+          particulars: '',
+          qtyReceived: '',
+          qtyWorked: '',
+          unitPrice: '',
+          isBillable: true,
+          rejectReturn: '',
+          returnTo: '',
+          rejectionReason: '',
+          alteration: '',
+          alterationReturnTo: '',
+          alterationNote: '',
+          selectedAttachments: [],
+        });
+      } else {
+        setFormData({
+          workerId: '',
+          workerName: '',
+          date: '',
+          sizeCategory: '',
+          particulars: '',
+          qtyReceived: '',
+          qtyWorked: '',
+          unitPrice: '',
+          isBillable: true,
+          rejectReturn: '',
+          returnTo: '',
+          rejectionReason: '',
+          alteration: '',
+          alterationReturnTo: '',
+          alterationNote: '',
+          selectedAttachments: [],
+        });
+      }
     }
   }, [isOpen, editRecord, mode]);
 
@@ -185,6 +221,23 @@ const AddRecordModal: React.FC<AddRecordModalProps> = ({
         setWorkers([]);
         setLoading(false);
         return;
+      }
+
+      // For "Assigned" cards, check if the assigned worker belongs to the CURRENT department
+      if (subBatch?.remarks === 'Assigned' && subBatch?.assigned_worker) {
+        const assignedWorkerDeptId = subBatch.assigned_worker.department_id;
+        const currentDeptId = parseInt(departmentId);
+
+        // If assigned worker is from THIS department, lock to that worker only
+        if (assignedWorkerDeptId === currentDeptId) {
+          console.log('Assigned card - worker from current department. Locking to assigned worker:', subBatch.assigned_worker);
+          setWorkers([subBatch.assigned_worker]);
+          setLoading(false);
+          return;
+        } else {
+          // If assigned worker is from ANOTHER department, allow selecting any worker from current department
+          console.log('Assigned card - worker from different department. Allowing worker selection for current department.');
+        }
       }
 
       console.log('Fetching workers for department:', departmentId);
@@ -507,9 +560,9 @@ const AddRecordModal: React.FC<AddRecordModalProps> = ({
                 name="workerId"
                 value={formData.workerId}
                 onChange={handleChange}
-                disabled={loading || isPreviewMode || workers.length === 0}
+                disabled={loading || isPreviewMode || workers.length === 0 || (workers.length === 1 && subBatch?.remarks === 'Assigned')}
                 className={`w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                  isPreviewMode || workers.length === 0 ? 'bg-gray-100 cursor-not-allowed' : ''
+                  isPreviewMode || workers.length === 0 || (workers.length === 1 && subBatch?.remarks === 'Assigned') ? 'bg-gray-100 cursor-not-allowed' : ''
                 }`}
               >
                 <option value="">
@@ -525,23 +578,31 @@ const AddRecordModal: React.FC<AddRecordModalProps> = ({
                   </option>
                 ))}
               </select>
-              {!loading && workers.length === 0 && (
+              {!loading && workers.length === 0 && !subBatch?.assigned_worker && (
                 <p className="text-xs text-orange-600 mt-1">
                   No workers assigned to your department.
+                </p>
+              )}
+              {/* Only show locked message if there's exactly 1 worker (locked to assigned worker from current department) */}
+              {!loading && workers.length === 1 && subBatch?.remarks === 'Assigned' && subBatch?.assigned_worker && (
+                <p className="text-xs text-blue-600 mt-1">
+                  This card is assigned to {subBatch.assigned_worker.name}. Worker cannot be changed.
+                </p>
+              )}
+              {/* Show helpful message for cross-department assigned cards */}
+              {!loading && workers.length > 1 && subBatch?.remarks === 'Assigned' && subBatch?.assigned_worker && (
+                <p className="text-xs text-green-600 mt-1">
+                  Card from {subBatch.assigned_worker.name} ({subBatch.sent_from_department || 'previous department'}). You can assign any worker from your department.
                 </p>
               )}
             </div>
             <div>
               <label className="block text-sm font-semibold mb-2">Date</label>
-              <input
-                type="date"
-                name="date"
+              <NepaliDatePicker
                 value={formData.date}
-                onChange={handleChange}
+                onChange={(value) => handleChange({ target: { name: 'date', value } } as any)}
                 disabled={isPreviewMode}
-                className={`w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                  isPreviewMode ? 'bg-gray-100 cursor-not-allowed' : ''
-                }`}
+                placeholder="Select Date"
               />
             </div>
           </div>
@@ -554,8 +615,48 @@ const AddRecordModal: React.FC<AddRecordModalProps> = ({
             </div>
           </div>
 
+          {/* Show info for Main/Unassigned cards */}
+          {subBatch && (!subBatch.remarks || subBatch.remarks === 'Main') && (
+            <div className="border-2 rounded-lg p-4 bg-gray-50 border-gray-400">
+              <div className="flex items-center justify-between mb-2">
+                <span className="font-bold text-lg text-gray-900">
+                  MAIN CARD (Unassigned)
+                </span>
+                <span className="px-3 py-1 rounded-md font-bold text-white bg-gray-600">
+                  {(subBatch.quantity_remaining || subBatch.estimated_pieces)?.toLocaleString()} PCS
+                </span>
+              </div>
+              <p className="text-sm text-gray-800">
+                This is the main card. Assigning work with quantity will create a new assigned card for that worker.
+              </p>
+            </div>
+          )}
+
+          {/* Show info for Assigned cards */}
+          {subBatch?.remarks === 'Assigned' && (
+            <div className="border-2 rounded-lg p-4 bg-blue-50 border-blue-400">
+              <div className="flex items-center justify-between mb-2">
+                <span className="font-bold text-lg text-blue-900">
+                  ASSIGNED CARD
+                </span>
+                <span className="px-3 py-1 rounded-md font-bold text-white bg-blue-600">
+                  {(subBatch.quantity_assigned || subBatch.quantity_remaining)?.toLocaleString()} PCS
+                </span>
+              </div>
+              <p className="text-sm text-blue-800">
+                This is an assigned card. Adding records will update this card only (no splitting).
+              </p>
+              {subBatch.assigned_worker && (
+                <p className="text-xs text-blue-700 mt-1">
+                  <strong>Current Assignment:</strong> {subBatch.assigned_worker.name}
+                </p>
+              )}
+            </div>
+          )}
+
           {/* Show quantity_remaining and remarks for rejected/altered items */}
-          {subBatch && (subBatch as any).quantity_remaining && (subBatch as any).remarks && (
+          {subBatch && (subBatch as any).quantity_remaining && (subBatch as any).remarks &&
+           (subBatch as any).remarks !== 'Assigned' && (subBatch as any).remarks !== 'Main' && (
             <div className={`border-2 rounded-lg p-4 ${
               (subBatch as any).remarks.toLowerCase().includes('reject')
                 ? 'bg-red-50 border-red-400'
@@ -742,53 +843,9 @@ const AddRecordModal: React.FC<AddRecordModalProps> = ({
           {!(subBatch as any)?.alteration_source && !(subBatch as any)?.rejection_source && (
           <div className="border-t pt-4">
             <h4 className="text-sm font-semibold mb-3 text-gray-700">Additional Tracking</h4>
-            {/* Reject & Return */}
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-semibold mb-2">Reject & Return</label>
-                <input
-                  type="number"
-                  name="rejectReturn"
-                  value={formData.rejectReturn}
-                  onChange={handleChange}
-                  disabled={isPreviewMode}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-semibold mb-2">Return To</label>
-                <select
-                  name="returnTo"
-                  value={formData.returnTo}
-                  onChange={handleChange}
-                  disabled={isPreviewMode}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                >
-                  <option value="">Select department</option>
-                  {departments.map(d => (
-                    <option key={d.id} value={d.id}>
-                      {d.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-
-            {/* Rejection Reason */}
-            <div className="mt-4">
-              <label className="block text-sm font-semibold mb-2">Reason for Rejection</label>
-              <textarea
-                name="rejectionReason"
-                value={formData.rejectionReason}
-                onChange={handleChange}
-                rows={3}
-                disabled={isPreviewMode}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              />
-            </div>
 
             {/* Alteration */}
-            <div className="grid grid-cols-2 gap-4 mt-4">
+            <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-semibold mb-2">Alteration</label>
                 <input

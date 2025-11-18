@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useState, useEffect, useCallback } from 'react';
 import { X, Calendar, Plus, ChevronDown, ChevronRight, CheckCircle, Clock, Inbox, Pencil, Trash2, MoreVertical } from 'lucide-react';
+import NepaliDatePicker from '@/app/Components/NepaliDatePicker';
 
 interface AlteredTaskData {
     id: number;
@@ -1137,11 +1138,10 @@ const AlteredTaskDetailsModal: React.FC<AlteredTaskDetailsModalProps> = ({
                                     <div className="w-40">
                                         <label className="text-sm font-medium text-gray-900 block mb-2">Date</label>
                                         <div className="relative">
-                                            <input
-                                                type="date"
+                                            <NepaliDatePicker
                                                 value={newWorkerDate}
-                                                onChange={(e) => setNewWorkerDate(e.target.value)}
-                                                className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white pr-9"
+                                                onChange={(value) => setNewWorkerDate(value)}
+                                                placeholder="Select Date"
                                             />
                                         </div>
                                     </div>
@@ -1186,11 +1186,11 @@ const AlteredTaskDetailsModal: React.FC<AlteredTaskDetailsModalProps> = ({
                                                                     />
                                                                 </td>
                                                                 <td className="px-4 py-3">
-                                                                    <input
-                                                                        type="date"
+                                                                    <NepaliDatePicker
                                                                         value={editDate}
-                                                                        onChange={(e) => setEditDate(e.target.value)}
-                                                                        className="w-36 px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                                        onChange={(value) => setEditDate(value)}
+                                                                        className="w-36"
+                                                                        placeholder="Select Date"
                                                                     />
                                                                 </td>
                                                                 <td className="px-4 py-3">

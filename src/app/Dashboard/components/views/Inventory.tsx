@@ -6,6 +6,7 @@ import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { Plus, X, Package, TrendingUp, TrendingDown, FileText } from "lucide-react";
 import Loader from "@/app/Components/Loader";
+import NepaliDatePicker from "@/app/Components/NepaliDatePicker";
 
 interface InventoryItem {
   id: number;
@@ -560,12 +561,10 @@ const Inventory = () => {
                         <label className="block text-sm font-medium text-gray-700 mb-2">
                           Date
                         </label>
-                        <input
-                          type="date"
-                          name="date"
+                        <NepaliDatePicker
                           value={formData.date}
-                          onChange={handleInputChange}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          onChange={(value) => handleInputChange({ target: { name: 'date', value } } as any)}
+                          placeholder="Select Date"
                         />
                       </div>
                       <div>
@@ -770,12 +769,10 @@ const Inventory = () => {
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                       Date
                     </label>
-                    <input
-                      type="date"
-                      name="date"
+                    <NepaliDatePicker
                       value={formData.date}
-                      onChange={handleInputChange}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                      onChange={(value) => handleInputChange({ target: { name: 'date', value } } as any)}
+                      placeholder="Select Date"
                     />
                   </div>
                   <div>

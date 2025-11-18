@@ -87,9 +87,10 @@ interface WorkItem {
   sub_batch: SubBatch;
   assigned_worker: any | null;
   department: Department;
-  remarks?: string | null;
+  remarks?: string | null; // Values: "Main", "Assigned", "Rejected", "Altered"
   quantity_remaining?: number | null;
   quantity_received?: number | null;
+  quantity_assigned?: number | null; // NEW: For "Assigned" cards
   sent_from_department?: number | null;
   alter_reason?: string | null;
   reject_reason?: string | null;
@@ -152,6 +153,65 @@ const SupervisorKanban = () => {
       month: 'short',
       day: 'numeric'
     });
+  };
+
+  // Get card styling based on remarks field
+  const getCardStyle = (remarks: string | null | undefined) => {
+    switch (remarks) {
+      case 'Assigned':
+        return 'border-blue-500 bg-blue-50';
+      case 'Main':
+      case null:
+      case undefined:
+        return 'border-gray-200 bg-white';
+      case 'Rejected':
+        return 'border-red-500 bg-red-50';
+      case 'Altered':
+        return 'border-yellow-500 bg-yellow-50';
+      default:
+        // Handle "reject" or "alter" (lowercase) from old data
+        if (remarks?.toLowerCase().includes('reject')) {
+          return 'border-red-500 bg-red-50';
+        }
+        if (remarks?.toLowerCase().includes('alter')) {
+          return 'border-yellow-500 bg-yellow-50';
+        }
+        return 'border-gray-200 bg-white';
+    }
+  };
+
+  // Get badge text based on remarks
+  const getBadgeText = (remarks: string | null | undefined, isNew: boolean) => {
+    if (remarks === 'Assigned') return 'Assigned';
+    if (remarks === 'Main') return 'Unassigned';
+    if (remarks === 'Rejected' || remarks?.toLowerCase().includes('reject')) return 'Rejected';
+    if (remarks === 'Altered' || remarks?.toLowerCase().includes('alter')) return 'Alteration';
+    if (isNew && !remarks) return 'New Subbatch';
+    return 'Unassigned';
+  };
+
+  // Get badge color based on remarks
+  const getBadgeColor = (remarks: string | null | undefined) => {
+    switch (remarks) {
+      case 'Assigned':
+        return 'bg-blue-500 text-white';
+      case 'Main':
+      case null:
+      case undefined:
+        return 'bg-gray-500 text-white';
+      case 'Rejected':
+        return 'bg-[#D9796C] text-white';
+      case 'Altered':
+        return 'bg-[#979797] text-white';
+      default:
+        if (remarks?.toLowerCase().includes('reject')) {
+          return 'bg-[#D9796C] text-white';
+        }
+        if (remarks?.toLowerCase().includes('alter')) {
+          return 'bg-[#979797] text-white';
+        }
+        return 'bg-gray-500 text-white';
+    }
   };
 
   // Sort items based on selected option
@@ -440,7 +500,8 @@ const SupervisorKanban = () => {
                     // Determine if item is rejected or altered based on remarks
                     const isRejected = item.remarks?.toLowerCase().includes('reject') ?? false;
                     const isAltered = item.remarks?.toLowerCase().includes('alter') ?? false;
-                    const workQuantity = item.quantity_remaining ?? item.sub_batch.estimated_pieces;
+                    const isAssigned = item.remarks === 'Assigned';
+                    const isNewArrival = stage.key === 'newArrival' && !isRejected && !isAltered && !isAssigned;
 
                     console.log(`--- Rendering item ${item.id} in ${stage.title} ---`);
                     console.log('Item details:', {
@@ -449,47 +510,31 @@ const SupervisorKanban = () => {
                       stage: item.stage,
                       remarks: item.remarks,
                       quantityRemaining: item.quantity_remaining,
+                      quantityAssigned: item.quantity_assigned,
                       estimatedPieces: item.sub_batch.estimated_pieces,
                       dueDate: item.sub_batch.due_date,
                       isRejected,
                       isAltered,
-                      workQuantity,
-                      alterReason: item.alter_reason,
-                      rejectReason: item.reject_reason,
+                      isAssigned,
+                      assignedWorker: item.assigned_worker,
                       assignedWorkerId: item.assigned_worker_id
                     });
 
                     return (
                       <div
                         key={item.id}
-                        className={`relative rounded-lg p-4 border bg-gray-50 hover:shadow-md transition-shadow cursor-pointer ${
-                          isRejected
-                            ? 'border-red-500'
-                            : isAltered
-                            ? 'border-gray-500'
-                            : 'border-gray-200'
-                        }`}
+                        className={`relative rounded-lg p-4 border hover:shadow-md transition-shadow cursor-pointer ${getCardStyle(item.remarks)}`}
                         onClick={() => handleItemClick(item)}
                       >
                         {/* Status Badge - Top Right */}
-                        {isRejected && (
-                          <span className="absolute top-3 right-1 inline-block px-3 py-1 bg-[#D9796C] text-white text-xs rounded-md font-medium rounded-xl">
-                            Rejected
-                          </span>
-                        )}
-                        {isAltered && !isRejected && (
-                          <span className="absolute top-3 right-1 inline-block px-3 py-1 bg-[#979797] text-white text-xs rounded-md font-medium rounded-xl">
-                            Alteration
-                          </span>
-                        )}
+                        <span className={`absolute top-3 right-3 inline-block px-3 py-1 text-xs rounded-md font-medium ${getBadgeColor(item.remarks)}`}>
+                          {getBadgeText(item.remarks, isNewArrival)}
+                        </span>
+
+                        {/* Send To Badge - Bottom Right for Completed */}
                         {stage.key === 'completed' && (
                           <span className="absolute bottom-3 right-3 inline-flex items-center gap-1 px-3 py-1 bg-blue-500 text-white text-xs rounded-md font-medium rounded-xl">
                             Send To <ChevronDown size={18} />
-                          </span>
-                        )}
-                        {stage.key === 'newArrival' && !isRejected && !isAltered && (
-                          <span className="absolute top-3 right-3 inline-block px-3 py-1 bg-gray-500 text-white text-xs rounded-md font-medium">
-                          New Subbatch
                           </span>
                         )}
 
@@ -498,6 +543,32 @@ const SupervisorKanban = () => {
                           {item.sub_batch.name}
                         </h4>
 
+                        {/* Worker Name - Only for Assigned cards */}
+                        {isAssigned && item.assigned_worker && (
+                          <div className="flex items-center gap-2 text-sm text-blue-700 mb-2 font-medium">
+                            <span className="text-xs">👷 Worker: {item.assigned_worker.name}</span>
+                          </div>
+                        )}
+
+                        {/* Quantity Display */}
+                        <div className="mb-2">
+                          <div className="flex items-center gap-2 text-sm text-gray-600">
+                            <Package size={14} className="text-gray-400" />
+                            <span className="text-xs font-medium">
+                              Remaining: {(item.quantity_remaining ?? item.sub_batch.estimated_pieces).toLocaleString()} pcs
+                            </span>
+                          </div>
+                          {/* Show Assigned Quantity for Assigned cards */}
+                          {isAssigned && item.quantity_assigned && (
+                            <div className="flex items-center gap-2 text-sm text-blue-600 mt-1">
+                              <Package size={14} className="text-blue-400" />
+                              <span className="text-xs font-medium">
+                                Assigned: {item.quantity_assigned.toLocaleString()} pcs
+                              </span>
+                            </div>
+                          )}
+                        </div>
+
                         {/* Start Date */}
                         <div className="flex items-center gap-2 text-sm text-gray-600 mb-2">
                           <Calendar size={14} className="text-gray-400" />
@@ -505,7 +576,7 @@ const SupervisorKanban = () => {
                         </div>
 
                         {/* Due Date */}
-                        <div className="flex items-center gap-2 text-sm text-gray-600 mb-3">
+                        <div className="flex items-center gap-2 text-sm text-gray-600 mb-2">
                           <Clock size={14} className="text-gray-400" />
                           <span className="text-xs">Due: {formatDate(item.sub_batch.due_date)}</span>
                         </div>

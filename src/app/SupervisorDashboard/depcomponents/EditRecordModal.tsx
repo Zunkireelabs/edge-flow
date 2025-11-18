@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
+import NepaliDatePicker from '@/app/Components/NepaliDatePicker';
 
 interface WorkerRecord {
   id: number;
@@ -275,12 +276,10 @@ const EditRecordModal: React.FC<EditRecordModalProps> = ({ isOpen, onClose, reco
             </div>
             <div>
               <label className="block text-sm font-semibold mb-2">Date</label>
-              <input
-                type="date"
-                name="date"
+              <NepaliDatePicker
                 value={formData.date}
-                onChange={handleInputChange}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                onChange={(value) => handleInputChange({ target: { name: 'date', value } } as any)}
+                placeholder="Select Date"
               />
             </div>
           </div>

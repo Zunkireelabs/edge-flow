@@ -6,6 +6,7 @@ import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { Plus, Edit2, Trash2, X, FileX, Layers, Package, Volleyball, PackageMinus, ClockAlert, Clock, MoreVertical, Eye } from "lucide-react";
 import Loader from "@/app/Components/Loader";
+import NepaliDatePicker from "@/app/Components/NepaliDatePicker";
 
 const API = process.env.NEXT_PUBLIC_API_URL ;
 
@@ -74,6 +75,7 @@ const SubBatchView = () => {
   // Updated loading states
   const [loading, setLoading] = useState(true);
   const [, setSaveLoading] = useState(false);
+  const [deletingId, setDeletingId] = useState<number | null>(null);
 
   const [formData, setFormData] = useState<SubBatchForm>({
     name: "",
@@ -401,11 +403,34 @@ const SubBatchView = () => {
     const confirmed = window.confirm("Are you sure you want to delete this subbatch?");
     if (!confirmed) return;
 
+    setDeletingId(id);
+    setOpenMenuId(null); // Close the dropdown menu
+
     try {
       await axios.delete(`${API}/sub-batches/${id}`);
-      fetchSubBatches();
+      alert("Subbatch deleted successfully!");
+      await fetchSubBatches();
     } catch (error) {
       console.error("Error deleting subbatch:", error);
+      if (axios.isAxiosError(error)) {
+        // Log the full error response for debugging
+        console.error("Error response data:", error.response?.data);
+        console.error("Error status:", error.response?.status);
+
+        const errorData = error.response?.data;
+        const errorMessage =
+          errorData?.message ||
+          errorData?.error ||
+          (typeof errorData === 'string' ? errorData : null) ||
+          error.message ||
+          "Unknown error occurred";
+
+        alert(`Failed to delete subbatch: ${errorMessage}`);
+      } else {
+        alert("Failed to delete subbatch. Please try again.");
+      }
+    } finally {
+      setDeletingId(null);
     }
   };
 
@@ -645,19 +670,28 @@ const SubBatchView = () => {
                             </button>
 
                             <button
-                              onClick={() => handleEdit(sb)}
+                              onClick={() => {
+                                setOpenMenuId(null);
+                                handleEdit(sb);
+                              }}
                               className="w-full px-4 py-2 text-left hover:bg-gray-100 text-black flex items-center gap-2 text-sm"
                             >
                               <Edit2 size={14} /> Edit
                             </button>
                             <button
                               onClick={() => handleDelete(sb.id)}
-                              className="w-full px-4 py-2 text-left hover:bg-gray-100 text-red-600 flex items-center gap-2 text-sm"
+                              disabled={deletingId === sb.id}
+                              className={`w-full px-4 py-2 text-left hover:bg-gray-100 flex items-center gap-2 text-sm ${
+                                deletingId === sb.id ? 'text-gray-400 cursor-not-allowed' : 'text-red-600'
+                              }`}
                             >
-                              <Trash2 size={14} /> Delete
+                              <Trash2 size={14} /> {deletingId === sb.id ? 'Deleting...' : 'Delete'}
                             </button>
                             <button
-                              onClick={() => handleSend(sb)}
+                              onClick={() => {
+                                setOpenMenuId(null);
+                                handleSend(sb);
+                              }}
                               className="w-full px-4 py-2 text-left hover:bg-gray-100 text-green-600 flex items-center gap-2 text-sm"
                             >
                               <Package size={14} /> Send to Production
@@ -1181,17 +1215,17 @@ const SubBatchView = () => {
                         <Clock size={20} className="text-black" />
                         <p className="text-black font-semibold">Start Date</p>
                       </div>
-                      <input
-                        type="date"
+                      <NepaliDatePicker
                         value={formatDate(formData.startDate)}
-                        onChange={(e) =>
+                        onChange={(value) =>
                           setFormData({
                             ...formData,
-                            startDate: e.target.value ? `${e.target.value}T00:00:00.000Z` : "",
+                            startDate: value ? `${value}T00:00:00.000Z` : "",
                           })
                         }
-                        className="w-full border border-gray-300 rounded-[10px] px-3 py-2 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                        className="rounded-[10px]"
                         disabled={isPreview}
+                        placeholder="Select Start Date"
                       />
                     </div>
 
@@ -1201,17 +1235,17 @@ const SubBatchView = () => {
                         <ClockAlert size={20} className="text-black" />
                         <p className="text-black font-semibold">Due Date</p>
                       </div>
-                      <input
-                        type="date"
+                      <NepaliDatePicker
                         value={formatDate(formData.dueDate)}
-                        onChange={(e) =>
+                        onChange={(value) =>
                           setFormData({
                             ...formData,
-                            dueDate: e.target.value ? `${e.target.value}T00:00:00.000Z` : "",
+                            dueDate: value ? `${value}T00:00:00.000Z` : "",
                           })
                         }
-                        className="w-full border border-gray-300 rounded-[10px] px-3 py-2 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                        className="rounded-[10px]"
                         disabled={isPreview}
+                        placeholder="Select Due Date"
                       />
                     </div>
                   </div>

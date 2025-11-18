@@ -15,6 +15,7 @@ import {
   MessageSquare,
 } from "lucide-react";
 import Loader from "@/app/Components/Loader";
+import NepaliDatePicker from "@/app/Components/NepaliDatePicker";
 
 interface WorkerAssignment {
   id: string | number;
@@ -499,15 +500,15 @@ const DepartmentForm = () => {
                           ))}
                         </select>
 
-                        <input
-                          type="date"
+                        <NepaliDatePicker
                           value={w.date}
-                          onChange={(e) => {
+                          onChange={(value) => {
                             const newWorkers = [...formData.workers];
-                            newWorkers[index].date = e.target.value;
+                            newWorkers[index].date = value;
                             setFormData((p) => ({ ...p, workers: newWorkers }));
                           }}
-                          className="border border-gray-300 rounded-[10px] px-3 py-2"
+                          className="rounded-[10px]"
+                          placeholder="Select Date"
                         />
 
                         <button

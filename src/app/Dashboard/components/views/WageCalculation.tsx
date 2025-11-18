@@ -4,6 +4,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import axios from "axios";
 import { Trash2 } from "lucide-react";
 import Loader from "@/app/Components/Loader";
+import NepaliDatePicker from "@/app/Components/NepaliDatePicker";
 
 interface Worker {
   id: number;
@@ -186,12 +187,11 @@ const WageCalculation = () => {
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Start Date
             </label>
-            <input
-              type="date"
+            <NepaliDatePicker
               value={startDate}
-              onChange={(e) => setStartDate(e.target.value)}
+              onChange={(value) => setStartDate(value)}
               disabled={loading}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
+              placeholder="Select Start Date"
             />
           </div>
 
@@ -200,12 +200,11 @@ const WageCalculation = () => {
             <label className="block text-sm font-medium text-gray-700 mb-2">
               End Date
             </label>
-            <input
-              type="date"
+            <NepaliDatePicker
               value={endDate}
-              onChange={(e) => setEndDate(e.target.value)}
+              onChange={(value) => setEndDate(value)}
               disabled={loading}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
+              placeholder="Select End Date"
             />
           </div>
 

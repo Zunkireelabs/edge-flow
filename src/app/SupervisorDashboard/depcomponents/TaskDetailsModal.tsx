@@ -88,6 +88,7 @@ const TaskDetailsModal: React.FC<TaskDetailsModalProps> = ({ isOpen, onClose, ta
                     return {
                         id: r.id || idx + 1,
                         worker: r.worker_name || r.worker?.name || '-',
+                        worker_id: r.worker_id, // Store worker_id for filtering by assigned worker
                         date: r.work_date ? new Date(r.work_date).toLocaleDateString('en-US') : '-',
                         realCategory: r.size_category || '-',
                         particulars: r.particulars || '-',
@@ -101,6 +102,7 @@ const TaskDetailsModal: React.FC<TaskDetailsModalProps> = ({ isOpen, onClose, ta
                         alterationNote: alterationNote,
                         status: r.status || '-',
                         department_id: r.department_id, // Store department_id for filtering
+                        department_sub_batch_id: r.department_sub_batch_id, // Store specific card ID for filtering
                         activity_type: r.activity_type || 'NORMAL', // Store activity_type for filtering
                     };
                 });
@@ -196,12 +198,29 @@ const TaskDetailsModal: React.FC<TaskDetailsModalProps> = ({ isOpen, onClose, ta
         if (sendToDepartment) {
 
             // Calculate remaining work before allowing department transfer
-            const currentDepartmentRecords = workerRecords.filter(record => record.department_id === taskData.department_id);
-            const totalWorkDone = currentDepartmentRecords.reduce((sum, record) => sum + (record.qtyWorked || 0), 0);
-            const totalAltered = currentDepartmentRecords.reduce((sum, record) => sum + (record.alteration || 0), 0);
-            const totalRejected = currentDepartmentRecords.reduce((sum, record) => sum + (record.rejectReturn || 0), 0);
+            let currentDeptRecords;
+
+            if (taskData.remarks === 'Assigned') {
+                // For Assigned cards, filter by specific card ID
+                currentDeptRecords = workerRecords.filter(record =>
+                    record.department_sub_batch_id === taskData.id
+                );
+            } else {
+                // For Main cards, filter by department ID
+                currentDeptRecords = workerRecords.filter(record =>
+                    record.department_id === taskData.department_id
+                );
+            }
+
+            const totalWorkDone = currentDeptRecords.reduce((sum, record) => sum + (record.qtyWorked || 0), 0);
+            const totalAltered = currentDeptRecords.reduce((sum, record) => sum + (record.alteration || 0), 0);
+            const totalRejected = currentDeptRecords.reduce((sum, record) => sum + (record.rejectReturn || 0), 0);
             const totalProcessed = totalWorkDone + totalAltered + totalRejected;
-            const quantityToWork = taskData.quantity_remaining ?? taskData.sub_batch?.estimated_pieces ?? 0;
+
+            // For "Assigned" cards, use quantity_assigned; otherwise use quantity_remaining
+            const quantityToWork = (taskData.remarks === 'Assigned' && taskData.quantity_assigned)
+                ? taskData.quantity_assigned
+                : (taskData.quantity_remaining ?? taskData.sub_batch?.estimated_pieces ?? 0);
             const remainingWork = quantityToWork - totalProcessed;
 
             // Prevent moving if there's remaining work
@@ -396,8 +415,25 @@ const TaskDetailsModal: React.FC<TaskDetailsModalProps> = ({ isOpen, onClose, ta
 
     if (!isOpen || !taskData) return null;
 
-    // Filter worker records to only include current department
-    const currentDepartmentRecords = workerRecords.filter(record => record.department_id === taskData.department_id);
+    // Filter worker records based on card type
+    let currentDepartmentRecords;
+
+    if (taskData.remarks === 'Assigned') {
+        // For "Assigned" cards, show only worker logs for this specific card
+        currentDepartmentRecords = workerRecords.filter(record =>
+            record.department_sub_batch_id === taskData.id
+        );
+        console.log('Assigned card - Filtering by card ID:', taskData.id);
+    } else {
+        // For Main/Unassigned cards, show all worker records for this department
+        currentDepartmentRecords = workerRecords.filter(record =>
+            record.department_id === taskData.department_id
+        );
+        console.log('Main card - Filtering by department ID:', taskData.department_id);
+    }
+
+    console.log('Card remarks:', taskData.remarks);
+    console.log('Filtered records:', currentDepartmentRecords);
 
     // Calculate work progress from current department worker records only
     const totalWorkDone = currentDepartmentRecords.reduce((sum, record) => sum + (record.qtyWorked || 0), 0);
@@ -406,8 +442,13 @@ const TaskDetailsModal: React.FC<TaskDetailsModalProps> = ({ isOpen, onClose, ta
     // Total/original quantity for display only
     const totalQuantity = taskData.sub_batch?.estimated_pieces ?? 0;
     // Quantity to work is what this department received (from backend) - used in Received field
-    // Use quantity_received if available (constant), otherwise fall back to quantity_remaining
-    const quantityToWork = taskData.quantity_received ?? taskData.quantity_remaining ?? totalQuantity;
+    // For "Assigned" cards, use quantity_assigned instead of quantity_remaining
+    let quantityToWork;
+    if (taskData.remarks === 'Assigned' && taskData.quantity_assigned) {
+        quantityToWork = taskData.quantity_assigned;
+    } else {
+        quantityToWork = taskData.quantity_received ?? taskData.quantity_remaining ?? totalQuantity;
+    }
     // Remaining = Received - Worked - Rejected - Altered
     const remainingWork = quantityToWork - totalWorkDone - totalRejected - totalAltered;
 
@@ -1004,7 +1045,7 @@ const TaskDetailsModal: React.FC<TaskDetailsModalProps> = ({ isOpen, onClose, ta
                                 )}
 
                                 <div className="px-8 py-2 text-sm text-gray-600 bg-gray-50 border-b flex justify-between">
-                                    <div><strong>Records Found:</strong> {workerRecords.filter(record => record.department_id === taskData.department_id).length}</div>
+                                    <div><strong>Records Found:</strong> {currentDepartmentRecords.length}</div>
                                 </div>
 
                                 <div className="overflow-x-auto">
@@ -1020,16 +1061,14 @@ const TaskDetailsModal: React.FC<TaskDetailsModalProps> = ({ isOpen, onClose, ta
                                                 </tr>
                                             </thead>
                                             <tbody className="divide-y divide-gray-200">
-                                                {workerRecords.filter(record => record.department_id === taskData.department_id).length === 0 ? (
+                                                {currentDepartmentRecords.length === 0 ? (
                                                     <tr>
                                                         <td colSpan={4} className="px-4 py-8 text-center text-gray-500 text-sm">
                                                             No worker assignments yet. Click + Add Record to assign workers.
                                                         </td>
                                                     </tr>
                                                 ) : (
-                                                    workerRecords
-                                                        .filter(record => record.department_id === taskData.department_id)
-                                                        .map((record) => (
+                                                    currentDepartmentRecords.map((record) => (
                                                         <tr key={record.id} className="hover:bg-gray-50">
                                                             <td className="px-4 py-3 text-sm text-gray-900">{record.worker}</td>
                                                             <td className="px-4 py-3 text-sm text-gray-900">{record.qtyWorked ?? 0}</td>
@@ -1054,7 +1093,7 @@ const TaskDetailsModal: React.FC<TaskDetailsModalProps> = ({ isOpen, onClose, ta
                                     ) : (
                                         /* Full table for regular cards */
                                         <WorkerAssignmentTable
-                                            records={workerRecords.filter(record => record.department_id === taskData.department_id)}
+                                            records={currentDepartmentRecords}
                                             onDelete={handleDeleteRecord}
                                             onEdit={handleEditRecord}
                                             onPreview={handlePreviewRecord}
@@ -1125,7 +1164,9 @@ const TaskDetailsModal: React.FC<TaskDetailsModalProps> = ({ isOpen, onClose, ta
                     remaining_work: remainingWork,  // Pass the calculated remaining work from production summary
                     remarks: taskData.remarks,
                     rejection_source: taskData.rejection_source,
-                    alteration_source: taskData.alteration_source
+                    alteration_source: taskData.alteration_source,
+                    assigned_worker_id: taskData.assigned_worker_id,  // Pass assigned worker ID for Assigned cards
+                    assigned_worker: taskData.assigned_worker  // Pass assigned worker details for Assigned cards
                 }}
             />
 
