@@ -29,6 +29,7 @@ const TaskDetailsModal: React.FC<TaskDetailsModalProps> = ({ isOpen, onClose, ta
     const [departments, setDepartments] = useState<any[]>([]);
     const [subBatchHistory, setSubBatchHistory] = useState<any>(null);
     const [expandedDepartments, setExpandedDepartments] = useState<number[]>([]);
+    const [mainCardData, setMainCardData] = useState<any>(null);
 
     const fetchWorkerLogs = useCallback(async () => {
         if (!taskData?.sub_batch?.id) return;
@@ -156,13 +157,69 @@ const TaskDetailsModal: React.FC<TaskDetailsModalProps> = ({ isOpen, onClose, ta
         }
     }, [taskData?.sub_batch?.id]);
 
+    // Fetch Main card data for Assigned cards
+    const fetchMainCardData = useCallback(async () => {
+        // Only fetch if this is an Assigned card
+        if (taskData?.remarks !== 'Assigned') {
+            setMainCardData(null);
+            return;
+        }
+
+        try {
+            const token = localStorage.getItem('token');
+            if (!token) return;
+
+            // Fetch all cards for this supervisor to find the Main card
+            const apiUrl = `${process.env.NEXT_PUBLIC_GET_SUBBATCH_SUPERVISOR}`;
+            const response = await fetch(apiUrl, {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`,
+                },
+            });
+
+            if (!response.ok) {
+                console.error('Error fetching supervisor cards:', response.status);
+                return;
+            }
+
+            const result = await response.json();
+            if (result.success && result.data) {
+                // Combine all cards from all statuses
+                const allCards = [
+                    ...(result.data.newArrival || []),
+                    ...(result.data.inProgress || []),
+                    ...(result.data.completed || [])
+                ];
+
+                // Find the Main card with the same sub_batch_id and department_id
+                const mainCard = allCards.find(card =>
+                    card.sub_batch_id === taskData.sub_batch_id &&
+                    card.department_id === taskData.department_id &&
+                    (card.remarks === 'Main' || !card.remarks)
+                );
+
+                if (mainCard) {
+                    setMainCardData(mainCard);
+                    console.log('Found Main card:', mainCard);
+                } else {
+                    console.log('Main card not found for sub_batch_id:', taskData.sub_batch_id);
+                }
+            }
+        } catch (error) {
+            console.error('Error fetching main card data:', error);
+        }
+    }, [taskData?.remarks, taskData?.sub_batch_id, taskData?.department_id]);
+
     useEffect(() => {
         if (isOpen && taskData?.sub_batch?.id) {
             fetchWorkerLogs();
             fetchDepartments();
             fetchSubBatchHistory();
+            fetchMainCardData();
         }
-    }, [isOpen, fetchWorkerLogs, fetchDepartments, fetchSubBatchHistory, taskData?.sub_batch?.id]);
+    }, [isOpen, fetchWorkerLogs, fetchDepartments, fetchSubBatchHistory, fetchMainCardData, taskData?.sub_batch?.id]);
 
     // Initialize status from taskData and reset sendToDepartment
     useEffect(() => {
@@ -454,14 +511,25 @@ const TaskDetailsModal: React.FC<TaskDetailsModalProps> = ({ isOpen, onClose, ta
 
     // Calculate TOTAL remaining work for the entire sub-batch (across ALL cards in this department)
     // This is used for validation when adding/editing records to ensure we don't exceed the parent's capacity
-    const allDepartmentRecords = workerRecords.filter(record => record.department_id === taskData.department_id);
-    const totalWorkedAll = allDepartmentRecords.reduce((sum, record) => sum + (record.qtyWorked || 0), 0);
-    const totalAlteredAll = allDepartmentRecords.reduce((sum, record) => sum + (record.alteration || 0), 0);
-    const totalRejectedAll = allDepartmentRecords.reduce((sum, record) => sum + (record.rejectReturn || 0), 0);
 
-    // Parent remaining = Total quantity - All work done across all cards
-    const parentTotalQuantity = taskData.quantity_received ?? taskData.sub_batch?.estimated_pieces ?? totalQuantity;
-    const parentRemainingWork = parentTotalQuantity - totalWorkedAll - totalRejectedAll - totalAlteredAll;
+    // For Assigned cards, we want to show the Main card's remaining work, not the assigned card's remaining
+    let parentRemainingWork;
+
+    if (taskData.remarks === 'Assigned' && mainCardData) {
+        // For Assigned cards: Use the Main card's quantity_remaining (unassigned remaining)
+        parentRemainingWork = mainCardData.quantity_remaining ?? 0;
+        console.log('Using Main card remaining for Assigned card:', parentRemainingWork);
+    } else {
+        // For Main/regular cards: Calculate based on all department records
+        const allDepartmentRecords = workerRecords.filter(record => record.department_id === taskData.department_id);
+        const totalWorkedAll = allDepartmentRecords.reduce((sum, record) => sum + (record.qtyWorked || 0), 0);
+        const totalAlteredAll = allDepartmentRecords.reduce((sum, record) => sum + (record.alteration || 0), 0);
+        const totalRejectedAll = allDepartmentRecords.reduce((sum, record) => sum + (record.rejectReturn || 0), 0);
+
+        // Parent remaining = Total quantity - All work done across all cards
+        const parentTotalQuantity = taskData.quantity_received ?? taskData.sub_batch?.estimated_pieces ?? totalQuantity;
+        parentRemainingWork = parentTotalQuantity - totalWorkedAll - totalRejectedAll - totalAlteredAll;
+    }
 
     // Extract rejection/alteration logs from current department worker records
     const rejectionLogs = currentDepartmentRecords.filter(record => (record.rejectReturn ?? 0) > 0);
