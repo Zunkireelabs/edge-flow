@@ -227,6 +227,7 @@ export async function sendToProduction(
       quantity_received: subBatch.estimated_pieces, // ✅ Initial quantity received
       quantity_remaining: subBatch.estimated_pieces, // automatically filled
       total_quantity: subBatch.estimated_pieces, // total quantity that doesn't change
+      remarks: "Main in this Department", // ✅ Fresh arrival in first department (use quantity_received)
     },
   });
 
@@ -332,7 +333,7 @@ export async function advanceSubBatchToNextDepartment(
     },
   });
 
-  // 4️⃣ Create new entry in target department (this becomes the new Main card)
+  // 4️⃣ Create new entry in target department (this becomes the new Main card for that department)
   return await prisma.department_sub_batches.create({
     data: {
       sub_batch_id: currentDept.sub_batch_id,
@@ -343,7 +344,7 @@ export async function advanceSubBatchToNextDepartment(
       quantity_received: quantityBeingSent, // ✅ Set received quantity (constant baseline)
       quantity_remaining: quantityBeingSent, // ✅ Set remaining quantity (can change with reject/alter)
       total_quantity: currentDept.total_quantity, // Copy the original total quantity
-      remarks: currentDept.remarks, // Preserve remarks (Rejected/Altered/null)
+      remarks: "Main in this Department", // ✅ Fresh arrival in new department, independent main card (use quantity_received)
       sent_from_department: currentDept.department_id, // ✅ Track which department it came from
     },
   });
