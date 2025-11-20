@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Calendar, X, CheckCircle, Edit3, XCircle, Clock, ChevronDown, ChevronRight, Inbox } from 'lucide-react';
 import AddRecordModal from './AddRecordModal';
 import WorkerAssignmentTable from './WorkerAssignmentTable';
@@ -35,7 +35,8 @@ const TaskDetailsModal: React.FC<TaskDetailsModalProps> = ({ isOpen, onClose, ta
         if (!taskData?.sub_batch?.id) return;
 
         const subBatchId = taskData.sub_batch.id;
-        const apiUrl = `${process.env.NEXT_PUBLIC_GET_WORKER_LOGS}/${subBatchId}`;
+        const departmentSubBatchId = taskData.id; // The ID of the specific portion being viewed
+        const apiUrl = `${process.env.NEXT_PUBLIC_GET_WORKER_LOGS}/${subBatchId}?department_sub_batch_id=${departmentSubBatchId}`;
 
         try {
             setLoading(true);
@@ -56,7 +57,6 @@ const TaskDetailsModal: React.FC<TaskDetailsModalProps> = ({ isOpen, onClose, ta
             }
 
             const result = await response.json();
-            console.log(`GET /api/worker-logs/${subBatchId} - Response:`, result);
 
             if (result.success && Array.isArray(result.data)) {
                 const mappedRecords = result.data.map((r: any, idx: number) => {
@@ -119,7 +119,7 @@ const TaskDetailsModal: React.FC<TaskDetailsModalProps> = ({ isOpen, onClose, ta
         } finally {
             setLoading(false);
         }
-    }, [taskData?.sub_batch?.id]);
+    }, [taskData?.sub_batch?.id, taskData?.id]);
 
     // Fetch departments
     const fetchDepartments = useCallback(async () => {
@@ -127,7 +127,6 @@ const TaskDetailsModal: React.FC<TaskDetailsModalProps> = ({ isOpen, onClose, ta
             const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/departments`);
             if (response.ok) {
                 const data = await response.json();
-                console.log('GET /api/departments - Response:', data);
                 setDepartments(data);
             }
         } catch (error) {
@@ -150,7 +149,6 @@ const TaskDetailsModal: React.FC<TaskDetailsModalProps> = ({ isOpen, onClose, ta
             }
 
             const result = await response.json();
-            console.log(`GET /api/department-sub-batches/sub-batch-history/${subBatchId} - Response:`, result);
 
             if (result.success) {
                 setSubBatchHistory(result);
@@ -188,7 +186,6 @@ const TaskDetailsModal: React.FC<TaskDetailsModalProps> = ({ isOpen, onClose, ta
             }
 
             const result = await response.json();
-            console.log('GET /api/supervisors/sub-batches - Response:', result);
 
             if (result.success && result.data) {
                 // Combine all cards from all statuses
@@ -277,10 +274,10 @@ const TaskDetailsModal: React.FC<TaskDetailsModalProps> = ({ isOpen, onClose, ta
             const totalRejected = currentDeptRecords.reduce((sum, record) => sum + (record.rejectReturn || 0), 0);
             const totalProcessed = totalWorkDone + totalAltered + totalRejected;
 
-            // For "Assigned" cards, use quantity_assigned; otherwise use quantity_remaining
+            // For "Assigned" cards, use quantity_assigned; for Main cards, use quantity_remaining
             const quantityToWork = (taskData.remarks === 'Assigned' && taskData.quantity_assigned)
                 ? taskData.quantity_assigned
-                : (taskData.quantity_remaining ?? taskData.sub_batch?.estimated_pieces ?? 0);
+                : (taskData.quantity_remaining ?? 0);
             const remainingWork = quantityToWork - totalProcessed;
 
             // Prevent moving if there's remaining work
@@ -473,106 +470,120 @@ const TaskDetailsModal: React.FC<TaskDetailsModalProps> = ({ isOpen, onClose, ta
         }
     };
 
-    if (!isOpen || !taskData) return null;
+    // Memoize filtered worker records based on card type
+    const currentDepartmentRecords = useMemo(() => {
+        if (taskData?.remarks === 'Assigned') {
+            // For "Assigned" cards, show only worker logs for this specific card
+            return workerRecords.filter(record =>
+                record.department_sub_batch_id === taskData.id
+            );
+        } else {
+            // For Main/Unassigned cards, show all worker records for this department
+            return workerRecords.filter(record =>
+                record.department_id === taskData?.department_id
+            );
+        }
+    }, [workerRecords, taskData?.remarks, taskData?.id, taskData?.department_id]);
 
-    // Filter worker records based on card type
-    let currentDepartmentRecords;
+    // Memoize work progress calculations
+    const workProgress = useMemo(() => {
+        const totalWorkDone = currentDepartmentRecords.reduce((sum, record) => sum + (record.qtyWorked || 0), 0);
+        const totalAltered = currentDepartmentRecords.reduce((sum, record) => sum + (record.alteration || 0), 0);
+        const totalRejected = currentDepartmentRecords.reduce((sum, record) => sum + (record.rejectReturn || 0), 0);
+        const totalQuantity = taskData?.sub_batch?.estimated_pieces ?? 0;
 
-    if (taskData.remarks === 'Assigned') {
-        // For "Assigned" cards, show only worker logs for this specific card
-        currentDepartmentRecords = workerRecords.filter(record =>
-            record.department_sub_batch_id === taskData.id
-        );
-    } else {
-        // For Main/Unassigned cards, show all worker records for this department
-        currentDepartmentRecords = workerRecords.filter(record =>
-            record.department_id === taskData.department_id
-        );
-    }
+        // Quantity to work depends on card type
+        // This represents the "Received" quantity in Production Summary
+        let quantityToWork;
+        if (taskData?.remarks === 'Assigned' && taskData?.quantity_assigned) {
+            // Child card assigned to worker - use assigned quantity
+            quantityToWork = taskData.quantity_assigned;
+        } else if (taskData?.remarks === 'Main') {
+            // Parent card after split - ALWAYS use quantity_remaining (what's actually left to work on)
+            quantityToWork = taskData.quantity_remaining ?? totalQuantity;
+        } else if (taskData?.quantity_remaining !== null && taskData?.quantity_remaining !== undefined) {
+            // Fresh arrival or other cards - if quantity_remaining exists, use it
+            quantityToWork = taskData.quantity_remaining;
+        } else {
+            // Fallback to quantity_received or total quantity
+            quantityToWork = taskData?.quantity_received ?? totalQuantity;
+        }
 
-    // Calculate work progress from current department worker records only
-    const totalWorkDone = currentDepartmentRecords.reduce((sum, record) => sum + (record.qtyWorked || 0), 0);
-    const totalAltered = currentDepartmentRecords.reduce((sum, record) => sum + (record.alteration || 0), 0);
-    const totalRejected = currentDepartmentRecords.reduce((sum, record) => sum + (record.rejectReturn || 0), 0);
-    // Total/original quantity for display only
-    const totalQuantity = taskData.sub_batch?.estimated_pieces ?? 0;
-    // Quantity to work depends on card type:
-    // 1. "Assigned" cards (child): use quantity_assigned
-    // 2. "Main" cards (after split): use quantity_remaining (dynamic after split)
-    // 3. "Main in this Department" cards (fresh arrival): use quantity_received (constant baseline)
-    let quantityToWork;
-    if (taskData.remarks === 'Assigned' && taskData.quantity_assigned) {
-        // Child card assigned to worker
-        quantityToWork = taskData.quantity_assigned;
-    } else if (taskData.remarks === 'Main') {
-        // Parent card after split - use remaining quantity (dynamic)
-        quantityToWork = taskData.quantity_remaining ?? taskData.quantity_received ?? totalQuantity;
-    } else {
-        // Fresh arrival card ("Main in this Department") or other cards - use received quantity (baseline)
-        quantityToWork = taskData.quantity_received ?? taskData.quantity_remaining ?? totalQuantity;
-    }
-    // Remaining = Received - Worked - Rejected - Altered
-    const remainingWork = quantityToWork - totalWorkDone - totalRejected - totalAltered;
+        const remainingWork = quantityToWork - totalWorkDone - totalRejected - totalAltered;
 
-    // Calculate TOTAL remaining work for the entire sub-batch (across ALL cards in this department)
-    // This is used for validation when adding/editing records to ensure we don't exceed the parent's capacity
+        return {
+            totalWorkDone,
+            totalAltered,
+            totalRejected,
+            totalQuantity,
+            quantityToWork,
+            remainingWork
+        };
+    }, [currentDepartmentRecords, taskData?.sub_batch?.estimated_pieces, taskData?.remarks,
+        taskData?.quantity_assigned, taskData?.quantity_remaining, taskData?.quantity_received]);
 
-    // For Assigned cards, we want to show the Main card's remaining work, not the assigned card's remaining
-    let parentRemainingWork;
+    // Memoize parent remaining work calculation
+    const parentRemainingWork = useMemo(() => {
+        if (taskData?.remarks === 'Assigned' && mainCardData) {
+            return mainCardData.quantity_remaining ?? 0;
+        } else if (taskData?.remarks === 'Main') {
+            return taskData.quantity_remaining ?? 0;
+        } else {
+            const allDepartmentRecords = workerRecords.filter(record =>
+                record.department_id === taskData?.department_id
+            );
+            const totalWorkedAll = allDepartmentRecords.reduce((sum, record) => sum + (record.qtyWorked || 0), 0);
+            const totalAlteredAll = allDepartmentRecords.reduce((sum, record) => sum + (record.alteration || 0), 0);
+            const totalRejectedAll = allDepartmentRecords.reduce((sum, record) => sum + (record.rejectReturn || 0), 0);
 
-    if (taskData.remarks === 'Assigned' && mainCardData) {
-        // For Assigned cards: Use the Main/Main in this Department card's quantity_remaining (unassigned remaining)
-        parentRemainingWork = mainCardData.quantity_remaining ?? 0;
-    } else if (taskData.remarks === 'Main') {
-        // For Main cards (after split): Use its own quantity_remaining
-        parentRemainingWork = taskData.quantity_remaining ?? 0;
-    } else {
-        // For "Main in this Department" or regular cards: Calculate based on all department records
-        const allDepartmentRecords = workerRecords.filter(record => record.department_id === taskData.department_id);
-        const totalWorkedAll = allDepartmentRecords.reduce((sum, record) => sum + (record.qtyWorked || 0), 0);
-        const totalAlteredAll = allDepartmentRecords.reduce((sum, record) => sum + (record.alteration || 0), 0);
-        const totalRejectedAll = allDepartmentRecords.reduce((sum, record) => sum + (record.rejectReturn || 0), 0);
+            const parentTotalQuantity = taskData?.quantity_received ?? taskData?.sub_batch?.estimated_pieces ?? workProgress.totalQuantity;
+            return parentTotalQuantity - totalWorkedAll - totalRejectedAll - totalAlteredAll;
+        }
+    }, [taskData?.remarks, taskData?.quantity_remaining, taskData?.quantity_received,
+        taskData?.department_id, taskData?.sub_batch?.estimated_pieces,
+        mainCardData, workerRecords, workProgress.totalQuantity]);
 
-        // Parent remaining = Total quantity - All work done across all cards
-        const parentTotalQuantity = taskData.quantity_received ?? taskData.sub_batch?.estimated_pieces ?? totalQuantity;
-        parentRemainingWork = parentTotalQuantity - totalWorkedAll - totalRejectedAll - totalAlteredAll;
-    }
+    // Memoize rejection and alteration logs
+    const logs = useMemo(() => {
+        const rejectionLogs = currentDepartmentRecords.filter(record => (record.rejectReturn ?? 0) > 0);
+        const alterationLogs = currentDepartmentRecords.filter(record => (record.alteration ?? 0) > 0);
 
-    // Extract rejection/alteration logs from current department worker records
-    const rejectionLogs = currentDepartmentRecords.filter(record => (record.rejectReturn ?? 0) > 0);
-    const alterationLogs = currentDepartmentRecords.filter(record => (record.alteration ?? 0) > 0);
+        return {
+            rejectionLogs,
+            alterationLogs,
+            latestRejectionLog: rejectionLogs.length > 0 ? rejectionLogs[rejectionLogs.length - 1] : null,
+            latestAlterationLog: alterationLogs.length > 0 ? alterationLogs[alterationLogs.length - 1] : null
+        };
+    }, [currentDepartmentRecords]);
 
-    // Get the most recent rejection or alteration log
-    const latestRejectionLog = rejectionLogs.length > 0 ? rejectionLogs[rejectionLogs.length - 1] : null;
-    const latestAlterationLog = alterationLogs.length > 0 ? alterationLogs[alterationLogs.length - 1] : null;
-
-    const handleAddRecord = () => {
+    // Memoize event handlers
+    const handleAddRecord = useCallback(() => {
         setModalMode('add');
         setRecordToEdit(null);
         setIsAddRecordOpen(true);
-    };
+    }, []);
 
-    const handleEditRecord = (record: any) => {
+    const handleEditRecord = useCallback((record: any) => {
         setModalMode('edit');
         setRecordToEdit(record);
         setIsAddRecordOpen(true);
-    };
+    }, []);
 
-    const handleSaveRecord = async () => {
+    const handleSaveRecord = useCallback(async () => {
         // Close the modal
         setIsAddRecordOpen(false);
         setRecordToEdit(null);
 
         // Refresh worker logs from backend to get the latest data
         await fetchWorkerLogs();
-    };
+    }, [fetchWorkerLogs]);
 
-    const handlePreviewRecord = (record: any) => {
+    const handlePreviewRecord = useCallback((record: any) => {
         setSelectedRecord(record);
         setIsPreviewOpen(true);
-    };
+    }, []);
 
-    const handleDeleteRecord = async (id: number) => {
+    const handleDeleteRecord = useCallback(async (id: number) => {
         try {
             const token = localStorage.getItem('token');
 
@@ -603,14 +614,16 @@ const TaskDetailsModal: React.FC<TaskDetailsModalProps> = ({ isOpen, onClose, ta
             console.error('Error deleting worker record:', error);
             alert(`Failed to delete worker record: ${error.message}`);
         }
-    };
+    }, [fetchWorkerLogs]);
 
-    const formatDate = (dateString: string) =>
+    const formatDate = useCallback((dateString: string) =>
         dateString ? new Date(dateString).toLocaleDateString('en-US', {
             year: 'numeric',
             month: 'short',
             day: 'numeric'
-        }) : '-';
+        }) : '-', []);
+
+    if (!isOpen || !taskData) return null;
 
     return (
         <>
@@ -805,7 +818,7 @@ const TaskDetailsModal: React.FC<TaskDetailsModalProps> = ({ isOpen, onClose, ta
                                             <Inbox className="text-blue-500" size={18} />
                                             <span className="text-sm text-gray-600">Received</span>
                                         </div>
-                                        <p className="text-[16px] text-center font-semibold text-gray-900">{quantityToWork.toLocaleString()}</p>
+                                        <p className="text-[16px] text-center font-semibold text-gray-900">{workProgress.quantityToWork.toLocaleString()}</p>
                                     </div>
 
                                     {/* Worked */}
@@ -814,7 +827,7 @@ const TaskDetailsModal: React.FC<TaskDetailsModalProps> = ({ isOpen, onClose, ta
                                             <CheckCircle className="text-green-500" size={18} />
                                             <span className="text-sm text-gray-600">Worked</span>
                                         </div>
-                                        <p className="text-[16px] text-center font-semibold text-gray-900">{totalWorkDone.toLocaleString()}</p>
+                                        <p className="text-[16px] text-center font-semibold text-gray-900">{workProgress.totalWorkDone.toLocaleString()}</p>
                                     </div>
 
                                     {/* Altered */}
@@ -823,7 +836,7 @@ const TaskDetailsModal: React.FC<TaskDetailsModalProps> = ({ isOpen, onClose, ta
                                             <Edit3 className="text-yellow-500" size={18} />
                                             <span className="text-sm text-gray-600">Altered</span>
                                         </div>
-                                        <p className="text-[16px] text-center font-semibold text-gray-900">{totalAltered.toLocaleString()}</p>
+                                        <p className="text-[16px] text-center font-semibold text-gray-900">{workProgress.totalAltered.toLocaleString()}</p>
                                     </div>
 
                                     {/* Rejected */}
@@ -832,7 +845,7 @@ const TaskDetailsModal: React.FC<TaskDetailsModalProps> = ({ isOpen, onClose, ta
                                             <XCircle className="text-red-500" size={18} />
                                             <span className="text-sm text-gray-600">Rejected</span>
                                         </div>
-                                        <p className="text-[16px] text-center font-semibold text-gray-900">{totalRejected.toLocaleString()}</p>
+                                        <p className="text-[16px] text-center font-semibold text-gray-900">{workProgress.totalRejected.toLocaleString()}</p>
                                     </div>
 
 
@@ -842,45 +855,45 @@ const TaskDetailsModal: React.FC<TaskDetailsModalProps> = ({ isOpen, onClose, ta
                                             <Clock className="text-orange-500" size={18} />
                                             <span className="text-sm text-gray-600">Remaining</span>
                                         </div>
-                                        <p className="text-[16px] text-center font-semibold text-gray-900">{remainingWork.toLocaleString()}</p>
+                                        <p className="text-[16px] text-center font-semibold text-gray-900">{workProgress.remainingWork.toLocaleString()}</p>
                                     </div>
                                 </div>
                             </div>
 
                             {/* Rejection/Alteration Log - Only show if this is a rejected or altered sub-batch */}
-                            {(taskData.rejection_source || taskData.alteration_source || taskData.remarks?.toLowerCase().includes('reject') || taskData.remarks?.toLowerCase().includes('alter')) && (latestRejectionLog || latestAlterationLog) && (
+                            {(taskData.rejection_source || taskData.alteration_source || taskData.remarks?.toLowerCase().includes('reject') || taskData.remarks?.toLowerCase().includes('alter')) && (logs.latestRejectionLog || logs.latestAlterationLog) && (
                                 <div className="px-6 py-4 border-t border-gray-300">
                                         <h4 className="font-semibold text-lg mb-4">
-                                            {latestRejectionLog ? 'Rejection Log' : 'Alteration Log'}
+                                            {logs.latestRejectionLog ? 'Rejection Log' : 'Alteration Log'}
                                         </h4>
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                             {/* Date */}
                                             <div>
                                                 <label className="text-sm font-semibold text-gray-700">Date</label>
                                                 <p className="text-gray-900 border border-gray-200 rounded-lg px-4 py-2 mt-1">
-                                                    {latestRejectionLog?.date || latestAlterationLog?.date || '-'}
+                                                    {logs.latestRejectionLog?.date || logs.latestAlterationLog?.date || '-'}
                                                 </p>
                                             </div>
 
                                             {/* Altered/Rejected By */}
                                             <div>
                                                 <label className="text-sm font-semibold text-gray-700">
-                                                    {latestRejectionLog ? 'Rejected By' : 'Altered By'}
+                                                    {logs.latestRejectionLog ? 'Rejected By' : 'Altered By'}
                                                 </label>
                                                 <p className="text-gray-900 border border-gray-200 rounded-lg px-4 py-2 mt-1">
-                                                    {latestRejectionLog?.worker || latestAlterationLog?.worker || '-'}
+                                                    {logs.latestRejectionLog?.worker || logs.latestAlterationLog?.worker || '-'}
                                                 </p>
                                             </div>
 
                                             {/* Quantity */}
                                             <div>
                                                 <label className="text-sm font-semibold text-gray-700">
-                                                    {latestRejectionLog ? 'Rejected Quantity' : 'Altered Quantity'}
+                                                    {logs.latestRejectionLog ? 'Rejected Quantity' : 'Altered Quantity'}
                                                 </label>
                                                 <p className="text-gray-900 border border-gray-200 rounded-lg px-4 py-2 mt-1 font-semibold">
-                                                    {latestRejectionLog
-                                                        ? (latestRejectionLog.rejectReturn || 0).toLocaleString()
-                                                        : (latestAlterationLog?.alteration || 0).toLocaleString()
+                                                    {logs.latestRejectionLog
+                                                        ? (logs.latestRejectionLog.rejectReturn || 0).toLocaleString()
+                                                        : (logs.latestAlterationLog?.alteration || 0).toLocaleString()
                                                     }
                                                 </p>
                                             </div>
@@ -888,10 +901,10 @@ const TaskDetailsModal: React.FC<TaskDetailsModalProps> = ({ isOpen, onClose, ta
                                             {/* Reason/Note */}
                                             <div>
                                                 <label className="text-sm font-semibold text-gray-700">
-                                                    {latestRejectionLog ? 'Rejection Reason' : 'Alteration Note'}
+                                                    {logs.latestRejectionLog ? 'Rejection Reason' : 'Alteration Note'}
                                                 </label>
                                                 <p className="text-gray-900 border border-gray-200 rounded-lg px-4 py-2 mt-1">
-                                                    {latestRejectionLog?.rejectionReason || latestAlterationLog?.alterationNote || '-'}
+                                                    {logs.latestRejectionLog?.rejectionReason || logs.latestAlterationLog?.alterationNote || '-'}
                                                 </p>
                                             </div>
                                         </div>
@@ -926,14 +939,14 @@ const TaskDetailsModal: React.FC<TaskDetailsModalProps> = ({ isOpen, onClose, ta
                                         <div>
                                             <label className="text-sm font-medium text-gray-700 block mb-1">Date</label>
                                             <div className="bg-gray-50 border border-gray-300 rounded px-3 py-2 text-sm text-gray-900 flex items-center justify-between">
-                                                <span>{latestAlterationLog?.date || formatDate(new Date().toISOString())}</span>
+                                                <span>{logs.latestAlterationLog?.date || formatDate(new Date().toISOString())}</span>
                                                 <Calendar size={16} className="text-gray-500" />
                                             </div>
                                         </div>
                                         <div>
                                             <label className="text-sm font-medium text-gray-700 block mb-1">Altered By</label>
                                             <div className="bg-gray-50 border border-gray-300 rounded px-3 py-2 text-sm text-gray-900">
-                                                {latestAlterationLog?.worker || taskData.alteration_source.from_department_name || 'Ram Bahadur'}
+                                                {logs.latestAlterationLog?.worker || taskData.alteration_source.from_department_name || 'Ram Bahadur'}
                                             </div>
                                         </div>
                                         <div>
@@ -945,7 +958,7 @@ const TaskDetailsModal: React.FC<TaskDetailsModalProps> = ({ isOpen, onClose, ta
                                         <div>
                                             <label className="text-sm font-medium text-gray-700 block mb-1">Alteration Note</label>
                                             <div className="bg-gray-50 border border-gray-300 rounded px-3 py-2 text-sm text-gray-900">
-                                                {taskData.alteration_source.reason || latestAlterationLog?.alterationNote || 'Zip Repositioning'}
+                                                {taskData.alteration_source.reason || logs.latestAlterationLog?.alterationNote || 'Zip Repositioning'}
                                             </div>
                                         </div>
                                     </div>
@@ -1073,16 +1086,16 @@ const TaskDetailsModal: React.FC<TaskDetailsModalProps> = ({ isOpen, onClose, ta
                                     <h4 className="font-semibold text-base">Current Assignment</h4>
                                     <button
                                         onClick={handleAddRecord}
-                                        disabled={taskData.stage !== 'IN_PROGRESS' || remainingWork <= 0}
+                                        disabled={taskData.stage !== 'IN_PROGRESS' || workProgress.remainingWork <= 0}
                                         className={`px-4 py-1.5 rounded text-sm transition ${
-                                            taskData.stage !== 'IN_PROGRESS' || remainingWork <= 0
+                                            taskData.stage !== 'IN_PROGRESS' || workProgress.remainingWork <= 0
                                                 ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
                                                 : 'border-blue-500 border text-blue-500 hover:bg-blue-700 hover:text-white'
                                         }`}
                                         title={
                                             taskData.stage !== 'IN_PROGRESS'
                                                 ? 'Save the status as In Progress first to add records'
-                                                : remainingWork <= 0
+                                                : workProgress.remainingWork <= 0
                                                 ? 'All work has been completed. No more records can be added.'
                                                 : 'Add worker record'
                                         }
@@ -1103,9 +1116,9 @@ const TaskDetailsModal: React.FC<TaskDetailsModalProps> = ({ isOpen, onClose, ta
                                     </div>
                                 )}
 
-                                {remainingWork <= 0 && taskData.stage !== 'COMPLETED' && (
+                                {workProgress.remainingWork <= 0 && taskData.stage !== 'COMPLETED' && (
                                     <div className="px-8 py-2 text-sm text-green-800 bg-green-50 border-b">
-                                        <strong>Work Complete!</strong> All {quantityToWork.toLocaleString()} pieces have been processed. You can now move this sub-batch to another department.
+                                        <strong>Work Complete!</strong> All {workProgress.quantityToWork.toLocaleString()} pieces have been processed. You can now move this sub-batch to another department.
                                     </div>
                                 )}
 
@@ -1248,7 +1261,7 @@ const TaskDetailsModal: React.FC<TaskDetailsModalProps> = ({ isOpen, onClose, ta
                     department_id: taskData.department_id,  // Pass the current department_id
                     quantity_remaining: taskData.quantity_remaining,
                     quantity_assigned: taskData.quantity_assigned,  // Pass assigned quantity for Assigned cards
-                    remaining_work: remainingWork,  // Pass the calculated remaining work from production summary
+                    remaining_work: workProgress.remainingWork,  // Pass the calculated remaining work from production summary
                     parent_remaining_work: parentRemainingWork,  // Pass parent/total remaining work for validation
                     remarks: taskData.remarks,
                     rejection_source: taskData.rejection_source,

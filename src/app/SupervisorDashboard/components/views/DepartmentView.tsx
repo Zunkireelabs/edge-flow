@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import {
   Calendar,
   Package,
@@ -146,17 +146,17 @@ const SupervisorKanban = () => {
   const [showSortMenu, setShowSortMenu] = useState(false);
   const [sortBy, setSortBy] = useState<'name' | 'startDate' | 'dueDate'>('name');
 
-  // Format date helper
-  const formatDate = (dateString: string) => {
+  // Format date helper - Memoized
+  const formatDate = useCallback((dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'short',
       day: 'numeric'
     });
-  };
+  }, []);
 
-  // Get card styling based on remarks field
-  const getCardStyle = (remarks: string | null | undefined) => {
+  // Get card styling based on remarks field - Memoized
+  const getCardStyle = useCallback((remarks: string | null | undefined) => {
     switch (remarks) {
       case 'Assigned':
         return 'border-blue-500 bg-blue-50';
@@ -178,20 +178,20 @@ const SupervisorKanban = () => {
         }
         return 'border-gray-200 bg-white';
     }
-  };
+  }, []);
 
-  // Get badge text based on remarks
-  const getBadgeText = (remarks: string | null | undefined, isNew: boolean) => {
+  // Get badge text based on remarks - Memoized
+  const getBadgeText = useCallback((remarks: string | null | undefined, isNew: boolean) => {
     if (remarks === 'Assigned') return 'Assigned';
     if (remarks === 'Main') return 'Unassigned';
     if (remarks === 'Rejected' || remarks?.toLowerCase().includes('reject')) return 'Rejected';
     if (remarks === 'Altered' || remarks?.toLowerCase().includes('alter')) return 'Alteration';
     if (isNew && !remarks) return 'New Subbatch';
     return 'Unassigned';
-  };
+  }, []);
 
-  // Get badge color based on remarks
-  const getBadgeColor = (remarks: string | null | undefined) => {
+  // Get badge color based on remarks - Memoized
+  const getBadgeColor = useCallback((remarks: string | null | undefined) => {
     switch (remarks) {
       case 'Assigned':
         return 'bg-blue-500 text-white';
@@ -212,10 +212,10 @@ const SupervisorKanban = () => {
         }
         return 'bg-gray-500 text-white';
     }
-  };
+  }, []);
 
-  // Sort items based on selected option
-  const sortItems = (items: WorkItem[]) => {
+  // Sort items based on selected option - Memoized
+  const sortItems = useCallback((items: WorkItem[]) => {
     const sortedItems = [...items];
     switch (sortBy) {
       case 'name':
@@ -233,17 +233,17 @@ const SupervisorKanban = () => {
       default:
         return sortedItems;
     }
-  };
+  }, [sortBy]);
 
-  // Handle sort option change
-  const handleSortChange = (option: 'name' | 'startDate' | 'dueDate') => {
+  // Handle sort option change - Memoized
+  const handleSortChange = useCallback((option: 'name' | 'startDate' | 'dueDate') => {
     setSortBy(option);
     setShowSortMenu(false);
-  };
+  }, []);
 
 
   // Fetch kanban data for supervisor
-  const fetchKanbanData = async () => {
+  const fetchKanbanData = useCallback(async () => {
     try {
       setLoading(true);
       const token = localStorage.getItem("token");
@@ -262,18 +262,12 @@ const SupervisorKanban = () => {
         return;
       }
 
-      console.log("Fetching supervisor sub-batches with token:", token);
-      console.log("Department ID from localStorage:", departmentId);
-
       // Set the current supervisor ID from localStorage
       if (departmentId) {
         setCurrentSupervisorId(parseInt(departmentId, 10));
       }
 
       const apiUrl = `${process.env.NEXT_PUBLIC_GET_SUBBATCH_SUPERVISOR}`;
-      console.log("======= API ENDPOINT =======");
-      console.log("Fetching kanban data from API:", apiUrl);
-      console.log("============================");
 
       const response = await fetch(
         apiUrl,
@@ -297,28 +291,9 @@ const SupervisorKanban = () => {
       }
 
       const result = await response.json();
-      console.log("======= SUPERVISOR KANBAN API RESPONSE =======");
-      console.log("Full API Response:", result);
-      console.log("Success:", result.success);
-      console.log("Data:", result.data);
 
       if (result.success && result.data) {
-        console.log("======= KANBAN DATA BREAKDOWN =======");
-        console.log("New Arrival items:", result.data.newArrival);
-        console.log("New Arrival count:", result.data.newArrival?.length || 0);
-        console.log("In Progress items:", result.data.inProgress);
-        console.log("In Progress count:", result.data.inProgress?.length || 0);
-        console.log("Completed items:", result.data.completed);
-        console.log("Completed count:", result.data.completed?.length || 0);
-
         setKanbanData(result.data);
-
-        // Log department info from the first item if available
-        const firstItem = result.data.newArrival[0] || result.data.inProgress[0] || result.data.completed[0];
-        console.log("======= FIRST ITEM FOR DEPARTMENT =======");
-        console.log("First item:", firstItem);
-        console.log("Department:", firstItem?.department);
-        console.log("Department name:", firstItem?.department?.name);
       } else {
         throw new Error(result.message || 'API returned unsuccessful response');
       }
@@ -328,11 +303,11 @@ const SupervisorKanban = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     fetchKanbanData();
-  }, []);
+  }, [fetchKanbanData]);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -349,54 +324,94 @@ const SupervisorKanban = () => {
     };
   }, [showSortMenu]);
 
-  // Handle item click to open task details
-  const handleItemClick = (item: WorkItem) => {
-    console.log('======= ITEM CLICKED =======');
-    console.log('Selected item:', item);
-    console.log('Item ID:', item.id);
-    console.log('Sub-batch:', item.sub_batch);
-    console.log('Sub-batch ID:', item.sub_batch_id);
-    console.log('Stage:', item.stage);
-    console.log('Assigned worker:', item.assigned_worker);
-    console.log('Assigned worker ID:', item.assigned_worker_id);
-    console.log('Department:', item.department);
-    console.log('Alter reason:', item.alter_reason);
-    console.log('Reject reason:', item.reject_reason);
-    console.log('Current supervisor ID:', currentSupervisorId);
-
+  // Handle item click to open task details - Memoized
+  const handleItemClick = useCallback((item: WorkItem) => {
     // Check if this is an altered task
     const isAltered = item.remarks?.toLowerCase().includes('alter') ?? false;
-    console.log('Is Altered Task:', isAltered);
 
     // Check if this is a rejected task
     const isRejected = item.remarks?.toLowerCase().includes('reject') ?? false;
-    console.log('Is Rejected Task:', isRejected);
-    console.log('================================');
 
     setSelectedItem(item);
     setIsAlteredTask(isAltered);
     setIsRejectedTask(isRejected);
     setIsTaskDetailsOpen(true);
-  };
+  }, []);
 
-  // Close task details modal
-  const closeTaskDetails = () => {
+  // Close task details modal - Memoized
+  const closeTaskDetails = useCallback(() => {
     setIsTaskDetailsOpen(false);
     setSelectedItem(null);
     setIsAlteredTask(false);
     setIsRejectedTask(false);
-  };
+  }, []);
 
-  // Update stages with current counts
-  const updatedStages = STAGES.map(stage => ({
+  // Update stages with current counts - Memoized
+  const updatedStages = useMemo(() => STAGES.map(stage => ({
     ...stage,
     count: kanbanData[stage.key as keyof KanbanData]?.length || 0
-  }));
+  })), [kanbanData]);
 
-  console.log('======= CURRENT KANBAN STATE =======');
-  console.log('Updated stages:', updatedStages);
-  console.log('Current kanban data:', kanbanData);
-  console.log('====================================');
+  // Memoize altered task modal data
+  const alteredTaskData = useMemo(() => {
+    if (!selectedItem) return {} as any;
+    return {
+      id: selectedItem.id,
+      roll_name: selectedItem.sub_batch?.batch?.name,
+      batch_name: selectedItem.sub_batch?.batch?.name,
+      sub_batch_name: selectedItem.sub_batch?.name,
+      total_quantity: selectedItem.quantity_remaining ?? selectedItem.sub_batch?.estimated_pieces ?? 0,
+      estimated_start_date: selectedItem.sub_batch?.start_date,
+      due_date: selectedItem.sub_batch?.due_date,
+      status: selectedItem.stage || 'NEW_ARRIVAL',
+      sent_from_department: selectedItem.sent_from_department || selectedItem.department?.name || 'Unknown',
+      alteration_date: new Date().toISOString(),
+      altered_by: selectedItem.department?.name || 'Department Worker',
+      altered_quantity: selectedItem.quantity_remaining ?? 0,
+      alter_reason: selectedItem.alter_reason || selectedItem.remarks || '',
+      attachments: selectedItem.sub_batch?.attachments?.map((att: Attachment) => ({
+        name: att.attachment_name,
+        count: att.quantity
+      })) || [],
+      quantity_remaining: selectedItem.quantity_remaining,
+      sub_batch: selectedItem.sub_batch,
+      original_quantity: selectedItem.sub_batch?.estimated_pieces
+    };
+  }, [selectedItem]);
+
+  // Memoize rejected task modal data
+  const rejectedTaskData = useMemo(() => {
+    if (!selectedItem) return {} as any;
+    return {
+      id: selectedItem.id,
+      roll_name: selectedItem.sub_batch?.batch?.name || 'Roll 1',
+      batch_name: selectedItem.sub_batch?.batch?.name || 'Batch B',
+      sub_batch_name: selectedItem.sub_batch?.name || '-',
+      total_quantity: selectedItem.quantity_remaining ?? selectedItem.sub_batch?.estimated_pieces ?? 0,
+      estimated_start_date: selectedItem.sub_batch?.start_date || '',
+      due_date: selectedItem.sub_batch?.due_date || '',
+      status: selectedItem.stage || 'NEW_ARRIVAL',
+      sent_from_department: selectedItem.sent_from_department || selectedItem.department?.name || 'Unknown',
+      rejection_date: new Date().toISOString(),
+      rejected_by: selectedItem.department?.name || 'Department Worker',
+      rejected_quantity: selectedItem.quantity_remaining ?? 0,
+      reject_reason: selectedItem.reject_reason || '',
+      attachments: selectedItem.sub_batch?.attachments?.map((att: Attachment) => ({
+        name: att.attachment_name,
+        count: att.quantity
+      })) || [],
+      quantity_remaining: selectedItem.quantity_remaining,
+      sub_batch: selectedItem.sub_batch,
+      original_quantity: selectedItem.sub_batch?.estimated_pieces
+    };
+  }, [selectedItem]);
+
+  // Memoize sorted kanban data for better performance
+  const sortedKanbanData = useMemo(() => ({
+    newArrival: sortItems(kanbanData.newArrival || []),
+    inProgress: sortItems(kanbanData.inProgress || []),
+    completed: sortItems(kanbanData.completed || [])
+  }), [kanbanData, sortItems]);
 
   if (loading && kanbanData.newArrival.length === 0 && kanbanData.inProgress.length === 0 && kanbanData.completed.length === 0) {
     // Initial loading - show full page loader
@@ -466,14 +481,7 @@ const SupervisorKanban = () => {
       {/* Kanban Board */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {updatedStages.map((stage) => {
-          const items = sortItems(kanbanData[stage.key as keyof KanbanData] || []);
-
-          console.log(`======= RENDERING STAGE: ${stage.title} =======`);
-          console.log(`Stage key: ${stage.key}`);
-          console.log(`Items count: ${items.length}`);
-          console.log(`Items:`, items);
-          console.log(`Sorted by: ${sortBy}`);
-          console.log(`=====================================`);
+          const items = sortedKanbanData[stage.key as keyof KanbanData] || [];
 
           return (
             <div key={stage.key} className={`${stage.color} rounded-lg p-4`}>
@@ -502,23 +510,6 @@ const SupervisorKanban = () => {
                     const isAltered = item.remarks?.toLowerCase().includes('alter') ?? false;
                     const isAssigned = item.remarks === 'Assigned';
                     const isNewArrival = stage.key === 'newArrival' && !isRejected && !isAltered && !isAssigned;
-
-                    console.log(`--- Rendering item ${item.id} in ${stage.title} ---`);
-                    console.log('Item details:', {
-                      id: item.id,
-                      subBatchName: item.sub_batch.name,
-                      stage: item.stage,
-                      remarks: item.remarks,
-                      quantityRemaining: item.quantity_remaining,
-                      quantityAssigned: item.quantity_assigned,
-                      estimatedPieces: item.sub_batch.estimated_pieces,
-                      dueDate: item.sub_batch.due_date,
-                      isRejected,
-                      isAltered,
-                      isAssigned,
-                      assignedWorker: item.assigned_worker,
-                      assignedWorkerId: item.assigned_worker_id
-                    });
 
                     return (
                       <div
@@ -602,56 +593,14 @@ const SupervisorKanban = () => {
         <AlteredTaskDetailsModal
           isOpen={isTaskDetailsOpen}
           onClose={closeTaskDetails}
-          taskData={selectedItem ? {
-            id: selectedItem.id,
-            roll_name: selectedItem.sub_batch?.batch?.name ,
-            batch_name: selectedItem.sub_batch?.batch?.name ,
-            sub_batch_name: selectedItem.sub_batch?.name ,
-            total_quantity: selectedItem.quantity_remaining ?? selectedItem.sub_batch?.estimated_pieces ?? 0,
-            estimated_start_date: selectedItem.sub_batch?.start_date ,
-            due_date: selectedItem.sub_batch?.due_date ,
-            status: selectedItem.stage || 'NEW_ARRIVAL',
-            sent_from_department: selectedItem.sent_from_department || selectedItem.department?.name || 'Unknown',
-            alteration_date: new Date().toISOString(),
-            altered_by: selectedItem.department?.name || 'Department Worker',
-            altered_quantity: selectedItem.quantity_remaining ?? 0,
-            alter_reason: selectedItem.alter_reason || selectedItem.remarks || '',
-            attachments: selectedItem.sub_batch?.attachments?.map((att: Attachment) => ({
-              name: att.attachment_name,
-              count: att.quantity
-            })) || [],
-            quantity_remaining: selectedItem.quantity_remaining,
-            sub_batch: selectedItem.sub_batch,  // Pass the entire sub_batch object
-            original_quantity: selectedItem.sub_batch?.estimated_pieces  // Pass original quantity
-          } : {} as any}
+          taskData={alteredTaskData}
           onStageChange={fetchKanbanData}
         />
       ) : isRejectedTask ? (
         <RejectedTaskDetailsModal
           isOpen={isTaskDetailsOpen}
           onClose={closeTaskDetails}
-          taskData={selectedItem ? {
-            id: selectedItem.id,
-            roll_name: selectedItem.sub_batch?.batch?.name || 'Roll 1',
-            batch_name: selectedItem.sub_batch?.batch?.name || 'Batch B',
-            sub_batch_name: selectedItem.sub_batch?.name || '-',
-            total_quantity: selectedItem.quantity_remaining ?? selectedItem.sub_batch?.estimated_pieces ?? 0,
-            estimated_start_date: selectedItem.sub_batch?.start_date || '',
-            due_date: selectedItem.sub_batch?.due_date || '',
-            status: selectedItem.stage || 'NEW_ARRIVAL',
-            sent_from_department: selectedItem.sent_from_department || selectedItem.department?.name || 'Unknown',
-            rejection_date: new Date().toISOString(),
-            rejected_by: selectedItem.department?.name || 'Department Worker',
-            rejected_quantity: selectedItem.quantity_remaining ?? 0,
-            reject_reason: selectedItem.reject_reason || '',
-            attachments: selectedItem.sub_batch?.attachments?.map((att: Attachment) => ({
-              name: att.attachment_name,
-              count: att.quantity
-            })) || [],
-            quantity_remaining: selectedItem.quantity_remaining,
-            sub_batch: selectedItem.sub_batch,  // Pass the entire sub_batch object
-            original_quantity: selectedItem.sub_batch?.estimated_pieces  // Pass original quantity
-          } : {} as any}
+          taskData={rejectedTaskData}
           onStageChange={fetchKanbanData}
         />
       ) : (

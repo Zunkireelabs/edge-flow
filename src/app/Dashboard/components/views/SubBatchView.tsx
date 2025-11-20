@@ -33,6 +33,7 @@ interface Roll {
 interface Batch {
   id: number;
   name: string;
+  roll_id?: number | null;
 }
 
 interface Department {
@@ -633,7 +634,7 @@ const SubBatchView = () => {
                   <th className="px-4 py-3 text-left text-sm font-medium uppercase tracking-wider">PARENT ROLL</th>
                   <th className="px-4 py-3 text-left text-sm font-medium uppercase tracking-wider">PARENT BATCH</th>
                   <th className="px-4 py-3 text-left text-sm font-medium uppercase tracking-wider">STATUS</th>
-                  <th className="px-4 py-3 text-left text-sm font-medium uppercase tracking-wider">ESTIMATED PIECES</th>
+                  <th className="px-4 py-3 text-left text-sm font-medium uppercase tracking-wider">PIECES</th>
                   <th className="px-4 py-3 text-left text-sm font-medium uppercase tracking-wider">START DATE</th>
                   <th className="px-4 py-3 text-left text-sm font-medium uppercase tracking-wider">DUE DATE</th>
                   <th className="px-4 py-3"></th>
@@ -902,7 +903,7 @@ const SubBatchView = () => {
 
                     {/* Estimated Pieces */}
                     <div className="flex justify-between items-center py-2 border-b border-gray-100">
-                      <span className=" font-semibold text-black">Estimated Pieces</span>
+                      <span className=" font-semibold text-black">Pieces</span>
                       <span className="text-sm text-gray-500">{formData.estimatedPieces} </span>
                     </div>
 
@@ -1026,7 +1027,16 @@ const SubBatchView = () => {
 
                   <select
                     value={formData.batch_id}
-                    onChange={(e) => setFormData({ ...formData, batch_id: e.target.value })}
+                    onChange={(e) => {
+                      const selectedBatchId = e.target.value;
+                      const selectedBatch = batches.find(b => b.id === Number(selectedBatchId));
+
+                      setFormData({
+                        ...formData,
+                        batch_id: selectedBatchId,
+                        roll_id: selectedBatch?.roll_id ? String(selectedBatch.roll_id) : formData.roll_id
+                      });
+                    }}
                     className="w-full border border-gray-300 rounded-[10px] px-3 py-2 focus:outline-none focus:ring-1 focus:ring-blue-500"
                     disabled={isPreview}
                   >

@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { Calendar, ChevronRight } from "lucide-react";
 import Loader from "@/app/Components/Loader";
+import ProductionTaskDetailsModal from "./modals/ProductionTaskDetailsModal";
 
 // Add custom styles for animations
 const customStyles = `
@@ -48,6 +49,7 @@ interface SizeDetail {
 }
 
 interface SubBatchInDepartment extends SubBatch {
+  id: number; // department_sub_batch_id - unique identifier from department_sub_batches table
   department_stage: string;
   quantity_remaining: number | null;
   assigned_worker_id: number | null;
@@ -55,7 +57,8 @@ interface SubBatchInDepartment extends SubBatch {
   size_details: SizeDetail[];
   attachments: Attachment[];
   createdAt: string;
-  remarks: string | null;
+  remarks: string | null; // Values: "Main", "Assigned", "Rejected", "Altered"
+  sub_batch_id: number; // Reference to parent sub_batch
 }
 
 interface DepartmentColumn {
@@ -79,6 +82,8 @@ const ProductionView = () => {
   const [data, setData] = useState<ProductionViewData | null>(null);
   const [loading, setLoading] = useState(true);
   const [visibleSubBatches, setVisibleSubBatches] = useState<number[]>([]);
+  const [selectedTask, setSelectedTask] = useState<SubBatchInDepartment | null>(null);
+  const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
 
   // Format date helper
   const formatDate = (dateString: string) => {
@@ -114,6 +119,66 @@ const ProductionView = () => {
         return "Completed";
       default:
         return stage;
+    }
+  };
+
+  // Get card styling based on remarks field
+  const getCardStyle = (remarks: string | null | undefined) => {
+    switch (remarks) {
+      case "Assigned":
+        return "border-blue-500 bg-blue-50";
+      case "Main":
+      case null:
+      case undefined:
+        return "border-gray-300 bg-gray-50";
+      case "Rejected":
+        return "border-red-500 bg-red-50";
+      case "Altered":
+        return "border-yellow-500 bg-yellow-50";
+      default:
+        // Handle "reject" or "alter" (lowercase) from old data
+        if (remarks?.toLowerCase().includes("reject")) {
+          return "border-red-500 bg-red-50";
+        }
+        if (remarks?.toLowerCase().includes("alter")) {
+          return "border-yellow-500 bg-yellow-50";
+        }
+        return "border-gray-300 bg-gray-50";
+    }
+  };
+
+  // Get badge text based on remarks
+  const getBadgeText = (remarks: string | null | undefined) => {
+    if (remarks === "Assigned") return "Assigned";
+    if (remarks === "Main") return "Unassigned";
+    if (remarks === "Rejected" || remarks?.toLowerCase().includes("reject"))
+      return "Rejected";
+    if (remarks === "Altered" || remarks?.toLowerCase().includes("alter"))
+      return "Altered";
+    return "Unassigned";
+  };
+
+  // Get badge color based on remarks
+  const getBadgeColor = (remarks: string | null | undefined) => {
+    switch (remarks) {
+      case "Assigned":
+        return "bg-blue-500 text-white";
+      case "Main":
+      case null:
+      case undefined:
+        return "bg-gray-500 text-white";
+      case "Rejected":
+        return "bg-red-500 text-white";
+      case "Altered":
+        return "bg-yellow-500 text-white";
+      default:
+        if (remarks?.toLowerCase().includes("reject")) {
+          return "bg-red-500 text-white";
+        }
+        if (remarks?.toLowerCase().includes("alter")) {
+          return "bg-yellow-500 text-white";
+        }
+        return "bg-gray-500 text-white";
     }
   };
 
@@ -167,6 +232,39 @@ const ProductionView = () => {
   // Check if sub-batch should be visible
   const isSubBatchVisible = (subBatchId: number) => {
     return visibleSubBatches.includes(subBatchId);
+  };
+
+  // Handle card click
+  const handleCardClick = (task: SubBatchInDepartment) => {
+    setSelectedTask(task);
+    setIsTaskModalOpen(true);
+  };
+
+  // Handle modal close
+  const handleModalClose = () => {
+    setIsTaskModalOpen(false);
+    setSelectedTask(null);
+  };
+
+  // Refresh data after modal actions
+  const handleRefresh = async () => {
+    try {
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/production-view`
+      );
+
+      if (!response.ok) {
+        throw new Error("Failed to fetch production view data");
+      }
+
+      const result = await response.json();
+
+      if (result.success) {
+        setData(result.data);
+      }
+    } catch (error) {
+      console.error("Error refreshing production view:", error);
+    }
   };
 
   if (loading) return <Loader loading={true} message="Loading Production View..." />;
@@ -240,7 +338,10 @@ const ProductionView = () => {
             {/* Department Cards */}
             {data.department_columns.map((dept) => {
               // Get visible sub-batches for this department
-              const visibleSubBatchesInDept = dept.sub_batches.filter(sb => isSubBatchVisible(sb.id));
+              // Filter by sub_batch_id (parent) rather than department_sub_batch_id
+              const visibleSubBatchesInDept = dept.sub_batches.filter(sb =>
+                isSubBatchVisible(sb.sub_batch_id || sb.batch_id || sb.id)
+              );
 
               return (
                 <div
@@ -265,21 +366,38 @@ const ProductionView = () => {
                       </div>
                     ) : (
                       <div className="space-y-3">
-                        {visibleSubBatchesInDept.map((subBatchInDept) => (
+                        {visibleSubBatchesInDept.map((subBatchInDept, cardIndex) => (
                           <div
-                            key={subBatchInDept.id}
-                            className="bg-gray-50 border-2 border-gray-300 rounded-lg p-4 "
+                            key={`dept-${dept.department_id}-card-${subBatchInDept.id}-${subBatchInDept.remarks || 'main'}-${cardIndex}`}
+                            onClick={() => handleCardClick(subBatchInDept)}
+                            className={`border-2 rounded-lg p-4 cursor-pointer transition-all hover:shadow-lg ${getCardStyle(subBatchInDept.remarks)}`}
                           >
                             {/* Top section with product name and badge */}
                             <div className="flex items-start justify-between mb-3">
                               <h4 className="text-base font-semibold text-gray-900 flex-1">{subBatchInDept.name}</h4>
-                              {/* Type Badge - Show if altered or rejected */}
-                              {subBatchInDept.remarks && (
-                                <span className="ml-2 text-xs font-medium px-2.5 py-1 rounded-md bg-gray-500 text-white">
-                                  Altered
-                                </span>
-                              )}
+                              {/* Type Badge - Show based on remarks */}
+                              <span className={`ml-2 text-xs font-medium px-2.5 py-1 rounded-md ${getBadgeColor(subBatchInDept.remarks)}`}>
+                                {getBadgeText(subBatchInDept.remarks)}
+                              </span>
                             </div>
+
+                            {/* Worker Name - Only for Assigned cards */}
+                            {subBatchInDept.remarks === "Assigned" && subBatchInDept.assigned_worker_name && (
+                              <div className="flex items-center gap-2 text-sm text-blue-700 mb-3 font-medium">
+                                <span className="text-xs">👷 Worker: {subBatchInDept.assigned_worker_name}</span>
+                              </div>
+                            )}
+
+                            {/* Quantity Display */}
+                            {subBatchInDept.quantity_remaining !== null && (
+                              <div className="mb-3">
+                                <div className="flex items-center gap-2 text-sm text-gray-600">
+                                  <span className="text-xs font-medium">
+                                    Remaining: {subBatchInDept.quantity_remaining.toLocaleString()} pcs
+                                  </span>
+                                </div>
+                              </div>
+                            )}
 
                             {/* Dates */}
                             <div className="space-y-2 text-sm text-gray-600 mb-4">
@@ -380,6 +498,16 @@ const ProductionView = () => {
         </div>
       </div>
     </div>
+
+      {/* Task Details Modal */}
+      {isTaskModalOpen && selectedTask && (
+        <ProductionTaskDetailsModal
+          isOpen={isTaskModalOpen}
+          onClose={handleModalClose}
+          taskData={selectedTask}
+          onRefresh={handleRefresh}
+        />
+      )}
     </>
   );
 };
