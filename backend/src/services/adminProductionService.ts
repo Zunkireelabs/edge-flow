@@ -80,10 +80,12 @@ export const getTaskDetails = async (subBatchId: number, departmentId: number) =
   }
 
   // Get work history - all worker logs for this sub-batch and department
+  // Filter by department_sub_batch_id to get logs for the specific portion only
   const workerLogs = await prisma.worker_logs.findMany({
     where: {
       sub_batch_id: subBatchId,
       department_id: departmentId,
+      department_sub_batch_id: deptSubBatch.id, // ✅ Filter by specific portion
     },
     include: {
       worker: true,
