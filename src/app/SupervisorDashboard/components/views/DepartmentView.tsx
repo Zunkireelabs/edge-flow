@@ -72,6 +72,7 @@ interface AlterationSource {
   reason: string;
   from_department_id: number;
   from_department_name: string;
+  created_at?: string;
 }
 
 interface WorkItem {
