@@ -1,0 +1,2 @@
+# Ignore backend folder - deployed separately on Render
+blueshark-backend-test/
