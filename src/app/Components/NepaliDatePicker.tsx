@@ -17,6 +17,10 @@ export default function NepaliDatePicker({
   value,
   onChange,
   className = "",
+  placeholder,
+  disabled,
+  required,
+  name,
 }: NepaliDatePickerProps) {
   // Handle date change from Nepali calendar
   const handleDateChange = (nepaliDate: string) => {
@@ -24,11 +28,12 @@ export default function NepaliDatePicker({
   };
 
   return (
-    <div className={`nepali-datepicker-wrapper ${className}`}>
+    <div className="nepali-datepicker-wrapper">
       <Calendar
         onChange={handleDateChange}
         value={value}
-        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+        className={`w-full px-3 py-2 border border-gray-300 focus:outline-none focus:ring-1 focus:ring-blue-500 ${className}`}
+        inputClassName={`w-full px-3 py-2 border border-gray-300 focus:outline-none focus:ring-1 focus:ring-blue-500 ${className}`}
       />
     </div>
   );

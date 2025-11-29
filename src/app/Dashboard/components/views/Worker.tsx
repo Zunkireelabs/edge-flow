@@ -160,10 +160,10 @@ const WorkerPage = () => {
                     <p className="text-sm text-gray-600">Manage workers, wages and details</p>
                 </div>
                 <button
-                    className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors"
+                    className="flex items-center gap-2 bg-blue-600 text-white px-5 py-2.5 rounded-xl font-semibold shadow-md hover:bg-blue-700 hover:shadow-lg transition-all duration-200 hover:scale-105"
                     onClick={() => { closeDrawer(); setIsDrawerOpen(true); }}
                 >
-                    <Plus size={16} /> Add Worker
+                    <Plus className="w-4 h-4" /> Add Worker
                 </button>
             </div>
 
@@ -233,10 +233,14 @@ const WorkerPage = () => {
             {isDrawerOpen && (
                 <div className="fixed inset-0 z-50 flex justify-end">
                     {/* Overlay */}
-                    <div className="absolute inset-0 bg-black/30" onClick={closeDrawer} />
+                    <div
+                        className="absolute inset-0 bg-white/30 transition-opacity duration-300"
+                        style={{ backdropFilter: 'blur(4px)' }}
+                        onClick={closeDrawer}
+                    />
 
                     {/* Drawer */}
-                    <div className="ml-auto w-full max-w-md bg-white shadow-sm p-6 relative rounded-lg max-h-[90vh] overflow-y-auto">
+                    <div className="ml-auto w-full max-w-xl bg-white shadow-lg p-4 relative h-screen overflow-y-auto">
                         <button
                             className="absolute top-4 right-4 text-gray-500 hover:text-gray-700 transition-colors"
                             onClick={closeDrawer}
@@ -244,7 +248,7 @@ const WorkerPage = () => {
                             <X size={20} />
                         </button>
 
-                        <h3 className="text-lg font-medium text-gray-900 mb-6 flex gap-2 items-center">
+                        <h3 className="text-lg font-medium text-gray-900 mb-3 flex gap-2 items-center">
                             <Shell size={20} />
                             {isPreview ? "Worker Preview" : editingWorker ? "Edit Worker" : "Add New Worker"}
                         </h3>
@@ -260,7 +264,7 @@ const WorkerPage = () => {
                         )}
 
                         {/* Flex grid for inputs */}
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                             {/* Name */}
                             <div className="flex flex-col gap-2">
                                 <label className="flex items-center gap-2 text-sm font-medium text-gray-900">
@@ -340,16 +344,16 @@ const WorkerPage = () => {
                         </div>
 
                         {/* Buttons */}
-                        <div className="flex justify-end gap-3 mt-6 pt-6 border-t border-gray-200">
+                        <div className="flex justify-end gap-3 mt-4 pt-4 border-t border-gray-200 sticky bottom-0 bg-white">
                             <button
-                                className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+                                className="px-6 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 font-medium transition-colors"
                                 onClick={closeDrawer}
                             >
                                 {isPreview ? "Close" : "Cancel"}
                             </button>
                             {!isPreview && (
                                 <button
-                                    className="px-4 py-2 bg-blue-600 text-white rounded-md text-sm font-medium hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                    className="px-6 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 font-medium transition-colors shadow-sm"
                                     onClick={handleSave}
                                     disabled={saveLoading}
                                 >

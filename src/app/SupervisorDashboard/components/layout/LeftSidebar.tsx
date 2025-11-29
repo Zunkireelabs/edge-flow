@@ -22,7 +22,7 @@ const navItems: NavigationItem[] = [
   // { id: "rollview", label: "Roll View", icon: Eye },
   // { id: "batchview", label: "Batch View", icon: Package },
   // { id: "subbatchview", label: "Sub Batch View", icon: Layers },
-  { id: "departmentview", label: "Department View", icon: Building2 },
+  { id: "departmentview", label: "Task Management", icon: Building2 },
   { id: "workers", label: "Workers", icon: Users2 },
   // { id: "productionview", label: "Production View", icon: Monitor },
   // { id: "inventory", label: "Inventory", icon: Archive },

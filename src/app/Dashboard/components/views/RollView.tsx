@@ -15,6 +15,9 @@ import {
   Shell,
   MoreVertical,
   Eye,
+  ChevronLeft,
+  ChevronRight,
+  Filter,
 } from "lucide-react";
 import Loader from "@/app/Components/Loader";
 
@@ -50,18 +53,101 @@ const RollView = () => {
   const [editingRoll, setEditingRoll] = useState<Roll | null>(null);
   const [isPreview, setIsPreview] = useState(false);
   const [vendors, setVendors] = useState<Vendor[]>([]);
-  const [saveLoading, setSaveLoading] = useState(false); // Add loading state for save
+  const [saveLoading, setSaveLoading] = useState(false);
+  const [selectedRows, setSelectedRows] = useState<Set<number | string>>(new Set());
+  const [filterSidebarOpen, setFilterSidebarOpen] = useState(true);
+  const [selectedView, setSelectedView] = useState("all");
+  const [selectedUnits, setSelectedUnits] = useState<string[]>([]);
+  const [selectedColors, setSelectedColors] = useState<string[]>([]);
+  const [selectedVendors, setSelectedVendors] = useState<string[]>([]);
 
   const [formData, setFormData] = useState({
     id: "",
     name: "",
     quantity: "",
-    unit: "Kilogram", // Set default value
+    unit: "Kilogram",
     color: "",
     vendorId: "",
   });
 
   const [openMenuId, setOpenMenuId] = useState<number | string | null>(null);
+
+  // Helper function to get vendor initials
+  const getVendorInitials = (name: string) => {
+    if (!name) return "?";
+    const words = name.split(" ");
+    if (words.length >= 2) {
+      return (words[0][0] + words[1][0]).toUpperCase();
+    }
+    return name.substring(0, 2).toUpperCase();
+  };
+
+  // Helper function to get avatar color
+  const getAvatarColor = (name: string) => {
+    const colors = [
+      "bg-blue-500",
+      "bg-purple-500",
+      "bg-green-500",
+      "bg-orange-500",
+      "bg-pink-500",
+      "bg-indigo-500",
+    ];
+    const index = name.charCodeAt(0) % colors.length;
+    return colors[index];
+  };
+
+  // Toggle row selection
+  const toggleRowSelection = (id: number | string) => {
+    setSelectedRows(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(id)) {
+        newSet.delete(id);
+      } else {
+        newSet.add(id);
+      }
+      return newSet;
+    });
+  };
+
+  // Toggle all rows
+  const toggleAllRows = () => {
+    if (selectedRows.size === rolls.length) {
+      setSelectedRows(new Set());
+    } else {
+      setSelectedRows(new Set(rolls.map(r => r.id)));
+    }
+  };
+
+  // Filter rolls based on selected filters
+  const filteredRolls = rolls.filter(roll => {
+    // Apply saved view filters
+    if (selectedView === "high-quantity" && roll.quantity <= 500) return false;
+    if (selectedView === "low-stock" && roll.quantity >= 100) return false;
+
+    // Apply unit filters
+    if (selectedUnits.length > 0 && !selectedUnits.includes(roll.unit)) return false;
+
+    // Apply color filters
+    if (selectedColors.length > 0 && !selectedColors.includes(roll.color)) return false;
+
+    // Apply vendor filters
+    if (selectedVendors.length > 0 && roll.vendor && !selectedVendors.includes(roll.vendor.id.toString())) return false;
+
+    return true;
+  });
+
+  // Get unique values for filters
+  const uniqueUnits = Array.from(new Set(rolls.map(r => r.unit)));
+  const uniqueColors = Array.from(new Set(rolls.map(r => r.color).filter(Boolean)));
+  const uniqueVendors = Array.from(new Set(rolls.map(r => r.vendor).filter(Boolean)));
+
+  // Clear all filters
+  const clearAllFilters = () => {
+    setSelectedView("all");
+    setSelectedUnits([]);
+    setSelectedColors([]);
+    setSelectedVendors([]);
+  };
 
   // Reset form data
   const resetFormData = () => {
@@ -273,35 +359,218 @@ const RollView = () => {
   };
 
   return (
-    <div className="p-8 bg-gray-50 min-h-full">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h2 className="text-2xl font-bold">Roll View</h2>
-          <p className="text-gray-500 text-l font-regular">
-            Manage production rolls and track progress
-          </p>
-        </div>
-        <button
-          className="flex items-center gap-2 bg-[#6B98FF] text-white px-4 py-2 rounded-[10px] hover:bg-blue-700"
-          onClick={() => {
-            resetFormData();
-            setIsDrawerOpen(true);
-            setOpenMenuId(null);
-            setIsPreview(false);
+    <div className="pr-8 bg-gray-50 min-h-screen">
+      {/* Main Layout: Filter Sidebar + Content */}
+      <div className="flex min-h-screen">
+        {/* Filters Sidebar */}
+        <div
+          className={`bg-white shadow flex-shrink-0 border-r border-gray-200 min-h-screen overflow-y-auto transition-all duration-300 ease-in-out ${
+            filterSidebarOpen ? 'w-72 opacity-100' : 'w-0 opacity-0'
+          }`}
+          style={{
+            scrollbarWidth: 'thin',
+            scrollbarColor: '#d1d5db #f3f4f6',
+            fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif'
           }}
         >
-          <Plus size={16} /> Add Roll
-        </button>
-      </div>
+            {/* Filters Header */}
+            <div className="flex items-center justify-between p-6 border-b border-gray-100">
+              <h3 className="text-2xl font-bold text-gray-900">Filters</h3>
+              <button
+                onClick={() => setFilterSidebarOpen(false)}
+                className="p-1.5 hover:bg-gray-100 rounded transition-colors"
+                title="Collapse filters"
+              >
+                <ChevronLeft className="w-5 h-5 text-gray-600" />
+              </button>
+            </div>
 
-      {/* Main Content */}
-      <div className="bg-white rounded-lg shadow p-6 flex flex-col gap-4 mb-8">
+            <div className="px-6">
+              {/* Saved Views */}
+              <div className="py-4 border-b border-gray-100">
+                <h4 className="text-lg font-semibold text-gray-900 mb-3" style={{ letterSpacing: '-0.01em' }}>Saved Views</h4>
+                <div className="space-y-1.5">
+                  <button
+                    onClick={() => setSelectedView("all")}
+                    className={`w-full flex items-center justify-between text-left py-1.5 px-4 rounded-xl transition-all ${
+                      selectedView === "all"
+                        ? "bg-blue-600 text-white shadow-sm"
+                        : "hover:bg-gray-50 text-gray-700"
+                    }`}
+                  >
+                    <span className={`text-[15px] font-medium ${selectedView === "all" ? "text-white" : "text-gray-800"}`} style={{ letterSpacing: '-0.01em' }}>
+                      All Rolls
+                    </span>
+                    <span className={`text-[15px] font-semibold ${selectedView === "all" ? "text-white" : "text-gray-500"}`}>
+                      {rolls.length}
+                    </span>
+                  </button>
+                  <button
+                    onClick={() => setSelectedView("high-quantity")}
+                    className={`w-full flex items-center justify-between text-left py-1.5 px-4 rounded-xl transition-all ${
+                      selectedView === "high-quantity"
+                        ? "bg-blue-600 text-white shadow-sm"
+                        : "hover:bg-gray-50 text-gray-700"
+                    }`}
+                  >
+                    <span className={`text-[15px] font-medium ${selectedView === "high-quantity" ? "text-white" : "text-gray-800"}`} style={{ letterSpacing: '-0.01em' }}>
+                      High Quantity
+                    </span>
+                    <span className={`text-[15px] font-semibold ${selectedView === "high-quantity" ? "text-white" : "text-gray-500"}`}>
+                      {rolls.filter(r => r.quantity > 500).length}
+                    </span>
+                  </button>
+                  <button
+                    onClick={() => setSelectedView("low-stock")}
+                    className={`w-full flex items-center justify-between text-left py-1.5 px-4 rounded-xl transition-all ${
+                      selectedView === "low-stock"
+                        ? "bg-blue-600 text-white shadow-sm"
+                        : "hover:bg-gray-50 text-gray-700"
+                    }`}
+                  >
+                    <span className={`text-[15px] font-medium ${selectedView === "low-stock" ? "text-white" : "text-gray-800"}`} style={{ letterSpacing: '-0.01em' }}>
+                      Low Stock
+                    </span>
+                    <span className={`text-[15px] font-semibold ${selectedView === "low-stock" ? "text-white" : "text-gray-500"}`}>
+                      {rolls.filter(r => r.quantity < 100).length}
+                    </span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Unit Filter */}
+              <div className="py-4 border-b border-gray-100">
+                <h4 className="text-lg font-semibold text-gray-900 mb-3" style={{ letterSpacing: '-0.01em' }}>Unit</h4>
+                <div className="space-y-2">
+                  {uniqueUnits.map(unit => (
+                    <label key={unit} className="flex items-center gap-3 cursor-pointer group">
+                      <input
+                        type="checkbox"
+                        checked={selectedUnits.includes(unit)}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setSelectedUnits([...selectedUnits, unit]);
+                          } else {
+                            setSelectedUnits(selectedUnits.filter(u => u !== unit));
+                          }
+                        }}
+                        className="w-5 h-5 rounded border-2 border-gray-300 text-blue-600 focus:ring-2 focus:ring-blue-500 focus:ring-offset-0 cursor-pointer"
+                      />
+                      <span className="text-[15px] text-gray-800 group-hover:text-gray-900" style={{ letterSpacing: '-0.01em' }}>{unit}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              {/* Color Filter */}
+              <div className="py-4 border-b border-gray-100">
+                <h4 className="text-lg font-semibold text-gray-900 mb-3" style={{ letterSpacing: '-0.01em' }}>Color</h4>
+                <div className="space-y-2">
+                  {uniqueColors.map(color => (
+                    <label key={color} className="flex items-center gap-3 cursor-pointer group">
+                      <input
+                        type="checkbox"
+                        checked={selectedColors.includes(color)}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setSelectedColors([...selectedColors, color]);
+                          } else {
+                            setSelectedColors(selectedColors.filter(c => c !== color));
+                          }
+                        }}
+                        className="w-5 h-5 rounded border-2 border-gray-300 text-blue-600 focus:ring-2 focus:ring-blue-500 focus:ring-offset-0 cursor-pointer"
+                      />
+                      <span className="text-[15px] text-gray-800 capitalize group-hover:text-gray-900" style={{ letterSpacing: '-0.01em' }}>{color}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              {/* Vendor Filter */}
+              <div className="py-4 border-b border-gray-100">
+                <h4 className="text-lg font-semibold text-gray-900 mb-3" style={{ letterSpacing: '-0.01em' }}>Vendor</h4>
+                <div className="space-y-2">
+                  {uniqueVendors.map(vendor => vendor && (
+                    <label key={vendor.id} className="flex items-center gap-3 cursor-pointer group">
+                      <input
+                        type="checkbox"
+                        checked={selectedVendors.includes(vendor.id.toString())}
+                        onChange={(e) => {
+                          const vendorId = vendor.id.toString();
+                          if (e.target.checked) {
+                            setSelectedVendors([...selectedVendors, vendorId]);
+                          } else {
+                            setSelectedVendors(selectedVendors.filter(v => v !== vendorId));
+                          }
+                        }}
+                        className="w-5 h-5 rounded border-2 border-gray-300 text-blue-600 focus:ring-2 focus:ring-blue-500 focus:ring-offset-0 cursor-pointer"
+                      />
+                      <div className="flex items-center gap-2.5 flex-1">
+                        <div className={`w-8 h-8 rounded-full ${getAvatarColor(vendor.name)} flex items-center justify-center text-white text-xs font-semibold`}>
+                          {getVendorInitials(vendor.name)}
+                        </div>
+                        <span className="text-[15px] text-gray-800 group-hover:text-gray-900" style={{ letterSpacing: '-0.01em' }}>{vendor.name}</span>
+                      </div>
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              {/* Clear Filters */}
+              {(selectedUnits.length > 0 || selectedColors.length > 0 || selectedVendors.length > 0 || selectedView !== "all") && (
+                <div className="py-4">
+                  <button
+                    onClick={clearAllFilters}
+                    className="w-full px-4 py-2 text-sm text-red-600 hover:bg-red-50 rounded-lg transition-colors font-medium"
+                  >
+                    Clear All Filters
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+
+        {/* Main Content Area */}
+        <div className="flex-1 pl-6 min-h-screen">
+          {/* Header */}
+          <div className="flex items-center justify-between mb-6 pt-6">
+            <div className="flex items-start gap-3">
+              <button
+                onClick={() => setFilterSidebarOpen(!filterSidebarOpen)}
+                className="p-2 hover:bg-gray-100 rounded-lg transition-colors mt-0.5"
+                title={filterSidebarOpen ? "Hide filters" : "Show filters"}
+              >
+                <Filter className="w-5 h-5 text-gray-600" />
+              </button>
+              <div>
+                <h2 className="text-2xl font-bold">Roll View</h2>
+                <p className="text-gray-500 text-l font-regular">
+                  Manage production rolls and track progress
+                </p>
+              </div>
+            </div>
+            <button
+              className="flex items-center gap-2 bg-blue-600 text-white px-5 py-2.5 rounded-xl font-semibold shadow-md hover:bg-blue-700 hover:shadow-lg transition-all duration-200 hover:scale-105"
+              onClick={() => {
+                resetFormData();
+                setIsDrawerOpen(true);
+                setOpenMenuId(null);
+                setIsPreview(false);
+              }}
+            >
+              <Plus size={18} /> Add Roll
+            </button>
+          </div>
+
+          {/* Table Container */}
+          <div className="bg-white rounded-lg shadow overflow-x-auto">
         {loading ? (
-          <Loader loading={true} message="Loading Rolls.." />
+          <div className="p-6">
+            <Loader loading={true} message="Loading Rolls.." />
+          </div>
 
-        ) : rolls.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-12">
+        ) : filteredRolls.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-12 px-6">
             <FileText size={48} className="text-gray-300 mb-4" />
             <p className="text-black mb-2 font-medium">No rolls found</p>
             <p className="text-gray-500 mb-2 font-medium">
@@ -309,79 +578,112 @@ const RollView = () => {
             </p>
           </div>
         ) : (
-          <table className="w-full table-auto border-collapse">
+          <table className="w-max min-w-full table-auto border-collapse">
             <thead>
-              <tr className="bg-[#E5E7EB]">
-                <th className="px-4 py-3 text-left text-sm font-medium  uppercase tracking-wider">SN</th>
-                <th className="px-4 py-3 text-left text-sm font-medium  uppercase tracking-wider">ID</th>
-                <th className="px-4 py-3 text-left text-sm font-medium  uppercase tracking-wider">ROLL</th>
-                <th className="px-4 py-3 text-left text-sm font-medium  uppercase tracking-wider">QUANTITY</th>
-                <th className="px-4 py-3 text-left text-sm font-medium  uppercase tracking-wider">UNIT</th>
-                <th className="px-4 py-3 text-left text-sm font-medium  uppercase tracking-wider">COLOR</th>
-                <th className="px-4 py-3 text-left text-sm font-medium  uppercase tracking-wider">VENDOR</th>
-                <th className="px-4 py-3"></th>
+              <tr className="border-b border-gray-200">
+                <th className="px-4 py-2.5 text-left w-12">
+                  <input
+                    type="checkbox"
+                    checked={selectedRows.size === filteredRolls.length && filteredRolls.length > 0}
+                    onChange={toggleAllRows}
+                    className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                  />
+                </th>
+                <th className="px-4 py-2.5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
+                <th className="px-4 py-2.5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ROLL</th>
+                <th className="px-4 py-2.5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">QUANTITY</th>
+                <th className="px-4 py-2.5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">UNIT</th>
+                <th className="px-4 py-2.5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">COLOR</th>
+                <th className="px-4 py-2.5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">VENDOR</th>
+                <th className="px-4 py-2.5 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">ACTIONS</th>
               </tr>
             </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {rolls.map((roll, index) => (
-                <tr key={roll.id} className="hover:bg-gray-50 transition-colors">
-                  <td className="px-4 py-4 text-sm text-gray-900">{index + 1}</td>
-                  <td className="px-4 py-4 text-sm text-gray-900">B00{roll.id}</td>
-                  <td className="px-4 py-4 text-sm text-gray-900">{roll.name}</td>
-                  <td className="px-4 py-4 text-sm text-gray-900">{roll.quantity}</td>
-                  <td className="px-4 py-4 text-sm text-gray-900">{roll.unit}</td>
-                  <td className="px-4 py-4 text-sm text-gray-900">{roll.color}</td>
-                  <td className="px-4 py-4 text-sm text-gray-900">{roll.vendor?.name || "-"}</td>
-                  <td className="px-4 py-4 text-sm relative">
-                    {/* 3-dot button */}
-                    <button
-                      className="p-1 rounded hover:bg-gray-200 transition-colors"
-                      onClick={() =>
-                        setOpenMenuId(openMenuId === roll.id ? null : roll.id)
-                      }
-                    >
-                      <MoreVertical size={18} className="" />
-                    </button>
-
-                    {/* Dropdown menu */}
-                    {openMenuId === roll.id && (
-                      <div className="absolute right-0 top-full mt-2 w-32 bg-white rounded shadow-lg z-50 border border-gray-200">
-                        <button
-                          className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 text-sm"
-                          onClick={() => { setOpenMenuId(null); handlePreview(roll); }}
-                        >
-                          <Eye size={14} /> Preview
-                        </button>
-                        <button
-                          className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 text-sm"
-                          onClick={() => { setOpenMenuId(null); handleEdit(roll); }}
-                        >
-                          <Edit2 size={14} /> Edit
-                        </button>
-                        <button
-                          className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 text-sm text-red-500"
-                          onClick={() => { setOpenMenuId(null); handleDelete(roll.id); }}
-                        >
-                          <Trash2 size={14} /> Delete
-                        </button>
+            <tbody className="bg-white divide-y divide-gray-100">
+              {filteredRolls.map((roll, index) => (
+                <tr
+                  key={roll.id}
+                  className={`transition-all ${
+                    selectedRows.has(roll.id)
+                      ? 'bg-blue-50 border-l-4 border-l-blue-500'
+                      : 'hover:bg-gray-50 border-l-4 border-l-transparent'
+                  }`}
+                >
+                  <td className="px-4 py-2.5">
+                    <input
+                      type="checkbox"
+                      checked={selectedRows.has(roll.id)}
+                      onChange={() => toggleRowSelection(roll.id)}
+                      className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                    />
+                  </td>
+                  <td className="px-4 py-2.5 text-sm font-medium text-gray-900">R00{roll.id}</td>
+                  <td className="px-4 py-2.5">
+                    <div className="flex flex-col">
+                      <span className="text-sm font-medium text-gray-900">{roll.name}</span>
+                    </div>
+                  </td>
+                  <td className="px-4 py-2.5 text-sm text-gray-700">{roll.quantity}</td>
+                  <td className="px-4 py-2.5 text-sm text-gray-700">{roll.unit}</td>
+                  <td className="px-4 py-2.5">
+                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                      {roll.color}
+                    </span>
+                  </td>
+                  <td className="px-4 py-2.5">
+                    {roll.vendor ? (
+                      <div className="flex items-center gap-2">
+                        <div className={`w-8 h-8 rounded-full ${getAvatarColor(roll.vendor.name)} flex items-center justify-center text-white text-xs font-semibold`}>
+                          {getVendorInitials(roll.vendor.name)}
+                        </div>
+                        <span className="text-sm text-gray-700">{roll.vendor.name}</span>
                       </div>
+                    ) : (
+                      <span className="text-sm text-gray-400">-</span>
                     )}
+                  </td>
+                  <td className="px-4 py-2.5 text-right">
+                    <div className="flex items-center justify-end gap-2">
+                      <button
+                        onClick={() => handlePreview(roll)}
+                        className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-600 hover:text-blue-600 transition-colors"
+                        title="Preview"
+                      >
+                        <Eye size={16} />
+                      </button>
+                      <button
+                        onClick={() => handleEdit(roll)}
+                        className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-600 hover:text-blue-600 transition-colors"
+                        title="Edit"
+                      >
+                        <Edit2 size={16} />
+                      </button>
+                      <button
+                        onClick={() => handleDelete(roll.id)}
+                        className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-600 hover:text-red-600 transition-colors"
+                        title="Delete"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
         )}
+          </div>
+        </div>
       </div>
 
       {/* Drawer */}
       {isDrawerOpen && (
         <div className="fixed inset-0 z-50 flex">
           <div
-            className="absolute inset-0 bg-white/50"
+            className="absolute inset-0 bg-white/30 transition-opacity duration-300"
+            style={{ backdropFilter: 'blur(4px)' }}
             onClick={closeDrawer}
           />
-          <div className="ml-auto w-full max-w-md bg-white shadow-lg p-6 relative rounded-[25px]">
+          <div className={`ml-auto w-full max-w-xl bg-white shadow-lg p-4 relative h-screen overflow-y-auto transition-transform duration-300 ease-in-out ${isDrawerOpen ? 'translate-x-0' : 'translate-x-full'}`}>
             <button
               className="absolute top-4 right-4 text-gray-500 hover:text-gray-700"
               onClick={closeDrawer}
@@ -436,12 +738,28 @@ const RollView = () => {
             ) : (
               // Edit/Add Layout
               <>
-                <h3 className="text-lg font-semibold mb-4 flex gap-2">
-                  <Shell size={20} className="text-black" />
-                  {editingRoll ? "Edit Roll" : "Add New Roll"}
-                </h3>
+                {/* Modern Header with Step Indicator */}
+                <div className="border-b border-gray-200 pb-3 mb-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <h3 className="text-xl font-bold text-gray-900" style={{ letterSpacing: '-0.01em' }}>
+                      {editingRoll ? "Edit Roll" : "Add New Roll"}
+                    </h3>
+                    <span className="text-sm text-gray-500">Step 1 of 1</span>
+                  </div>
 
-                <div className="space-y-4">
+                  {/* Progress Stepper */}
+                  <div className="mt-3 flex items-center gap-4">
+                    <div className="flex items-center gap-2">
+                      <div className="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center text-sm font-semibold">
+                        1
+                      </div>
+                      <span className="text-sm font-medium text-gray-900">Basic Info</span>
+                    </div>
+                    <div className="flex-1 h-[2px] bg-gray-200"></div>
+                  </div>
+                </div>
+
+                <div className="space-y-3">
               {/* ID field - Show only for existing rolls */}
               {editingRoll && (
                 <>
@@ -457,52 +775,51 @@ const RollView = () => {
               )}
 
               {/* Roll Name */}
-              <div className="flex items-center gap-2">
-                <Package size={20} className="text-black" />
-                <p className="text-black font-semibold ">Roll Name *</p>
+              <div>
+                <label className="block text-sm font-semibold text-gray-900 mb-1.5">
+                  Roll Name <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  name="name"
+                  placeholder="Enter roll name"
+                  value={formData.name}
+                  onChange={handleChange}
+                  readOnly={isPreview}
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                  required
+                />
               </div>
-              <input
-                type="text"
-                name="name"
-                placeholder="Roll Name"
-                value={formData.name}
-                onChange={handleChange}
-                readOnly={isPreview}
-                className="w-full border border-gray-300 rounded-[10px] px-3 py-2 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                required
-              />
 
               {/* Quantity + Unit */}
-              <div className="flex gap-4">
-                <div className="flex-1 flex flex-col">
-                  <div className="flex items-center gap-2 mb-1">
-                    <BrickWall size={20} className="text-black" />
-                    <p className="text-black font-semibold">Quantity *</p>
-                  </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-sm font-semibold text-gray-900 mb-1.5">
+                    Quantity <span className="text-red-500">*</span>
+                  </label>
                   <input
                     type="number"
                     name="quantity"
-                    placeholder="Quantity"
+                    placeholder="Enter quantity"
                     value={formData.quantity}
                     onChange={handleChange}
                     readOnly={isPreview}
                     min="0"
                     step="0.01"
-                    className="border border-gray-300 rounded-[10px] px-3 py-2 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
                     required
                   />
                 </div>
-                <div className="flex-1 flex flex-col">
-                  <div className="flex items-center gap-2 mb-1">
-                    <Scale size={20} className="text-black" />
-                    <p className="text-black font-semibold">Unit</p>
-                  </div>
+                <div>
+                  <label className="block text-sm font-semibold text-gray-900 mb-1.5">
+                    Unit
+                  </label>
                   <select
                     name="unit"
                     value={formData.unit}
                     onChange={handleChange}
                     disabled={isPreview}
-                    className="border border-gray-300 rounded-[10px] px-3 py-2 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm bg-white"
                   >
                     <option value="Kilogram">Kilogram</option>
                     <option value="Meter">Meter</option>
@@ -511,51 +828,54 @@ const RollView = () => {
               </div>
 
               {/* Color */}
-              <div className="flex items-center gap-2">
-                <Palette size={20} className="text-black" />
-                <p className="text-black font-semibold ">Color</p>
+              <div>
+                <label className="block text-sm font-semibold text-gray-900 mb-1.5">
+                  Color
+                </label>
+                <input
+                  type="text"
+                  name="color"
+                  placeholder="Enter color"
+                  value={formData.color}
+                  onChange={handleChange}
+                  readOnly={isPreview}
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                />
               </div>
-              <input
-                type="text"
-                name="color"
-                placeholder="Color"
-                value={formData.color}
-                onChange={handleChange}
-                readOnly={isPreview}
-                className="w-full border border-gray-300 rounded-[10px] px-3 py-2 focus:outline-none focus:ring-1 focus:ring-blue-500"
-              />
 
               {/* Vendor */}
-              <div className="flex items-center gap-2">
-                <Truck size={20} className="text-black" />
-                <p className="text-black font-semibold ">Vendor</p>
+              <div>
+                <label className="block text-sm font-semibold text-gray-900 mb-1.5">
+                  Vendor
+                </label>
+                <select
+                  name="vendorId"
+                  value={formData.vendorId}
+                  onChange={handleChange}
+                  disabled={isPreview}
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm bg-white"
+                >
+                  <option value="">Select Vendor</option>
+                  {vendors.map((v) => (
+                    <option key={v.id} value={v.id}>
+                      {v.name}
+                    </option>
+                  ))}
+                </select>
               </div>
-              <select
-                name="vendorId"
-                value={formData.vendorId}
-                onChange={handleChange}
-                disabled={isPreview}
-                className="w-full border border-gray-300 rounded-[10px] px-3 py-2 focus:outline-none focus:ring-1 focus:ring-blue-500"
-              >
-                <option value="">Select Vendor</option>
-                {vendors.map((v) => (
-                  <option key={v.id} value={v.id}>
-                    {v.name}
-                  </option>
-                ))}
-              </select>
             </div>
 
-            <div className="flex justify-around gap-2 mt-6">
+            {/* Footer Buttons */}
+            <div className="flex justify-end gap-3 mt-4 pt-4 border-t border-gray-200 sticky bottom-0 bg-white">
               <button
-                className="px-4 py-2 rounded-[10px] border border-gray-300 text-gray-700 hover:bg-gray-100"
+                className="px-6 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 font-medium transition-colors"
                 onClick={closeDrawer}
                 disabled={saveLoading}
               >
                 Cancel
               </button>
               <button
-                className="px-4 py-2 rounded-[10px] bg-blue-500 text-white hover:bg-blue-700 disabled:opacity-50"
+                className="px-6 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 font-medium transition-colors shadow-sm"
                 onClick={handleSave}
                 disabled={saveLoading}
               >
@@ -564,11 +884,12 @@ const RollView = () => {
             </div>
           </>
         )}
-          </div>
+        </div>
         </div>
       )}
     </div>
   );
 };
+
 
 export default RollView;

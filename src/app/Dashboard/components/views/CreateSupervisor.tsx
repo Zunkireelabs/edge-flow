@@ -179,13 +179,13 @@ const CreateSupervisor = () => {
         </div>
 
         <button
-          className="flex items-center gap-2 bg-[#6B98FF] text-white px-4 py-2 rounded-[10px] hover:bg-blue-700"
+          className="flex items-center gap-2 bg-blue-600 text-white px-5 py-2.5 rounded-xl font-semibold shadow-md hover:bg-blue-700 hover:shadow-lg transition-all duration-200 hover:scale-105"
           onClick={() => {
             resetForm();
             setIsDrawerOpen(true);
           }}
         >
-          <Plus size={16} /> Add Supervisor
+          <Plus className="w-4 h-4" /> Add Supervisor
         </button>
       </div>
 
@@ -255,21 +255,22 @@ const CreateSupervisor = () => {
       {isDrawerOpen && (
         <div className="fixed inset-0 z-50 flex ">
           <div
-            className="absolute inset-0 bg-black/30"
+            className="absolute inset-0 bg-white/30 transition-opacity duration-300"
+            style={{ backdropFilter: 'blur(4px)' }}
             onClick={() => setIsDrawerOpen(false)}
           />
-          <div className="ml-auto w-full max-w-md bg-white shadow-lg p-6 relative rounded-[25px]">
+          <div className="ml-auto w-full max-w-xl bg-white shadow-lg p-4 relative h-screen overflow-y-auto">
             <button
               className="absolute top-4 right-4 text-gray-500 hover:text-gray-700"
               onClick={() => setIsDrawerOpen(false)}
             >
               <X size={20} />
             </button>
-            <h3 className="text-lg font-semibold mb-4">
+            <h3 className="text-lg font-semibold mb-3">
               {editingId ? "Edit Supervisor" : "Add New Supervisor"}
             </h3>
 
-            <div className="space-y-4">
+            <div className="space-y-3">
               <div>
                 <label className="flex items-center gap-2 font-semibold">
                   <Users size={16} /> Name *
@@ -312,16 +313,16 @@ const CreateSupervisor = () => {
               </div>
             </div>
 
-            <div className="flex justify-end mt-6 gap-2">
+            <div className="flex justify-end gap-3 mt-4 pt-4 border-t border-gray-200 sticky bottom-0 bg-white">
               <button
-                className="px-4 py-2 rounded-[10px] border border-gray-300 text-gray-700 hover:bg-gray-100"
+                className="px-6 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 font-medium transition-colors"
                 onClick={() => setIsDrawerOpen(false)}
                 disabled={saveLoading}
               >
                 Cancel
               </button>
               <button
-                className="px-4 py-2 rounded-[10px] bg-blue-500 text-white hover:bg-blue-700 disabled:opacity-50"
+                className="px-6 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 font-medium transition-colors shadow-sm"
                 onClick={handleSave}
                 disabled={saveLoading}
               >

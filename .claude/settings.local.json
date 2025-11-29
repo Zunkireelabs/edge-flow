@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(cat:*)",
+      "Bash(npx ts-node:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

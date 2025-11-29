@@ -16,12 +16,13 @@ import Inventory from "./views/Inventory";
 
 interface ContentRouterProps {
   activeView: string;
+  onViewChange?: (view: string) => void;
 }
 
-const ContentRouter: React.FC<ContentRouterProps> = ({ activeView }) => {
+const ContentRouter: React.FC<ContentRouterProps> = ({ activeView, onViewChange }) => {
   switch (activeView) {
     case "dashboard":
-      return <Dashboard />;
+      return <Dashboard onViewChange={onViewChange} />;
 
     case "rollview":
       return <RollView />;
@@ -40,6 +41,9 @@ const ContentRouter: React.FC<ContentRouterProps> = ({ activeView }) => {
 
     case "workers":
       return <Worker />;
+
+    case "departments":
+      return <DepartmentForm />;
 
     case "departmentform":
       return <DepartmentForm />;

@@ -34,20 +34,30 @@ const Worker = () => {
 
   const fetchWorkers = async () => {
     if (!supervisorDepartmentId) {
+      console.log('❌ Worker View: No supervisorDepartmentId found');
       return;
     }
 
     try {
       setLoading(true);
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/workers/department/${supervisorDepartmentId}`);
+      const url = `${process.env.NEXT_PUBLIC_API_URL}/workers/department/${supervisorDepartmentId}`;
+      console.log('🔍 Worker View: Fetching workers from:', url);
+      console.log('📋 Worker View: Department ID:', supervisorDepartmentId);
+
+      const res = await fetch(url);
       if (res.ok) {
         const data = await res.json();
+        console.log('✅ Worker View: Received workers:', data);
+        console.log('📊 Worker View: Number of workers:', data.length);
         setWorkers(data);
       } else {
+        console.error('❌ Worker View: API returned error status:', res.status);
+        const errorText = await res.text();
+        console.error('❌ Worker View: Error response:', errorText);
         alert('Failed to fetch workers for your department');
       }
     } catch (e) {
-      console.error(e);
+      console.error('❌ Worker View: Exception:', e);
       alert('Error fetching workers');
     } finally {
       setLoading(false);

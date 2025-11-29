@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Search } from "lucide-react";
+import { Search, Bell, User } from "lucide-react";
 import axios from "axios";
 
 interface HeaderProps {
@@ -175,25 +175,20 @@ const Header: React.FC<HeaderProps> = ({ activeView }) => {
     return colors[type] || 'bg-gray-100 text-gray-800';
   };
 
-  // Don't show header on dashboard view
-  if (activeView === "dashboard") {
-    return null;
-  }
-
   return (
-    <header className="bg-white shadow-sm px-5 py-4 relative">
-      <div className="flex items-center justify-center max-w-2xl mx-auto">
-        {/* Search Bar */}
-        <div className="relative w-full">
-          <div className="flex items-center bg-gray-100 rounded-lg px-4 py-2">
-            <Search className="w-5 h-5 text-gray-400 mr-2" />
+    <header className="bg-white shadow-sm px-6 py-4 relative border-b border-gray-200 h-[72px] flex items-center justify-between gap-4 w-full">
+        {/* Search Bar - Center (only show on non-dashboard views) */}
+        {activeView !== "dashboard" && (
+          <div className="relative flex-1 max-w-2xl">
+          <div className="flex items-center bg-gray-50 rounded-lg px-4 py-2.5 border border-gray-200 focus-within:border-blue-400 focus-within:ring-2 focus-within:ring-blue-100 transition-all">
+            <Search className="w-5 h-5 text-gray-400 mr-3" />
             <input
               type="text"
-              placeholder="Search rolls, batches, vendors, workers..."
+              placeholder="Search rolls, batches, vendors, workers... (⌘K)"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               onFocus={() => searchResults.length > 0 && setShowResults(true)}
-              className="bg-transparent w-full text-sm outline-none"
+              className="bg-transparent w-full text-sm outline-none text-gray-700 placeholder-gray-400"
             />
             {isSearching && (
               <div className="ml-2 text-xs text-gray-500">Searching...</div>
@@ -241,8 +236,35 @@ const Header: React.FC<HeaderProps> = ({ activeView }) => {
               </div>
             </div>
           )}
+          </div>
+        )}
+
+        {/* Spacer for Dashboard view to push user info to right */}
+        {activeView === "dashboard" && <div className="flex-1"></div>}
+
+        {/* Right Section - Notifications & User Profile */}
+        <div className="flex items-center gap-4">
+          {/* Notification Bell */}
+          <button className="relative p-2 hover:bg-gray-100 rounded-lg transition-colors group">
+            <Bell className="w-5 h-5 text-gray-600 group-hover:text-gray-900" />
+            {/* Notification Badge */}
+            <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full border-2 border-white"></span>
+          </button>
+
+          {/* Divider */}
+          <div className="w-px h-8 bg-gray-200"></div>
+
+          {/* User Profile */}
+          <div className="flex items-center gap-3 cursor-pointer hover:bg-gray-50 rounded-lg px-3 py-2 transition-colors">
+            <div className="w-9 h-9 bg-gradient-to-br from-blue-500 to-blue-700 rounded-full flex items-center justify-center shadow-md">
+              <User className="w-5 h-5 text-white" />
+            </div>
+            <div className="text-left">
+              <p className="text-sm font-semibold text-gray-900">Admin User</p>
+              <p className="text-xs text-gray-500">Production Manager</p>
+            </div>
+          </div>
         </div>
-      </div>
 
       {/* Click outside to close */}
       {showResults && (

@@ -3,45 +3,49 @@
 import React, { useState } from "react";
 import LeftSidebar from "./components/layout/LeftSidebar";
 import RightContent from "./components/layout/RightContent";
-import { Menu, PanelRight } from "lucide-react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 
 const AdminPage = () => {
   const [activeView, setActiveView] = useState("dashboard");
   const [sidebarOpen, setSidebarOpen] = useState(true);
 
   return (
-    <div className="flex h-screen bg-gray-100">
+    <div className="flex h-screen bg-gray-50">
       {/* Sidebar */}
       {sidebarOpen && (
         <div className="w-64 bg-white shadow-lg relative">
-          {/* Close button inside sidebar */}
+          {/* Collapse button inside sidebar - ChevronLeft when open */}
           <button
             onClick={() => setSidebarOpen(false)}
-            className="absolute top-2 right-2 p-2 rounded "
+            className="absolute top-5 right-4 p-1.5 rounded-lg hover:bg-gray-100 transition-colors z-50 group"
+            title="Collapse sidebar"
           >
-            <PanelRight
-              size={24}
-              className="absolute top-2 right-2 cursor-pointer "
-              onClick={() => setSidebarOpen(false)}
+            <ChevronLeft
+              size={20}
+              className="text-gray-600 group-hover:text-gray-900"
             />
           </button>
           <LeftSidebar activeView={activeView} onViewChange={setActiveView} />
         </div>
       )}
 
-      {/* Toggle button on left edge when closed */}
+      {/* Expand button on left edge when closed - ChevronRight */}
       {!sidebarOpen && (
         <button
           onClick={() => setSidebarOpen(true)}
-          className="p-2 m-2 bg-white shadow rounded hover:bg-gray-200"
+          className="fixed top-5 left-2 p-1.5 bg-white shadow-lg rounded-lg hover:bg-gray-100 transition-all z-50 group"
+          title="Expand sidebar"
         >
-          <Menu size={20} />
+          <ChevronRight
+            size={20}
+            className="text-gray-600 group-hover:text-gray-900"
+          />
         </button>
       )}
 
       {/* Right content always flex-1 */}
       <div className="flex-1 overflow-auto">
-        <RightContent activeView={activeView} />
+        <RightContent activeView={activeView} onViewChange={setActiveView} />
       </div>
     </div>
   );

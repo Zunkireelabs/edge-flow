@@ -11,6 +11,7 @@ import { NavigationItem } from "../../types/navigation";
 
 interface RightContentProps {
   activeView: string;
+  onViewChange?: (view: string) => void;
 }
 
 const navItems: NavigationItem[] = [
@@ -18,22 +19,22 @@ const navItems: NavigationItem[] = [
   { id: "rollview", label: "Roll View", icon: Eye },
   { id: "batchview", label: "Batch View", icon: Package },
   { id: "subbatchview", label: "Sub Batch View", icon: Layers },
-  { id: "departmentview", label: "Department View", icon: Building2 },
-  { id: "productionview", label: "Production View", icon: Monitor },
+  { id: "departmentview", label: "Department Kanban", icon: Building2 },
+  { id: "productionview", label: "Production Overview", icon: Monitor },
   { id: "inventory", label: "Inventory", icon: Archive },
   { id: "settings", label: "Settings", icon: Settings },
   { id: "clients", label: "Clients", icon: Users },
   { id: "vendors", label: "Vendors", icon: Truck },
   { id: "workers", label: "Workers", icon: Users2 },
   { id: "departments", label: "Departments", icon: Building },
-  { id: "createsupervisor", label: "Supervisor", icon: UserPlus }, 
+  { id: "createsupervisor", label: "Supervisor", icon: UserPlus },
 ];
 
-const RightContent: React.FC<RightContentProps> = ({ activeView }) => (
+const RightContent: React.FC<RightContentProps> = ({ activeView, onViewChange }) => (
   <div className="flex flex-col flex-1 h-full">
     <Header activeView={activeView} navigationItems={navItems} />
     <main className="flex-1 overflow-auto">
-      <ContentRouter activeView={activeView} />
+      <ContentRouter activeView={activeView} onViewChange={onViewChange} />
     </main>
   </div>
 );

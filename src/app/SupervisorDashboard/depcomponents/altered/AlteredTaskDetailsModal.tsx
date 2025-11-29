@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useState, useEffect, useCallback } from 'react';
-import { X, Calendar, Plus, ChevronDown, ChevronRight, CheckCircle, Clock, Inbox, Pencil, Trash2, MoreVertical } from 'lucide-react';
+import { X, Calendar, Plus, ChevronDown, ChevronRight, CheckCircle, Clock, Inbox, Pencil, Trash2, MoreVertical, Edit3, AlertTriangle } from 'lucide-react';
 import NepaliDatePicker from '@/app/Components/NepaliDatePicker';
 
 interface AlteredTaskData {
@@ -21,6 +21,14 @@ interface AlteredTaskData {
     attachments?: { name: string; count: number }[];
     quantity_remaining?: number;
     sub_batch?: any;  // Add sub_batch object for accessing estimated_pieces
+    // ✅ Add alteration_source from backend
+    alteration_source?: {
+        from_department_id: number;
+        from_department_name: string;
+        quantity: number;
+        reason: string;
+        created_at: string;
+    } | null;
 }
 
 interface AlteredTaskDetailsModalProps {
@@ -728,6 +736,32 @@ const AlteredTaskDetailsModal: React.FC<AlteredTaskDetailsModalProps> = ({
                     <div className="overflow-y-auto flex-1 grid grid-cols-[2fr_1fr]">
                         {/* Left Column - All content */}
                         <div className="px-8 py-6 border-r border-gray-200">
+                            {/* ⚠️ ALTERATION ALERT BANNER - Prominent context */}
+                            <div className="mb-6 bg-gradient-to-r from-yellow-50 to-orange-50 border-l-4 border-yellow-500 rounded-lg p-4 shadow-sm">
+                                <div className="flex items-start gap-3">
+                                    <div className="flex-shrink-0 w-10 h-10 bg-yellow-500 rounded-full flex items-center justify-center">
+                                        <AlertTriangle className="text-white" size={20} />
+                                    </div>
+                                    <div className="flex-1">
+                                        <h4 className="text-sm font-bold text-yellow-900 mb-1.5 flex items-center gap-2">
+                                            <Edit3 size={16} />
+                                            Alteration Card - Rework Required
+                                        </h4>
+                                        <p className="text-xs text-yellow-800 leading-relaxed">
+                                            This card contains <span className="font-semibold">{taskData.altered_quantity} pieces</span> that were sent back from{' '}
+                                            <span className="font-semibold">{taskData.altered_by}</span>{' '}
+                                            for rework due to: <span className="font-semibold italic">&quot;{taskData.alter_reason || 'quality issues'}&quot;</span>
+                                        </p>
+                                        <div className="mt-2 flex items-center gap-2">
+                                            <span className="inline-flex items-center gap-1 bg-yellow-100 text-yellow-800 text-xs font-medium px-2 py-1 rounded">
+                                                <Clock size={12} />
+                                                Received: {formatDate(taskData.alteration_date)}
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
                             {/* Task Information */}
                             <div className="mb-8">
                                 <h4 className="text-lg font-semibold mb-6 text-gray-900">Task Information</h4>
@@ -875,42 +909,50 @@ const AlteredTaskDetailsModal: React.FC<AlteredTaskDetailsModalProps> = ({
                                 </div>
                             </div>
 
-                            {/* Alteration Log Section */}
-                            <div className="mb-8 pb-8 border-b border-gray-200">
-                                <h4 className="text-lg font-semibold mb-6 text-gray-900">Alteration Log</h4>
-                                <div className="space-y-6">
-                                    {/* Row 1: Date & Altered By */}
-                                    <div className="grid grid-cols-2 gap-6">
-                                        <div>
-                                            <label className="text-sm font-medium text-gray-900 block mb-2">Date</label>
-                                            <div className="bg-gray-50 border border-gray-200 rounded-lg px-4 py-2.5 text-sm text-gray-600 flex items-center justify-between">
+                            {/* Alteration Details Section - Enhanced Design */}
+                            <div className="mb-8 border border-yellow-200 rounded-lg overflow-hidden shadow-sm">
+                                {/* Section Header */}
+                                <div className="bg-gradient-to-r from-yellow-100 to-yellow-50 px-4 py-3 border-b border-yellow-200">
+                                    <h4 className="font-bold text-base text-yellow-900 flex items-center gap-2">
+                                        <Edit3 size={18} className="text-yellow-700" />
+                                        Alteration Details
+                                    </h4>
+                                </div>
+
+                                {/* Alteration Data Grid */}
+                                <div className="bg-white p-4">
+                                    <div className="grid grid-cols-2 gap-4">
+                                        {/* Date Received */}
+                                        <div className="bg-gray-50 rounded-lg p-3 border border-gray-200">
+                                            <label className="text-xs font-semibold text-gray-600 uppercase tracking-wide block mb-1.5">Date Received</label>
+                                            <div className="flex items-center gap-2 text-sm text-gray-900 font-medium">
+                                                <Calendar size={16} className="text-gray-500" />
                                                 <span>{formatDate(taskData.alteration_date)}</span>
-                                                <Calendar size={16} className="text-gray-400" />
                                             </div>
                                         </div>
-                                        <div>
-                                            <label className="text-sm font-medium text-gray-900 block mb-2">Altered By</label>
-                                            <div className="bg-gray-50 border border-gray-200 rounded-lg px-4 py-2.5 text-sm text-gray-600">
+
+                                        {/* Source Department */}
+                                        <div className="bg-yellow-50 rounded-lg p-3 border border-yellow-200">
+                                            <label className="text-xs font-semibold text-yellow-800 uppercase tracking-wide block mb-1.5">Source Department</label>
+                                            <div className="text-sm text-yellow-900 font-bold">
                                                 {taskData.altered_by}
                                             </div>
                                         </div>
-                                    </div>
 
-                                    {/* Row 2: Quantity (half width) */}
-                                    <div className="grid grid-cols-2 gap-6">
-                                        <div>
-                                            <label className="text-sm font-medium text-gray-900 block mb-2">Quantity</label>
-                                            <div className="bg-gray-50 border border-gray-200 rounded-lg px-4 py-2.5 text-sm text-gray-600">
-                                                {taskData.altered_quantity.toLocaleString()}
+                                        {/* Quantity Altered */}
+                                        <div className="bg-blue-50 rounded-lg p-3 border border-blue-200">
+                                            <label className="text-xs font-semibold text-blue-800 uppercase tracking-wide block mb-1.5">Quantity Altered</label>
+                                            <div className="text-lg text-blue-900 font-bold">
+                                                {taskData.altered_quantity.toLocaleString()} pcs
                                             </div>
                                         </div>
-                                    </div>
 
-                                    {/* Row 3: Alteration Note (full width) */}
-                                    <div>
-                                        <label className="text-sm font-medium text-gray-900 block mb-2">Alteration Note</label>
-                                        <div className="bg-gray-50 border border-gray-200 rounded-lg px-4 py-2.5 text-sm text-gray-600">
-                                            {taskData.alter_reason || '-'}
+                                        {/* Alteration Reason */}
+                                        <div className="bg-orange-50 rounded-lg p-3 border border-orange-200">
+                                            <label className="text-xs font-semibold text-orange-800 uppercase tracking-wide block mb-1.5">Reason for Alteration</label>
+                                            <div className="text-sm text-orange-900 font-medium italic">
+                                                &quot;{taskData.alter_reason || '-'}&quot;
+                                            </div>
                                         </div>
                                     </div>
                                 </div>

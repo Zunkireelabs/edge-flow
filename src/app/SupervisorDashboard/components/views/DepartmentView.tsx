@@ -109,24 +109,30 @@ const STAGES = [
     key: 'newArrival',
     title: 'New Arrivals',
     icon: AlertCircle,
-    color: 'bg-[#DBEAFE]',
-    headerColor: 'text-black font-medium ',
+    color: 'bg-gray-50',
+    headerColor: 'text-gray-900 font-semibold',
+    badgeColor: 'bg-blue-100 text-blue-700',
+    iconColor: 'text-blue-600',
     count: 0
   },
   {
     key: 'inProgress',
     title: 'In Progress',
     icon: Clock,
-    color: 'bg-[#FDF3CE]',
-    headerColor: 'text-black font-medium',
+    color: 'bg-gray-50',
+    headerColor: 'text-gray-900 font-semibold',
+    badgeColor: 'bg-yellow-100 text-yellow-700',
+    iconColor: 'text-yellow-600',
     count: 0
   },
   {
     key: 'completed',
     title: 'Completed',
     icon: CheckCircle,
-    color: 'bg-[#DCFCE7]',
-    headerColor: 'text-black font-medium',
+    color: 'bg-gray-50',
+    headerColor: 'text-gray-900 font-semibold',
+    badgeColor: 'bg-green-100 text-green-700',
+    iconColor: 'text-green-600',
     count: 0
   }
 ];
@@ -364,18 +370,25 @@ const SupervisorKanban = () => {
       estimated_start_date: selectedItem.sub_batch?.start_date,
       due_date: selectedItem.sub_batch?.due_date,
       status: selectedItem.stage || 'NEW_ARRIVAL',
-      sent_from_department: selectedItem.sent_from_department || selectedItem.department?.name || 'Unknown',
-      alteration_date: new Date().toISOString(),
-      altered_by: selectedItem.department?.name || 'Department Worker',
-      altered_quantity: selectedItem.quantity_remaining ?? 0,
-      alter_reason: selectedItem.alter_reason || selectedItem.remarks || '',
+      // ✅ Use alteration_source from backend for accurate department names
+      sent_from_department: selectedItem.alteration_source?.from_department_name ||
+                           selectedItem.sent_from_department_name ||
+                           selectedItem.sent_from_department ||
+                           'Unknown',
+      alteration_date: selectedItem.alteration_source?.created_at || selectedItem.createdAt || new Date().toISOString(),
+      // ✅ Use alteration_source for source department (where alteration happened)
+      altered_by: selectedItem.alteration_source?.from_department_name || 'Unknown Department',
+      altered_quantity: selectedItem.alteration_source?.quantity || selectedItem.quantity_remaining || 0,
+      alter_reason: selectedItem.alteration_source?.reason || selectedItem.alter_reason || selectedItem.remarks || '',
       attachments: selectedItem.sub_batch?.attachments?.map((att: Attachment) => ({
         name: att.attachment_name,
         count: att.quantity
       })) || [],
       quantity_remaining: selectedItem.quantity_remaining,
       sub_batch: selectedItem.sub_batch,
-      original_quantity: selectedItem.sub_batch?.estimated_pieces
+      original_quantity: selectedItem.sub_batch?.estimated_pieces,
+      // ✅ Pass through alteration_source for enhanced UI
+      alteration_source: selectedItem.alteration_source || null,
     };
   }, [selectedItem]);
 
@@ -391,18 +404,25 @@ const SupervisorKanban = () => {
       estimated_start_date: selectedItem.sub_batch?.start_date || '',
       due_date: selectedItem.sub_batch?.due_date || '',
       status: selectedItem.stage || 'NEW_ARRIVAL',
-      sent_from_department: selectedItem.sent_from_department || selectedItem.department?.name || 'Unknown',
-      rejection_date: new Date().toISOString(),
-      rejected_by: selectedItem.department?.name || 'Department Worker',
-      rejected_quantity: selectedItem.quantity_remaining ?? 0,
-      reject_reason: selectedItem.reject_reason || '',
+      // ✅ Use rejection_source from backend for accurate department names
+      sent_from_department: selectedItem.rejection_source?.from_department_name ||
+                           selectedItem.sent_from_department_name ||
+                           selectedItem.sent_from_department ||
+                           'Unknown',
+      rejection_date: selectedItem.rejection_source?.created_at || selectedItem.createdAt || new Date().toISOString(),
+      // ✅ Use rejection_source for source department (where rejection happened)
+      rejected_by: selectedItem.rejection_source?.from_department_name || 'Unknown Department',
+      rejected_quantity: selectedItem.rejection_source?.quantity || selectedItem.quantity_remaining || 0,
+      reject_reason: selectedItem.rejection_source?.reason || selectedItem.reject_reason || '',
       attachments: selectedItem.sub_batch?.attachments?.map((att: Attachment) => ({
         name: att.attachment_name,
         count: att.quantity
       })) || [],
       quantity_remaining: selectedItem.quantity_remaining,
       sub_batch: selectedItem.sub_batch,
-      original_quantity: selectedItem.sub_batch?.estimated_pieces
+      original_quantity: selectedItem.sub_batch?.estimated_pieces,
+      // ✅ Pass through rejection_source for enhanced UI
+      rejection_source: selectedItem.rejection_source || null,
     };
   }, [selectedItem]);
 
@@ -425,7 +445,7 @@ const SupervisorKanban = () => {
   }
 
   return (
-    <div className="p-6 bg-white min-h-full relative">
+    <div className="p-8 bg-gray-50 min-h-full relative">
       {/* Overlay loader for refreshing data */}
       {loading && (
         <div className="absolute inset-0 bg-white/80 backdrop-blur-sm z-50 flex items-center justify-center">
@@ -433,10 +453,10 @@ const SupervisorKanban = () => {
         </div>
       )}
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex items-center justify-between mb-8">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">Department View</h2>
-          <p className="text-sm text-gray-500">Manage task across departments</p>
+          <h2 className="text-3xl font-bold text-gray-900">Department View</h2>
+          <p className="text-gray-600 mt-2">Manage tasks across departments</p>
         </div>
         <div className="flex items-center gap-3 relative sort-menu-container">
           <button
@@ -482,26 +502,29 @@ const SupervisorKanban = () => {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {updatedStages.map((stage) => {
           const items = sortedKanbanData[stage.key as keyof KanbanData] || [];
+          const Icon = stage.icon;
 
           return (
-            <div key={stage.key} className={`${stage.color} rounded-lg p-4`}>
+            <div key={stage.key} className="bg-white rounded-xl border border-gray-200 shadow-sm flex flex-col h-full">
               {/* Stage Header */}
-              <div className={`${stage.headerColor} p-2 mb-4 flex items-center justify-between`}>
-                <div className="flex flex-col gap-1">
-                  <h3 className="font-semibold text-medium">{stage.title}</h3>
-                  <span className="text-sm ">
-                  {stage.count} {stage.count === 1 ? 'Item' : 'Items'}
-                </span>
+              <div className="p-4 border-b border-gray-200">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    <Icon className={`w-5 h-5 ${stage.iconColor}`} />
+                    <h3 className={`${stage.headerColor} text-base`}>{stage.title}</h3>
+                  </div>
+                  <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${stage.badgeColor}`}>
+                    {stage.count}
+                  </span>
                 </div>
-                
               </div>
 
               {/* Items */}
-              <div className="space-y-3">
+              <div className="p-4 space-y-3 flex-1 overflow-y-auto">
                 {items.length === 0 ? (
-                  <div className="text-center py-8 text-gray-500">
-                    <Package size={32} className="mx-auto mb-2 opacity-50" />
-                    <p className="text-sm">No items in this stage</p>
+                  <div className="text-center py-12 text-gray-400">
+                    <Package size={40} className="mx-auto mb-3 opacity-30" />
+                    <p className="text-sm font-medium">No items in this stage</p>
                   </div>
                 ) : (
                   items.map((item) => {

@@ -30,8 +30,8 @@ const navItems: NavigationItem[] = [
   { id: "rollview", label: "Roll View", icon: Eye },
   { id: "batchview", label: "Batch View", icon: Package },
   { id: "subbatchview", label: "Sub Batch View", icon: Layers },
-  { id: "departmentview", label: "Department View", icon: Building2 },
-  { id: "productionview", label: "Production View", icon: Monitor },
+  { id: "departmentview", label: "Department Kanban", icon: Building2 },
+  { id: "productionview", label: "Production Overview", icon: Monitor },
   { id: "inventory", label: "Inventory", icon: Archive },
   { id: "wagecalculation", label: "Wage Calculation", icon: Calculator },
   {

@@ -1,5 +1,12 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-
+/**
+ * SIMPLIFIED Worker Assignment Modal
+ *
+ * Purpose: Assign work to workers (normal production work only)
+ * Fields: Worker, Date, Quantity Worked, Unit Price, Billable, Particulars (optional)
+ *
+ * Alteration and Rejection workflows are handled by separate buttons/modals
+ */
 
 import React, { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
@@ -15,527 +22,166 @@ interface Worker {
   wage_rate: number;
 }
 
-interface Department {
-  id: number;
-  name: string;
-}
-
 interface SubBatch {
   id: number;
-  roll_id: number;
-  batch_id: number | null;
   name: string;
-  estimated_pieces: number;
-  expected_items: number;
-  start_date: string;
-  due_date: string;
   department_id: number | null;
-  department_sub_batch_id?: number;  // The ID from department_sub_batches table - required for reject/alter operations
-  remaining_work?: number;  // Remaining work from production summary for this specific card
-  parent_remaining_work?: number;  // Total remaining work for the parent/main sub-batch (across all cards)
-  quantity_remaining?: number | null;  // Remaining quantity for this card
-  quantity_assigned?: number | null;  // Assigned quantity for "Assigned" cards
-  remarks?: string | null;  // Card type: "Main", "Assigned", "Rejected", "Altered"
-  assigned_worker_id?: number | null;  // For "Assigned" cards - the worker assigned to this card
-  assigned_worker?: any | null;  // Worker details for "Assigned" cards
-  sent_from_department?: string | null;  // Name of department that sent this card
+  remaining_work?: number;
 }
 
-export interface WorkerRecord {
-  id: number;
-  worker: string;
-  realCategory: string;
-  particulars?: string;
-  date: string;
-  status: string;
-  qtyReceived?: number;
-  qtyWorked?: number;
-  unitPrice?: number;
-  rejectReturn?: number;
-  returnTo?: string;
-  rejectionReason?: string;
-  alteration?: number;
-  alterationNote?: string;
-}
-
-interface AddRecordModalProps {
+interface AddWorkerRecordModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (record: WorkerRecord) => void;
+  onSave: (record: any) => void;
   subBatch: SubBatch | null;
-  editRecord?: WorkerRecord | null;
   mode?: 'add' | 'edit' | 'preview';
+  editRecord?: any;
 }
 
-const AddRecordModal: React.FC<AddRecordModalProps> = ({
+const AddWorkerRecordModal: React.FC<AddWorkerRecordModalProps> = ({
   isOpen,
   onClose,
   onSave,
   subBatch,
-  editRecord = null,
   mode = 'add',
 }) => {
+
+  // Calculate remaining work from subBatch (passed from TaskDetailsModal)
+  const remainingWork = subBatch?.remaining_work || 0;
   const [formData, setFormData] = useState({
     workerId: '',
-    workerName: '',
     date: '',
-    sizeCategory: '',
-    particulars: '',
-    qtyReceived: '',
-    qtyWorked: '',
+    quantityWorked: '',
     unitPrice: '',
-    isBillable: true, // Default checked
-    rejectReturn: '',
-    returnTo: '',
-    rejectionReason: '',
-    alteration: '',
-    alterationReturnTo: '',
-    alterationNote: '',
-    selectedAttachments: [] as number[], // Store selected attachment IDs
+    isBillable: true,
+    particulars: '',
   });
 
   const [workers, setWorkers] = useState<Worker[]>([]);
-  const [departments, setDepartments] = useState<Department[]>([]);
   const [loading, setLoading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const isPreviewMode = mode === 'preview';
-
-  // Load workers and departments when modal opens
+  // Reset form when modal opens
   useEffect(() => {
-    if (!isOpen) return;
-    fetchWorkers();
-    fetchDepartments();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isOpen]);
-
-  // Initialize form when opening modal in edit/preview mode
-  useEffect(() => {
-    if (!isOpen) return;
-
-    if (editRecord && (mode === 'edit' || mode === 'preview')) {
-      const formatDate = (d: string) => {
-        try {
-          return new Date(d).toISOString().split('T')[0];
-        } catch {
-          return d;
-        }
-      };
-
-      // Helper function to convert numeric values - only show if > 0
-      const formatNumericValue = (val: number | undefined | null) => {
-        if (val === null || val === undefined || val === 0) return '';
-        return val.toString();
-      };
-
-      // Helper function to clean text values - don't show "-"
-      const formatTextValue = (val: string | undefined | null) => {
-        if (!val || val === '-') return '';
-        return val;
-      };
-
+    if (isOpen) {
       setFormData({
-        workerId: '', // will be set after workers load
-        workerName: editRecord.worker,
-        date: formatDate(editRecord.date),
-        sizeCategory: editRecord.realCategory || '',
-        particulars: formatTextValue(editRecord.particulars),
-        qtyReceived: formatNumericValue(editRecord.qtyReceived),
-        qtyWorked: formatNumericValue(editRecord.qtyWorked),
-        unitPrice: formatNumericValue(editRecord.unitPrice),
+        workerId: '',
+        date: '',
+        quantityWorked: '',
+        unitPrice: '',
         isBillable: true,
-        rejectReturn: formatNumericValue(editRecord.rejectReturn),
-        returnTo: formatTextValue(editRecord.returnTo),
-        rejectionReason: formatTextValue(editRecord.rejectionReason),
-        alteration: formatNumericValue(editRecord.alteration),
-        alterationReturnTo: '',
-        alterationNote: formatTextValue(editRecord.alterationNote),
-        selectedAttachments: [],
+        particulars: '',
       });
-    } else if (mode === 'add') {
-      // For "Assigned" cards, pre-select the assigned worker ONLY if from current department
-      const departmentId = localStorage.getItem("departmentId");
-      const currentDeptId = departmentId ? parseInt(departmentId) : null;
-      const assignedWorkerDeptId = subBatch?.assigned_worker?.department_id;
-
-      const shouldPreSelectWorker =
-        subBatch?.remarks === 'Assigned' &&
-        subBatch?.assigned_worker &&
-        assignedWorkerDeptId === currentDeptId;
-
-      if (shouldPreSelectWorker) {
-        setFormData({
-          workerId: subBatch.assigned_worker.id.toString(),
-          workerName: subBatch.assigned_worker.name,
-          date: '',
-          sizeCategory: '',
-          particulars: '',
-          qtyReceived: '',
-          qtyWorked: '',
-          unitPrice: '',
-          isBillable: true,
-          rejectReturn: '',
-          returnTo: '',
-          rejectionReason: '',
-          alteration: '',
-          alterationReturnTo: '',
-          alterationNote: '',
-          selectedAttachments: [],
-        });
-      } else {
-        setFormData({
-          workerId: '',
-          workerName: '',
-          date: '',
-          sizeCategory: '',
-          particulars: '',
-          qtyReceived: '',
-          qtyWorked: '',
-          unitPrice: '',
-          isBillable: true,
-          rejectReturn: '',
-          returnTo: '',
-          rejectionReason: '',
-          alteration: '',
-          alterationReturnTo: '',
-          alterationNote: '',
-          selectedAttachments: [],
-        });
-      }
+      fetchWorkers();
     }
-  }, [isOpen, editRecord, mode, subBatch]);
-
-  // Set workerId when workers are loaded in edit/preview mode
-  useEffect(() => {
-    if (workers.length > 0 && editRecord && (mode === 'edit' || mode === 'preview')) {
-      const w = workers.find(worker => worker.name === editRecord.worker);
-      if (w) setFormData(prev => ({ ...prev, workerId: w.id.toString() }));
-    }
-  }, [workers, editRecord, mode]);
+  }, [isOpen]);
 
   const fetchWorkers = async () => {
     try {
       setLoading(true);
-
-      // Get supervisor's department ID from localStorage
       const departmentId = localStorage.getItem("departmentId");
+      if (!departmentId) return;
 
-      if (!departmentId) {
-        console.error('No department ID found in localStorage');
-        setWorkers([]);
-        setLoading(false);
-        return;
-      }
-
-      // For "Assigned" cards, check if the assigned worker belongs to the CURRENT department
-      if (subBatch?.remarks === 'Assigned' && subBatch?.assigned_worker) {
-        const assignedWorkerDeptId = subBatch.assigned_worker.department_id;
-        const currentDeptId = parseInt(departmentId);
-
-        // If assigned worker is from THIS department, lock to that worker only
-        if (assignedWorkerDeptId === currentDeptId) {
-          console.log('Assigned card - worker from current department. Locking to assigned worker:', subBatch.assigned_worker);
-          setWorkers([subBatch.assigned_worker]);
-          setLoading(false);
-          return;
-        } else {
-          // If assigned worker is from ANOTHER department, allow selecting any worker from current department
-          console.log('Assigned card - worker from different department. Allowing worker selection for current department.');
-        }
-      }
-
-      console.log('Fetching workers for department:', departmentId);
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/workers/department/${departmentId}`);
       if (res.ok) {
         const data = await res.json();
-        console.log('Workers data received:', data);
-        console.log('Number of workers:', data?.length);
         setWorkers(data);
-      } else {
-        console.error('Failed to fetch workers. Status:', res.status);
-        alert('Failed to fetch workers for your department');
       }
     } catch (e) {
       console.error('Error fetching workers:', e);
-      alert('Error fetching workers');
     } finally {
       setLoading(false);
     }
   };
 
-  const fetchDepartments = async () => {
-    try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_GET_DEPARTMENTS}`);
-      if (res.ok) {
-        const data = await res.json();
-        setDepartments(data);
-      } else {
-        console.error('Failed to fetch departments');
-      }
-    } catch (e) {
-      console.error('Error fetching departments:', e);
-    }
+  const handleChange = (field: string, value: any) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
   };
 
-  const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
-  ) => {
-    const { name, value, type } = e.target;
-    const checked = (e.target as HTMLInputElement).checked;
-
-    if (name === 'workerId') {
-      const w = workers.find(w => w.id === parseInt(value));
-      setFormData(prev => ({
-        ...prev,
-        workerId: value,
-        workerName: w ? w.name : '',
-      }));
-    } else if (type === 'checkbox') {
-      setFormData(prev => ({ ...prev, [name]: checked }));
-    } else {
-      setFormData(prev => ({ ...prev, [name]: value }));
-    }
-  };
-
-  const handleSave = async () => {
-    // Check if workers are available
-    if (workers.length === 0) {
-      alert('No workers available in your department. Please assign workers from Worker Management first.');
+  const handleSubmit = async () => {
+    // Validation
+    if (!formData.workerId) {
+      alert('Please select a worker');
       return;
     }
 
-    // Only require worker and date
-    if (!formData.workerId || !formData.date) {
-      alert('Worker and date are required');
+    if (!formData.date) {
+      alert('Please select a date');
       return;
     }
 
-    // Validate: quantity_received cannot exceed parent remaining work
-    const qtyReceived = formData.qtyReceived ? parseInt(formData.qtyReceived) : 0;
-    const qtyWorked = formData.qtyWorked ? parseInt(formData.qtyWorked) : 0;
-    const parentRemainingWork = subBatch?.parent_remaining_work ?? subBatch?.remaining_work ?? 0;
-
-    // When editing, we need to account for the current record's quantity
-    let availableQuantity = parentRemainingWork;
-    if (mode === 'edit' && editRecord?.qtyReceived) {
-      // Add back the quantity from the record being edited
-      availableQuantity = parentRemainingWork + (editRecord.qtyReceived || 0);
-    }
-
-    if (qtyReceived > 0 && availableQuantity > 0 && qtyReceived > availableQuantity) {
-      alert(`Quantity received cannot exceed the parent sub-batch's remaining work!\n\nParent Remaining: ${parentRemainingWork.toLocaleString()} pieces${mode === 'edit' ? `\nCurrent Record: ${editRecord?.qtyReceived || 0} pieces\nAvailable: ${availableQuantity.toLocaleString()} pieces` : ''}\n\nYou entered: ${qtyReceived.toLocaleString()} pieces`);
+    if (!formData.quantityWorked || formData.quantityWorked.trim() === '') {
+      alert('Please enter quantity worked');
       return;
     }
 
-    // Validate: quantity_worked cannot be more than quantity_received
-    if (qtyReceived > 0 && qtyWorked > qtyReceived) {
-      alert('Quantity worked cannot be more than quantity received!');
+    const quantity = parseInt(formData.quantityWorked);
+    if (isNaN(quantity) || quantity <= 0) {
+      alert('Please enter a valid quantity greater than 0');
       return;
     }
 
-    // Validate: quantity_received should be equal or less than the sum of quantity_worked + reject & return + alteration
-    const rejectReturnQty = formData.rejectReturn ? parseInt(formData.rejectReturn) : 0;
-    const alterationQty = formData.alteration ? parseInt(formData.alteration) : 0;
-    const totalAccountedFor = qtyWorked + rejectReturnQty + alterationQty;
-
-    if (qtyReceived > 0 && totalAccountedFor > qtyReceived) {
+    // Validate against remaining work
+    if (quantity > remainingWork) {
       alert(
-        `Total quantities cannot exceed quantity received!\n\n` +
-        `Quantity Received: ${qtyReceived.toLocaleString()}\n` +
-        `Quantity Worked: ${qtyWorked.toLocaleString()}\n` +
-        `Reject & Return: ${rejectReturnQty.toLocaleString()}\n` +
-        `Alteration: ${alterationQty.toLocaleString()}\n\n` +
-        `Total (Worked + Rejected + Altered): ${totalAccountedFor.toLocaleString()}\n\n` +
-        `Please ensure the sum of Worked, Rejected, and Altered does not exceed Quantity Received.`
+        `Cannot assign ${quantity.toLocaleString()} pieces!\n\n` +
+        `Only ${remainingWork.toLocaleString()} pieces remaining to assign.\n\n` +
+        `Please enter a quantity between 1 and ${remainingWork.toLocaleString()}.`
       );
       return;
     }
 
-    // Skip rejection/alteration validation for cards that are already alteration/rejection cards
-    const isAlterationOrRejectionCard = (subBatch as any)?.alteration_source || (subBatch as any)?.rejection_source;
-
-    if (!isAlterationOrRejectionCard) {
-      // Validate rejected data - all fields must be filled if any is filled
-      const hasRejectData = formData.rejectReturn || formData.returnTo || formData.rejectionReason;
-      if (hasRejectData) {
-        if (!formData.rejectReturn || !formData.returnTo || !formData.rejectionReason) {
-          alert('Please fill all rejection fields (Reject & Return, Return To, and Reason) or leave them all empty');
-          return;
-        }
-        const rejectQty = parseInt(formData.rejectReturn);
-        if (isNaN(rejectQty) || rejectQty <= 0) {
-          alert('Reject & Return quantity must be a positive number');
-          return;
-        }
-      }
-
-      // Validate alteration data - all fields must be filled if any is filled
-      const hasAlterationData = formData.alteration || formData.alterationReturnTo || formData.alterationNote;
-      if (hasAlterationData) {
-        if (!formData.alteration || !formData.alterationReturnTo || !formData.alterationNote) {
-          alert('Please fill all alteration fields (Alteration, Alteration Return To, and Alteration Note) or leave them all empty');
-          return;
-        }
-        const alterQty = parseInt(formData.alteration);
-        if (isNaN(alterQty) || alterQty <= 0) {
-          alert('Alteration quantity must be a positive number');
-          return;
-        }
+    // Unit price is optional - can be filled by admin later
+    let unitPrice = null;
+    if (formData.unitPrice && formData.unitPrice.trim() !== '') {
+      unitPrice = parseFloat(formData.unitPrice);
+      if (isNaN(unitPrice) || unitPrice <= 0) {
+        alert('Please enter a valid unit price greater than 0 (or leave blank)');
+        return;
       }
     }
 
     setIsSubmitting(true);
 
     try {
-      // Build payload
-      const payload: any = {
+      const payload = {
+        sub_batch_id: subBatch?.id,
         worker_id: parseInt(formData.workerId),
-        worker_name: formData.workerName,
         work_date: formData.date,
-        activity_type: 'NORMAL', // Default activity type
-        is_billable: formData.isBillable, // Add billable status
-        department_id: subBatch?.department_id, // Add department ID
+        quantity_worked: quantity,
+        is_billable: formData.isBillable,
+        activity_type: 'NORMAL',
+        department_id: subBatch?.department_id,
       };
 
-      // Add optional fields only if they have values
-      if (formData.sizeCategory && formData.sizeCategory.trim()) {
-        payload.size_category = formData.sizeCategory.trim();
-      }
+      // Add optional fields if provided
       if (formData.particulars && formData.particulars.trim()) {
-        payload.particulars = formData.particulars.trim();
+        (payload as any).particulars = formData.particulars.trim();
       }
-      if (formData.qtyReceived && formData.qtyReceived.trim()) {
-        payload.quantity_received = parseInt(formData.qtyReceived);
-      }
-      if (formData.qtyWorked && formData.qtyWorked.trim()) {
-        payload.quantity_worked = parseInt(formData.qtyWorked);
-      }
-      if (formData.unitPrice && formData.unitPrice.trim()) {
-        payload.unit_price = parseFloat(formData.unitPrice);
+      if (unitPrice !== null) {
+        (payload as any).unit_price = unitPrice;
       }
 
-      // Add selected attachments if any
-      if (formData.selectedAttachments && formData.selectedAttachments.length > 0) {
-        payload.attachment_ids = formData.selectedAttachments;
-        console.log('Adding attachment IDs:', payload.attachment_ids);
-      }
+      console.log('📤 Creating worker assignment:', payload);
 
-      // Add rejected array if ALL rejection data exists and is valid
-      if (formData.rejectReturn && formData.rejectReturn.trim() &&
-          formData.returnTo && formData.returnTo.trim() &&
-          formData.rejectionReason && formData.rejectionReason.trim()) {
-        const rejectQty = parseInt(formData.rejectReturn);
-        const returnToDeptId = parseInt(formData.returnTo);
-
-        if (!isNaN(rejectQty) && rejectQty > 0 && !isNaN(returnToDeptId)) {
-          // Validate that department_sub_batch_id exists
-          if (!subBatch?.department_sub_batch_id) {
-            alert('Error: Missing department sub-batch ID. Cannot process rejection.');
-            setIsSubmitting(false);
-            return;
-          }
-
-          payload.rejected = [{
-            quantity: rejectQty,
-            sent_to_department_id: returnToDeptId,
-            source_department_sub_batch_id: subBatch.department_sub_batch_id,  // Updated to use specific entry ID
-            reason: formData.rejectionReason.trim(),
-          }];
-          console.log('Adding rejected data:', payload.rejected);
-        }
-      }
-
-      // Add altered array if ALL alteration data exists and is valid
-      if (formData.alteration && formData.alteration.trim() &&
-          formData.alterationReturnTo && formData.alterationReturnTo.trim() &&
-          formData.alterationNote && formData.alterationNote.trim()) {
-        const alterQty = parseInt(formData.alteration);
-        const alterReturnToDeptId = parseInt(formData.alterationReturnTo);
-
-        if (!isNaN(alterQty) && alterQty > 0 && !isNaN(alterReturnToDeptId)) {
-          // Validate that department_sub_batch_id exists
-          if (!subBatch?.department_sub_batch_id) {
-            alert('Error: Missing department sub-batch ID. Cannot process alteration.');
-            setIsSubmitting(false);
-            return;
-          }
-
-          payload.altered = [{
-            quantity: alterQty,
-            sent_to_department_id: alterReturnToDeptId,
-            source_department_sub_batch_id: subBatch.department_sub_batch_id,  // Updated to use specific entry ID
-            reason: formData.alterationNote.trim(),
-          }];
-          console.log('Adding altered data:', payload.altered);
-        }
-      }
-
-      let response;
-      if (mode === 'edit' && editRecord) {
-        console.log('Updating worker log ID:', editRecord.id);
-        console.log('Payload:', JSON.stringify(payload, null, 2));
-        response = await fetch(`${process.env.NEXT_PUBLIC_CREATE_WORKER_LOGS}/${editRecord.id}`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload),
-        });
-      } else {
-        if (!subBatch) {
-          alert('Sub-batch is missing');
-          return;
-        }
-        payload.sub_batch_id = subBatch.id;
-        console.log('Creating worker log with payload:');
-        console.log(JSON.stringify(payload, null, 2));
-        response = await fetch(`${process.env.NEXT_PUBLIC_CREATE_WORKER_LOGS}`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload),
-        });
-      }
-
-      console.log('Response status:', response.status);
+      const response = await fetch(`${process.env.NEXT_PUBLIC_CREATE_WORKER_LOGS}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
 
       if (response.ok) {
-        const result = await response.json();
-        console.log('Success result:', result);
-
-        // Find department name for display
-        const returnToDept = departments.find(d => d.id === parseInt(formData.returnTo));
-
-        const record: WorkerRecord = {
-          id: result.id,
-          worker: formData.workerName,
-          realCategory: formData.sizeCategory || 'General',
-          date: new Date(formData.date).toLocaleDateString('en-US'),
-          status: mode === 'add' ? 'Pending' : editRecord?.status || 'Pending',
-          qtyReceived: Number(formData.qtyReceived) || 0,
-          qtyWorked: Number(formData.qtyWorked) || 0,
-          unitPrice: Number(formData.unitPrice) || 0,
-          rejectReturn: Number(formData.rejectReturn) || 0,
-          returnTo: returnToDept?.name || formData.returnTo,
-          rejectionReason: formData.rejectionReason,
-          alteration: Number(formData.alteration) || 0,
-          alterationNote: formData.alterationNote,
-          particulars: formData.particulars,
-        };
-        onSave(record);
-        alert(`Record ${mode === 'edit' ? 'updated' : 'saved'} successfully!`);
+        alert('Worker assigned successfully!');
+        // Call onSave to trigger parent refresh
+        onSave({} as any); // Parent will refresh data from API
+        onClose();
       } else {
-        const errorText = await response.text();
-        console.error('Error response:', errorText);
-        let errorMessage = 'Unknown error';
-        try {
-          const err = JSON.parse(errorText);
-          errorMessage = err.message || err.error || errorText;
-        } catch {
-          errorMessage = errorText;
-        }
-        alert(`Failed to save: ${errorMessage}`);
+        const errorData = await response.json().catch(() => ({}));
+        alert(`Failed to assign worker: ${errorData.message || 'Unknown error'}`);
       }
     } catch (e) {
-      console.error('Exception while saving:', e);
-      alert(`Error saving record: ${e instanceof Error ? e.message : 'Unknown error'}`);
+      console.error('Error:', e);
+      alert('Error assigning worker. Please try again.');
     } finally {
       setIsSubmitting(false);
     }
@@ -543,403 +189,191 @@ const AddRecordModal: React.FC<AddRecordModalProps> = ({
 
   if (!isOpen) return null;
 
+  const selectedWorker = workers.find(w => w.id === parseInt(formData.workerId));
+  const calculatedWage = formData.quantityWorked && formData.unitPrice
+    ? (parseInt(formData.quantityWorked) * parseFloat(formData.unitPrice)).toFixed(2)
+    : '0.00';
+
   return (
-    <div className="fixed inset-0 z-60 flex items-center justify-end">
-      <div className="absolute inset-0 bg-black/50" onClick={onClose} />
-      <div className="bg-white h-full w-full max-w-md shadow-xl relative overflow-y-auto">
+    <div className="fixed inset-0 z-50 flex items-center justify-center">
+      {/* Blur Backdrop */}
+      <div
+        className="absolute inset-0 bg-white/30 transition-opacity duration-300"
+        style={{ backdropFilter: 'blur(4px)' }}
+        onClick={onClose}
+      />
+
+      {/* Modal */}
+      <div className="bg-white rounded-lg w-full max-w-md mx-4 relative shadow-xl max-h-[90vh] overflow-y-auto">
         {/* Header */}
-        <div className="flex items-center justify-between p-6 bg-gray-50">
-          <h3 className="text-lg font-semibold">
-            {mode === 'edit'
-              ? 'Edit Worker Assignment'
-              : mode === 'preview'
-              ? 'Preview Worker Assignment'
-              : 'Add Worker Assignment'}
-          </h3>
-          <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
-            <X size={20} />
+        <div className="flex items-center justify-between px-4 py-3 border-b border-gray-300">
+          <h3 className="text-base font-semibold text-gray-900">Assign Worker to Task</h3>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
+            <X size={18} />
           </button>
         </div>
 
         {/* Body */}
-        <div className="p-6 space-y-4">
-          {/* Worker & Date */}
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-semibold mb-2">Worker Name</label>
-              <select
-                name="workerId"
-                value={formData.workerId}
-                onChange={handleChange}
-                disabled={loading || isPreviewMode || workers.length === 0 || (workers.length === 1 && subBatch?.remarks === 'Assigned')}
-                className={`w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                  isPreviewMode || workers.length === 0 || (workers.length === 1 && subBatch?.remarks === 'Assigned') ? 'bg-gray-100 cursor-not-allowed' : ''
-                }`}
-              >
-                <option value="">
-                  {loading
-                    ? 'Loading...'
-                    : workers.length === 0
-                    ? 'No workers available'
-                    : 'Select Worker'}
+        <div className="p-4 space-y-3">
+          {/* Sub Batch Info */}
+          <div className="bg-blue-50 border border-blue-200 rounded-lg px-3 py-2">
+            <p className="text-xs text-blue-600 font-medium">Working on: {subBatch?.name}</p>
+            <p className="text-xs text-blue-800 mt-1">
+              Remaining to assign: <strong>{remainingWork.toLocaleString()} pieces</strong>
+            </p>
+          </div>
+
+          {/* Worker Selection */}
+          <div>
+            <label className="block text-xs font-medium text-gray-700 mb-1.5">
+              Worker <span className="text-red-500">*</span>
+            </label>
+            <select
+              value={formData.workerId}
+              onChange={(e) => handleChange('workerId', e.target.value)}
+              disabled={loading}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+              required
+            >
+              <option value="">{loading ? 'Loading workers...' : 'Select Worker'}</option>
+              {workers.map(worker => (
+                <option key={worker.id} value={worker.id}>
+                  {worker.name}
                 </option>
-                {workers.map(w => (
-                  <option key={w.id} value={w.id}>
-                    {w.name}
-                  </option>
-                ))}
-              </select>
-              {!loading && workers.length === 0 && !subBatch?.assigned_worker && (
-                <p className="text-xs text-orange-600 mt-1">
-                  No workers assigned to your department.
-                </p>
-              )}
-              {/* Only show locked message if there's exactly 1 worker (locked to assigned worker from current department) */}
-              {!loading && workers.length === 1 && subBatch?.remarks === 'Assigned' && subBatch?.assigned_worker && (
-                <p className="text-xs text-blue-600 mt-1">
-                  This card is assigned to {subBatch.assigned_worker.name}. Worker cannot be changed.
-                </p>
-              )}
-              {/* Show helpful message for cross-department assigned cards */}
-              {!loading && workers.length > 1 && subBatch?.remarks === 'Assigned' && subBatch?.assigned_worker && (
-                <p className="text-xs text-green-600 mt-1">
-                  Card from {subBatch.assigned_worker.name} ({subBatch.sent_from_department || 'previous department'}). You can assign any worker from your department.
-                </p>
-              )}
-            </div>
-            <div>
-              <label className="block text-sm font-semibold mb-2">Date</label>
-              <NepaliDatePicker
-                value={formData.date}
-                onChange={(value) => handleChange({ target: { name: 'date', value } } as any)}
-                disabled={isPreviewMode}
-                placeholder="Select Date"
-              />
-            </div>
+              ))}
+            </select>
           </div>
 
-          {/* SubBatch */}
+          {/* Quantity Worked */}
           <div>
-            <label className="block text-sm font-semibold mb-2">Sub Batch</label>
-            <div className="w-full border border-gray-300 rounded-lg px-3 py-2 bg-gray-100 text-gray-700">
-              {subBatch ? subBatch.name : editRecord ? `Sub Batch ID: ${editRecord.id}` : 'No sub-batch selected'}
-            </div>
-          </div>
-
-          {/* Show info for Main/Unassigned cards */}
-          {subBatch && (!subBatch.remarks || subBatch.remarks === 'Main') && (
-            <div className="border-2 rounded-lg p-4 bg-gray-50 border-gray-400">
-              <div className="flex items-center justify-between mb-2">
-                <span className="font-bold text-lg text-gray-900">
-                  MAIN CARD (Unassigned)
-                </span>
-                <span className="px-3 py-1 rounded-md font-bold text-white bg-gray-600">
-                  {(subBatch.quantity_remaining || subBatch.estimated_pieces)?.toLocaleString()} PCS
-                </span>
-              </div>
-              <p className="text-sm text-gray-800">
-                This is the main card. Assigning work with quantity will create a new assigned card for that worker.
-              </p>
-            </div>
-          )}
-
-          {/* Show info for Assigned cards */}
-          {subBatch?.remarks === 'Assigned' && (
-            <div className="border-2 rounded-lg p-4 bg-blue-50 border-blue-400">
-              <div className="flex items-center justify-between mb-2">
-                <span className="font-bold text-lg text-blue-900">
-                  ASSIGNED CARD
-                </span>
-                <span className="px-3 py-1 rounded-md font-bold text-white bg-blue-600">
-                  {(subBatch.quantity_assigned || subBatch.quantity_remaining)?.toLocaleString()} PCS
-                </span>
-              </div>
-              <p className="text-sm text-blue-800">
-                This is an assigned card. Adding records will update this card only (no splitting).
-              </p>
-              {subBatch.assigned_worker && (
-                <p className="text-xs text-blue-700 mt-1">
-                  <strong>Current Assignment:</strong> {subBatch.assigned_worker.name}
-                </p>
-              )}
-            </div>
-          )}
-
-          {/* Show quantity_remaining and remarks for rejected/altered items */}
-          {subBatch && (subBatch as any).quantity_remaining && (subBatch as any).remarks &&
-           (subBatch as any).remarks !== 'Assigned' && (subBatch as any).remarks !== 'Main' && (
-            <div className={`border-2 rounded-lg p-4 ${
-              (subBatch as any).remarks.toLowerCase().includes('reject')
-                ? 'bg-red-50 border-red-400'
-                : 'bg-orange-50 border-orange-400'
-            }`}>
-              <div className="flex items-center justify-between mb-2">
-                <span className={`font-bold text-lg ${
-                  (subBatch as any).remarks.toLowerCase().includes('reject')
-                    ? 'text-red-900'
-                    : 'text-orange-900'
-                }`}>
-                  {(subBatch as any).remarks.toUpperCase()}
-                </span>
-                <span className={`px-3 py-1 rounded-md font-bold text-white ${
-                  (subBatch as any).remarks.toLowerCase().includes('reject')
-                    ? 'bg-red-600'
-                    : 'bg-orange-600'
-                }`}>
-                  {(subBatch as any).quantity_remaining.toLocaleString()} PCS
-                </span>
-              </div>
-              <p className={`text-sm ${
-                (subBatch as any).remarks.toLowerCase().includes('reject')
-                  ? 'text-red-800'
-                  : 'text-orange-800'
-              }`}>
-                Work on this {(subBatch as any).remarks.toLowerCase()} quantity only.
-              </p>
-              {/* Show rejection/alteration reason and source department */}
-              {(subBatch as any).rejection_source && (
-                <div className="mt-2 text-sm text-red-900 bg-red-100 p-2 rounded">
-                  <p className="font-semibold">From: {(subBatch as any).rejection_source.from_department_name}</p>
-                  <p className="text-xs mt-1"><strong>Reason:</strong> {(subBatch as any).rejection_source.reason}</p>
-                </div>
-              )}
-              {(subBatch as any).alteration_source && (
-                <div className="mt-2 text-sm text-orange-900 bg-orange-100 p-2 rounded">
-                  <p className="font-semibold">From: {(subBatch as any).alteration_source.from_department_name}</p>
-                  <p className="text-xs mt-1"><strong>Reason:</strong> {(subBatch as any).alteration_source.reason}</p>
-                </div>
-              )}
-              {(subBatch as any).quantity_remaining !== subBatch.estimated_pieces && (
-                <p className="text-xs text-gray-600 mt-2">
-                  Original batch: {subBatch.estimated_pieces.toLocaleString()} pieces
-                </p>
-              )}
-            </div>
-          )}
-
-          {/* Size/Particulars */}
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-semibold mb-2">Size/Category</label>
-              <input
-                type="text"
-                name="sizeCategory"
-                value={formData.sizeCategory}
-                onChange={handleChange}
-                disabled={isPreviewMode}
-                className={`w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                  isPreviewMode ? 'bg-gray-100 cursor-not-allowed' : ''
-                }`}
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-semibold mb-2">Particulars</label>
-              <input
-                type="text"
-                name="particulars"
-                value={formData.particulars}
-                onChange={handleChange}
-                disabled={isPreviewMode}
-                className={`w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                  isPreviewMode ? 'bg-gray-100 cursor-not-allowed' : ''
-                }`}
-              />
-            </div>
-          </div>
-
-          {/* Qty & Unit Price */}
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-semibold mb-2">Qty Received</label>
-              <input
-                type="number"
-                name="qtyReceived"
-                value={formData.qtyReceived}
-                onChange={handleChange}
-                disabled={isPreviewMode}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              />
-              {/* Show parent remaining work for validation */}
-              {subBatch?.parent_remaining_work !== undefined && subBatch.parent_remaining_work >= 0 && (
-                <div className="mt-1 space-y-1">
-                  <p className="text-xs font-semibold text-green-700">
-                    Parent Remaining: <span className="text-green-600">{subBatch.parent_remaining_work.toLocaleString()}</span> pcs
-                  </p>
-                  {/* For Assigned cards, also show this card's remaining */}
-                  {subBatch.remarks === 'Assigned' && subBatch.remaining_work !== undefined && (
-                    <p className="text-xs text-gray-600">
-                      This Card: <span className="font-semibold text-blue-600">{subBatch.remaining_work.toLocaleString()}</span> pcs
-                    </p>
-                  )}
-                </div>
-              )}
-              {/* Fallback to remaining_work if parent_remaining_work not available */}
-              {!subBatch?.parent_remaining_work && subBatch?.remaining_work !== undefined && subBatch.remaining_work >= 0 && (
-                <p className="text-xs text-gray-600 mt-1">
-                  Remaining: <span className="font-semibold text-blue-600">{subBatch.remaining_work.toLocaleString()}</span> pieces
-                </p>
-              )}
-            </div>
-            <div>
-              <label className="block text-sm font-semibold mb-2">Qty Worked</label>
-              <input
-                type="number"
-                name="qtyWorked"
-                value={formData.qtyWorked}
-                onChange={handleChange}
-                disabled={isPreviewMode}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              />
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-sm font-semibold mb-2">Unit Price</label>
+            <label className="block text-xs font-medium text-gray-700 mb-1.5">
+              Quantity Worked <span className="text-red-500">*</span>
+            </label>
             <input
               type="number"
-              step="0.01"
-              name="unitPrice"
-              value={formData.unitPrice}
-              onChange={handleChange}
-              disabled={isPreviewMode}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              value={formData.quantityWorked}
+              onChange={(e) => handleChange('quantityWorked', e.target.value)}
+              placeholder="Enter quantity"
+              min="1"
+              max={remainingWork}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+              required
+            />
+            <p className="text-xs text-gray-500 mt-1">
+              Available: {remainingWork.toLocaleString()} pieces
+            </p>
+          </div>
+
+          {/* Date */}
+          <div>
+            <label className="block text-xs font-medium text-gray-700 mb-1.5">
+              Work Date <span className="text-red-500">*</span>
+            </label>
+            <NepaliDatePicker
+              value={formData.date}
+              onChange={(date) => handleChange('date', date)}
+              className="rounded-lg text-sm"
+              required
             />
           </div>
 
-          {/* Billable Work Checkbox - Only show in add mode */}
-          {mode === 'add' && (
-            <div className="flex items-center gap-2 bg-blue-50 border border-blue-200 rounded-lg p-3">
-              <input
-                type="checkbox"
-                id="isBillable"
-                name="isBillable"
-                checked={formData.isBillable}
-                onChange={handleChange}
-                className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-              />
-              <label htmlFor="isBillable" className="text-sm font-medium text-gray-900 cursor-pointer">
-                Billable Work
-              </label>
-              <span className="text-xs text-gray-600 ml-auto">
-                (Uncheck if this is rework on rejected pieces)
-              </span>
-            </div>
-          )}
-
-          {/* Attachments Display */}
-          {(subBatch as any)?.attachments && (subBatch as any).attachments.length > 0 && (
-            <div className="  rounded-lg p-4">
-              <h4 className="text-sm font-semibold mb-3 text-blue-900">Attachments</h4>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                {(subBatch as any).attachments.map((attachment: any) => (
-                  <div
-                    key={attachment.id}
-                    className="flex items-center gap-2 bg-white p-2 rounded border border-blue-100 cursor-pointer hover:bg-blue-50"
-                    onClick={() => {
-                      if (isPreviewMode) return;
-                      const isSelected = formData.selectedAttachments.includes(attachment.id);
-                      setFormData(prev => ({
-                        ...prev,
-                        selectedAttachments: isSelected
-                          ? prev.selectedAttachments.filter(id => id !== attachment.id)
-                          : [...prev.selectedAttachments, attachment.id]
-                      }));
-                    }}
-                  >
-                    <input
-                      type="checkbox"
-                      checked={formData.selectedAttachments.includes(attachment.id)}
-                      disabled={isPreviewMode}
-                      onChange={() => {}} // Handled by div onClick
-                      className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                    />
-                    <div className="flex-1 flex items-center justify-between">
-                      <span className="text-sm font-medium text-gray-800">{attachment.attachment_name}</span>
-                      <span className="text-xs text-gray-600 bg-gray-100 px-2 py-1 rounded">
-                        Qty: {attachment.quantity}
-                      </span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Additional Tracking - Only show for regular cards, not for alteration/rejection cards */}
-          {!(subBatch as any)?.alteration_source && !(subBatch as any)?.rejection_source && (
-          <div className="border-t pt-4">
-            <h4 className="text-sm font-semibold mb-3 text-gray-700">Additional Tracking</h4>
-
-            {/* Alteration */}
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-semibold mb-2">Alteration</label>
-                <input
-                  type="number"
-                  name="alteration"
-                  value={formData.alteration}
-                  onChange={handleChange}
-                  disabled={isPreviewMode}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-semibold mb-2">Alteration Return To</label>
-                <select
-                  name="alterationReturnTo"
-                  value={formData.alterationReturnTo}
-                  onChange={handleChange}
-                  disabled={isPreviewMode}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                >
-                  <option value="">Select department</option>
-                  {departments.map(d => (
-                    <option key={d.id} value={d.id}>
-                      {d.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-
-            {/* Alteration Note */}
-            <div className="mt-4">
-              <label className="block text-sm font-semibold mb-2">Alteration Note</label>
-              <textarea
-                name="alterationNote"
-                value={formData.alterationNote}
-                onChange={handleChange}
-                rows={3}
-                disabled={isPreviewMode}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              />
-            </div>
+          {/* Unit Price */}
+          <div>
+            <label className="block text-xs font-medium text-gray-700 mb-1.5">
+              Unit Price (₹/piece) <span className="text-gray-400">(Optional)</span>
+            </label>
+            <input
+              type="number"
+              value={formData.unitPrice}
+              onChange={(e) => handleChange('unitPrice', e.target.value)}
+              placeholder="Enter price per piece"
+              step="0.01"
+              min="0.01"
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+            />
+            <p className="text-xs text-gray-500 mt-1">
+              Can be filled by admin later in wage calculation
+            </p>
           </div>
+
+          {/* Calculated Wage */}
+          {formData.quantityWorked && formData.unitPrice && (
+            <div className="bg-green-50 border border-green-200 rounded-lg px-3 py-2">
+              <p className="text-xs text-green-600">Calculated Wage</p>
+              <p className="text-sm font-bold text-green-900">₹{calculatedWage}</p>
+              <p className="text-xs text-green-700 mt-0.5">
+                {formData.quantityWorked} pieces × ₹{formData.unitPrice} = ₹{calculatedWage}
+              </p>
+            </div>
+          )}
+
+          {/* Billable Checkbox */}
+          <div className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              id="billable"
+              checked={formData.isBillable}
+              onChange={(e) => handleChange('isBillable', e.target.checked)}
+              className="w-4 h-4 accent-blue-500 rounded"
+            />
+            <label htmlFor="billable" className="text-xs text-gray-700">
+              <strong>Billable Work</strong>
+              <span className="text-gray-500 ml-1">(Uncheck if rework/internal)</span>
+            </label>
+          </div>
+
+          {/* Particulars (Optional) */}
+          <div>
+            <label className="block text-xs font-medium text-gray-700 mb-1.5">
+              Task Description <span className="text-gray-400">(Optional)</span>
+            </label>
+            <input
+              type="text"
+              value={formData.particulars}
+              onChange={(e) => handleChange('particulars', e.target.value)}
+              placeholder="e.g., Stitching sleeves, Cutting fabric"
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+            />
+          </div>
+
+          {/* Worker Details (if selected) */}
+          {selectedWorker && (
+            <div className="bg-gray-50 border border-gray-200 rounded-lg px-3 py-2">
+              <p className="text-xs font-medium text-gray-700 mb-1.5">Worker Details</p>
+              <div className="text-xs space-y-1">
+                <div className="flex justify-between">
+                  <span className="text-gray-600">PAN:</span>
+                  <span className="font-medium">{selectedWorker.pan}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Wage Type:</span>
+                  <span className="font-medium capitalize">{selectedWorker.wage_type}</span>
+                </div>
+              </div>
+            </div>
           )}
         </div>
 
         {/* Footer */}
-        <div className="flex justify-between items-center p-6 border-t bg-gray-50 sticky bottom-0">
+        <div className="flex justify-end gap-2 p-4 border-t border-gray-300">
           <button
             onClick={onClose}
             disabled={isSubmitting}
-            className="px-4 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-100 disabled:opacity-50"
+            className="px-4 py-2 text-sm text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50"
           >
-            {isPreviewMode ? 'Close' : 'Cancel'}
+            Cancel
           </button>
-          {!isPreviewMode && (
-            <button
-              onClick={handleSave}
-              disabled={isSubmitting || loading || (mode === 'add' && !subBatch) || workers.length === 0}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {isSubmitting ? (mode === 'edit' ? 'Updating...' : 'Saving...') : mode === 'edit' ? 'Update Record' : 'Save Record'}
-            </button>
-          )}
+          <button
+            onClick={handleSubmit}
+            disabled={isSubmitting || loading}
+            className="px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+          >
+            {isSubmitting ? 'Assigning...' : 'Assign Worker'}
+          </button>
         </div>
       </div>
     </div>
   );
 };
 
-export default AddRecordModal;
+export default AddWorkerRecordModal;

@@ -4,7 +4,7 @@
 
 import React, { useState, useEffect } from "react";
 import axios from "axios";
-import { Plus, Edit2, Trash2, X, FileX, Layers, Package, Volleyball, PackageMinus, ClockAlert, Clock, MoreVertical, Eye } from "lucide-react";
+import { Plus, Edit2, Trash2, X, FileX, Layers, Package, Volleyball, PackageMinus, ClockAlert, Clock, MoreVertical, Eye, Filter, ChevronLeft } from "lucide-react";
 import Loader from "@/app/Components/Loader";
 import NepaliDatePicker from "@/app/Components/NepaliDatePicker";
 
@@ -33,7 +33,18 @@ interface Roll {
 interface Batch {
   id: number;
   name: string;
+  quantity: number;
+  color?: string;
+  unit?: string;
   roll_id?: number | null;
+  roll?: {
+    id: number;
+    name: string;
+  };
+  vendor?: {
+    id: number;
+    name: string;
+  };
 }
 
 interface Department {
@@ -72,11 +83,27 @@ const SubBatchView = () => {
   const [selectedSubBatch, setSelectedSubBatch] = useState<SubBatch | null>(null);
   const [departmentWorkflow, setDepartmentWorkflow] = useState<WorkflowStep[]>([]);
   const [isSending, setIsSending] = useState(false);
-  
+
   // Updated loading states
   const [loading, setLoading] = useState(true);
   const [, setSaveLoading] = useState(false);
   const [deletingId, setDeletingId] = useState<number | null>(null);
+
+  // Filter states
+  const [filterSidebarOpen, setFilterSidebarOpen] = useState(true);
+  const [selectedView, setSelectedView] = useState("all");
+  const [selectedStatuses, setSelectedStatuses] = useState<string[]>([]);
+  const [selectedRows, setSelectedRows] = useState<Set<number>>(new Set());
+
+  // Bulk delete states
+  const [showDeleteWarning, setShowDeleteWarning] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleteConfirmText, setDeleteConfirmText] = useState("");
+  const [inProductionSubBatches, setInProductionSubBatches] = useState<SubBatch[]>([]);
+  const [completedSubBatches, setCompletedSubBatches] = useState<SubBatch[]>([]);
+  const [cancelledSubBatches, setCancelledSubBatches] = useState<SubBatch[]>([]);
+  const [draftSubBatches, setDraftSubBatches] = useState<SubBatch[]>([]);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const [formData, setFormData] = useState<SubBatchForm>({
     name: "",
@@ -98,6 +125,46 @@ const SubBatchView = () => {
   const [isSavingCategory, setIsSavingCategory] = useState(false);
 
   const [openMenuId, setOpenMenuId] = useState<number | null>(null);
+
+  // Filter sub batches based on selected filters
+  const filteredSubBatches = subBatches.filter(sb => {
+    // Apply saved view filters
+    if (selectedView === "in-production" && sb.status !== "IN_PRODUCTION") return false;
+    if (selectedView === "completed" && sb.status !== "COMPLETED") return false;
+
+    // Apply status filters
+    if (selectedStatuses.length > 0 && !selectedStatuses.includes(sb.status || "DRAFT")) return false;
+
+    return true;
+  });
+
+  // Clear all filters
+  const clearAllFilters = () => {
+    setSelectedView("all");
+    setSelectedStatuses([]);
+  };
+
+  // Toggle row selection
+  const toggleRowSelection = (id: number) => {
+    setSelectedRows(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(id)) {
+        newSet.delete(id);
+      } else {
+        newSet.add(id);
+      }
+      return newSet;
+    });
+  };
+
+  // Toggle all rows
+  const toggleAllRows = () => {
+    if (selectedRows.size === filteredSubBatches.length) {
+      setSelectedRows(new Set());
+    } else {
+      setSelectedRows(new Set(filteredSubBatches.map(sb => sb.id)));
+    }
+  };
 
   const formatDate = (isoString: string | null | undefined) => {
     if (!isoString) return "";
@@ -545,42 +612,271 @@ const SubBatchView = () => {
     setAttachments(updated);
   };
 
-  return (
-    <div className="p-8 bg-gray-50 min-h-full">
-      {/* Header */}
-      <div className="flex justify-between items-center mb-6">
-        <div>
-          <h2 className="text-2xl font-bold text-gray-800">Sub Batch View</h2>
-          <p className="text-gray-600 text-sm">Manage sub batches and track progress</p>
-        </div>
-        <button
-          onClick={() => {
-            setEditingSubBatch(null);
-            setFormData({
-              name: "",
-              roll_id: "",
-              batch_id: "",
-              estimatedPieces: "",
-              expectedItems: "",
-              startDate: "",
-              dueDate: "",
-              attachmentName: "",
-              quantity: "",
-            });
-            setCustomCategories([]);
-            setSizesList([]);
-            setIsPreview(false);
-            setIsModalOpen(true);
-          }}
-          className="flex items-center gap-2 px-4 py-2 bg-[#6B98FF] text-white rounded-[10px] hover:bg-blue-600 transition-colors"
-        >
-          <Plus className="w-4 h-4 text-extrabold " />
-          Add Sub Batch
-        </button>
-      </div>
+  // Bulk delete handlers
+  const handleBulkDelete = async () => {
+    if (selectedRows.size === 0) {
+      alert("Please select at least one sub-batch to delete");
+      return;
+    }
 
-      {/* Status Legend */}
-      <div className="mb-4 p-4 bg-white rounded-lg shadow-sm border border-gray-200">
+    try {
+      // Call backend to check status-based deletion eligibility
+      const response = await axios.post(`${API}/sub-batches/check-dependencies`, {
+        subBatchIds: Array.from(selectedRows)
+      });
+
+      const { inProductionSubBatches, completedSubBatches, cancelledSubBatches, draftSubBatches } = response.data;
+
+      // Categorize selected sub-batches by status
+      const inProduction = subBatches.filter(sb => inProductionSubBatches.includes(sb.id));
+      const completed = subBatches.filter(sb => completedSubBatches.includes(sb.id));
+      const cancelled = subBatches.filter(sb => cancelledSubBatches.includes(sb.id));
+      const draft = subBatches.filter(sb => draftSubBatches.includes(sb.id));
+
+      setInProductionSubBatches(inProduction);
+      setCompletedSubBatches(completed);
+      setCancelledSubBatches(cancelled);
+      setDraftSubBatches(draft);
+
+      // Show warning modal
+      setShowDeleteWarning(true);
+    } catch (error) {
+      console.error("Error checking dependencies:", error);
+      alert("Failed to check sub-batch deletion eligibility. Please try again.");
+    }
+  };
+
+  const handleContinueDelete = () => {
+    // Only proceed if there are DRAFT sub-batches to delete
+    if (draftSubBatches.length === 0) {
+      alert("No sub-batches can be deleted. Only DRAFT sub-batches can be deleted.");
+      return;
+    }
+
+    setShowDeleteWarning(false);
+    setShowDeleteConfirm(true);
+  };
+
+  const confirmBulkDelete = async () => {
+    if (deleteConfirmText.toLowerCase() !== "delete") {
+      alert('Please type "delete" to confirm');
+      return;
+    }
+
+    setIsDeleting(true);
+
+    try {
+      // Only delete DRAFT sub-batches
+      const draftIds = draftSubBatches.map(sb => sb.id);
+      const deletePromises = draftIds.map(id =>
+        axios.delete(`${API}/sub-batches/${id}`)
+      );
+
+      await Promise.all(deletePromises);
+
+      const blockedCount = inProductionSubBatches.length + completedSubBatches.length + cancelledSubBatches.length;
+
+      let message = `Successfully deleted ${draftIds.length} sub-batch(es)`;
+      if (blockedCount > 0) {
+        message += `\n\n${blockedCount} sub-batch(es) were not deleted (not in DRAFT status)`;
+      }
+
+      alert(message);
+
+      // Clear selections and states
+      setSelectedRows(new Set());
+      setShowDeleteConfirm(false);
+      setDeleteConfirmText("");
+      setInProductionSubBatches([]);
+      setCompletedSubBatches([]);
+      setCancelledSubBatches([]);
+      setDraftSubBatches([]);
+
+      // Refresh sub-batches list
+      await fetchSubBatches();
+    } catch (error) {
+      console.error("Error deleting sub-batches:", error);
+      alert("Failed to delete some sub-batches. Please check console for details.");
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const cancelBulkDelete = () => {
+    setShowDeleteWarning(false);
+    setShowDeleteConfirm(false);
+    setDeleteConfirmText("");
+    setInProductionSubBatches([]);
+    setCompletedSubBatches([]);
+    setCancelledSubBatches([]);
+    setDraftSubBatches([]);
+  };
+
+  return (
+    <div className="pr-8 bg-gray-50 min-h-screen">
+      {/* Main Layout: Filter Sidebar + Content */}
+      <div className="flex min-h-screen">
+        {/* Filters Sidebar */}
+        <div
+          className={`bg-white shadow flex-shrink-0 border-r border-gray-200 min-h-screen overflow-y-auto transition-all duration-300 ease-in-out ${
+            filterSidebarOpen ? 'w-72 opacity-100' : 'w-0 opacity-0'
+          }`}
+          style={{
+            scrollbarWidth: 'thin',
+            scrollbarColor: '#d1d5db #f3f4f6',
+            fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif'
+          }}
+        >
+            {/* Filters Header */}
+            <div className="flex items-center justify-between p-6 border-b border-gray-100">
+              <h3 className="text-2xl font-bold text-gray-900">Filters</h3>
+              <button
+                onClick={() => setFilterSidebarOpen(false)}
+                className="p-1.5 hover:bg-gray-100 rounded transition-colors"
+                title="Collapse filters"
+              >
+                <ChevronLeft className="w-5 h-5 text-gray-600" />
+              </button>
+            </div>
+
+            <div className="px-6">
+              {/* Saved Views */}
+              <div className="py-4 border-b border-gray-100">
+                <h4 className="text-lg font-semibold text-gray-900 mb-3" style={{ letterSpacing: '-0.01em' }}>Saved Views</h4>
+                <div className="space-y-1.5">
+                  <button
+                    onClick={() => setSelectedView("all")}
+                    className={`w-full flex items-center justify-between text-left py-1.5 px-4 rounded-xl transition-all ${
+                      selectedView === "all"
+                        ? "bg-blue-600 text-white shadow-sm"
+                        : "hover:bg-gray-50 text-gray-700"
+                    }`}
+                  >
+                    <span className={`text-[15px] font-medium ${selectedView === "all" ? "text-white" : "text-gray-800"}`} style={{ letterSpacing: '-0.01em' }}>
+                      All Sub Batches
+                    </span>
+                    <span className={`text-[15px] font-semibold ${selectedView === "all" ? "text-white" : "text-gray-500"}`}>
+                      {subBatches.length}
+                    </span>
+                  </button>
+                  <button
+                    onClick={() => setSelectedView("in-production")}
+                    className={`w-full flex items-center justify-between text-left py-1.5 px-4 rounded-xl transition-all ${
+                      selectedView === "in-production"
+                        ? "bg-blue-600 text-white shadow-sm"
+                        : "hover:bg-gray-50 text-gray-700"
+                    }`}
+                  >
+                    <span className={`text-[15px] font-medium ${selectedView === "in-production" ? "text-white" : "text-gray-800"}`} style={{ letterSpacing: '-0.01em' }}>
+                      In Production
+                    </span>
+                    <span className={`text-[15px] font-semibold ${selectedView === "in-production" ? "text-white" : "text-gray-500"}`}>
+                      {subBatches.filter(sb => sb.status === "IN_PRODUCTION").length}
+                    </span>
+                  </button>
+                  <button
+                    onClick={() => setSelectedView("completed")}
+                    className={`w-full flex items-center justify-between text-left py-1.5 px-4 rounded-xl transition-all ${
+                      selectedView === "completed"
+                        ? "bg-blue-600 text-white shadow-sm"
+                        : "hover:bg-gray-50 text-gray-700"
+                    }`}
+                  >
+                    <span className={`text-[15px] font-medium ${selectedView === "completed" ? "text-white" : "text-gray-800"}`} style={{ letterSpacing: '-0.01em' }}>
+                      Completed
+                    </span>
+                    <span className={`text-[15px] font-semibold ${selectedView === "completed" ? "text-white" : "text-gray-500"}`}>
+                      {subBatches.filter(sb => sb.status === "COMPLETED").length}
+                    </span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Status Filter */}
+              <div className="py-4 border-b border-gray-100">
+                <h4 className="text-lg font-semibold text-gray-900 mb-3" style={{ letterSpacing: '-0.01em' }}>Status</h4>
+                <div className="space-y-2">
+                  {["DRAFT", "IN_PRODUCTION", "COMPLETED", "CANCELLED"].map(status => (
+                    <label key={status} className="flex items-center gap-3 cursor-pointer group">
+                      <input
+                        type="checkbox"
+                        checked={selectedStatuses.includes(status)}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setSelectedStatuses([...selectedStatuses, status]);
+                          } else {
+                            setSelectedStatuses(selectedStatuses.filter(s => s !== status));
+                          }
+                        }}
+                        className="w-5 h-5 rounded border-2 border-gray-300 text-blue-600 focus:ring-2 focus:ring-blue-500 focus:ring-offset-0 cursor-pointer"
+                      />
+                      <span className="text-[15px] text-gray-800 capitalize group-hover:text-gray-900" style={{ letterSpacing: '-0.01em' }}>
+                        {status.toLowerCase().replace('_', ' ')}
+                      </span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              {/* Clear Filters */}
+              {(selectedStatuses.length > 0 || selectedView !== "all") && (
+                <div className="py-4">
+                  <button
+                    onClick={clearAllFilters}
+                    className="w-full px-4 py-2 text-sm text-red-600 hover:bg-red-50 rounded-lg transition-colors font-medium"
+                  >
+                    Clear All Filters
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+
+        {/* Main Content Area */}
+        <div className="flex-1 pl-6 min-h-screen">
+          {/* Header */}
+          <div className="flex items-center justify-between mb-6 pt-6">
+            <div className="flex items-start gap-3">
+              <button
+                onClick={() => setFilterSidebarOpen(!filterSidebarOpen)}
+                className="p-2 hover:bg-gray-100 rounded-lg transition-colors mt-0.5"
+                title={filterSidebarOpen ? "Hide filters" : "Show filters"}
+              >
+                <Filter className="w-5 h-5 text-gray-600" />
+              </button>
+              <div>
+                <h2 className="text-2xl font-bold text-gray-800">Sub Batch View</h2>
+                <p className="text-gray-600 text-sm">Manage sub batches and track progress</p>
+              </div>
+            </div>
+            <button
+              onClick={() => {
+                setEditingSubBatch(null);
+                setFormData({
+                  name: "",
+                  roll_id: "",
+                  batch_id: "",
+                  estimatedPieces: "",
+                  expectedItems: "",
+                  startDate: "",
+                  dueDate: "",
+                  attachmentName: "",
+                  quantity: "",
+                });
+                setCustomCategories([]);
+                setSizesList([]);
+                setIsPreview(false);
+                setIsModalOpen(true);
+              }}
+              className="flex items-center gap-2 bg-blue-600 text-white px-5 py-2.5 rounded-xl font-semibold shadow-md hover:bg-blue-700 hover:shadow-lg transition-all duration-200 hover:scale-105"
+            >
+              <Plus className="w-4 h-4 " />
+              Add Sub Batch
+            </button>
+          </div>
+
+          {/* Status Legend */}
+          <div className="mb-4 p-4 bg-white rounded-lg shadow-sm border border-gray-200">
         <div className="flex items-center gap-6">
           <span className="text-sm font-semibold text-gray-700">Status Legend:</span>
           <div className="flex items-center gap-2">
@@ -604,11 +900,11 @@ const SubBatchView = () => {
         </div>
       </div>
 
-      {/* Table */}
-      <div className="bg-white rounded-lg shadow-sm">
-        {loading ? (
-          <Loader loading={true} message="Loading Sub Batches..." />
-        ) : subBatches.length === 0 ? (
+          {/* Table Container */}
+          <div className="bg-white rounded-lg shadow overflow-x-auto">
+            {loading ? (
+              <Loader loading={true} message="Loading Sub Batches..." />
+            ) : filteredSubBatches.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-12 px-4">
             <div className="rounded-[10px] p-6 m-4 flex flex-col items-center">
               <div className="bg-gray-100 mb-4 w-20 aspect-square rounded-full flex items-center justify-center">
@@ -624,90 +920,412 @@ const SubBatchView = () => {
             </div>
           </div>
         ) : (
-          <div className="min-h-fit max-h-screen">
-            <table className="w-full table-auto border-collapse">
-              <thead>
-                <tr className="bg-[#E5E7EB]">
-                  <th className="px-4 py-3 text-left text-sm font-medium uppercase tracking-wider">SN</th>
-                  <th className="px-4 py-3 text-left text-sm font-medium uppercase tracking-wider">ID</th>
-                  <th className="px-4 py-3 text-left text-sm font-medium uppercase tracking-wider">NAME</th>
-                  <th className="px-4 py-3 text-left text-sm font-medium uppercase tracking-wider">PARENT ROLL</th>
-                  <th className="px-4 py-3 text-left text-sm font-medium uppercase tracking-wider">PARENT BATCH</th>
-                  <th className="px-4 py-3 text-left text-sm font-medium uppercase tracking-wider">STATUS</th>
-                  <th className="px-4 py-3 text-left text-sm font-medium uppercase tracking-wider">PIECES</th>
-                  <th className="px-4 py-3 text-left text-sm font-medium uppercase tracking-wider">START DATE</th>
-                  <th className="px-4 py-3 text-left text-sm font-medium uppercase tracking-wider">DUE DATE</th>
-                  <th className="px-4 py-3"></th>
+          <table className="w-max min-w-full table-auto border-collapse">
+            <thead>
+              <tr className="border-b border-gray-200">
+                <th className="px-4 py-2.5">
+                  <input
+                    type="checkbox"
+                    checked={selectedRows.size === filteredSubBatches.length}
+                    onChange={toggleAllRows}
+                    className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                  />
+                </th>
+                <th className="px-4 py-2.5 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">ID</th>
+                <th className="px-4 py-2.5 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">NAME</th>
+                <th className="px-4 py-2.5 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">PARENT ROLL</th>
+                <th className="px-4 py-2.5 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">PARENT BATCH</th>
+                <th className="px-4 py-2.5 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">STATUS</th>
+                <th className="px-4 py-2.5 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">PIECES</th>
+                <th className="px-4 py-2.5 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">START DATE</th>
+                <th className="px-4 py-2.5 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">DUE DATE</th>
+                <th className="px-4 py-2.5 text-right text-xs font-semibold text-gray-700 uppercase tracking-wider">ACTIONS</th>
+              </tr>
+            </thead>
+            <tbody className="bg-white divide-y divide-gray-100">
+              {filteredSubBatches.map((sb) => (
+                <tr
+                  key={sb.id}
+                  className={selectedRows.has(sb.id) ? 'bg-blue-50 border-l-4 border-l-blue-500' : 'hover:bg-gray-50 border-l-4 border-l-transparent'}
+                >
+                  <td className="px-4 py-2.5">
+                    <input
+                      type="checkbox"
+                      checked={selectedRows.has(sb.id)}
+                      onChange={() => toggleRowSelection(sb.id)}
+                      className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                    />
+                  </td>
+                  <td className="px-4 py-2.5 text-sm text-gray-900 font-medium">{`B00${sb.id.toString().padStart(2, "0")}`}</td>
+                  <td className="px-4 py-2.5 text-sm text-gray-900">{sb.name}</td>
+                  <td className="px-4 py-2.5 text-sm text-gray-900">{getRollName(sb.roll_id)}</td>
+                  <td className="px-4 py-2.5 text-sm text-gray-900">{getBatchName(sb.batch_id)}</td>
+                  <td className="px-4 py-2.5 text-sm">{getStatusBadge(sb.status)}</td>
+                  <td className="px-4 py-2.5 text-sm text-gray-900">{sb.estimated_pieces}</td>
+                  <td className="px-4 py-2.5 text-sm text-gray-900">{formatDate(sb.start_date)}</td>
+                  <td className="px-4 py-2.5 text-sm text-gray-900">{formatDate(sb.due_date)}</td>
+                  <td className="px-4 py-2.5 text-right">
+                    <div className="flex items-center justify-end gap-2">
+                      <button
+                        onClick={() => handlePreview(sb.id)}
+                        className="p-1.5 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
+                        title="Preview"
+                      >
+                        <Eye size={16} />
+                      </button>
+                      <button
+                        onClick={() => handleEdit(sb)}
+                        className="p-1.5 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
+                        title="Edit"
+                      >
+                        <Edit2 size={16} />
+                      </button>
+                      <button
+                        onClick={() => handleDelete(sb.id)}
+                        disabled={deletingId === sb.id}
+                        className="p-1.5 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        title="Delete"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                      <button
+                        onClick={() => handleSend(sb)}
+                        className="p-1.5 text-gray-600 hover:text-green-600 hover:bg-green-50 rounded transition-colors"
+                        title="Send to Production"
+                      >
+                        <Package size={16} />
+                      </button>
+                    </div>
+                  </td>
                 </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {subBatches.map((sb, index) => (
-                  <tr key={sb.id} className="hover:bg-gray-50 transition-colors">
-                    <td className="px-4 py-4 text-sm">{index + 1}</td>
-                    <td className="px-4 py-4 text-sm">{`B00${sb.id.toString().padStart(2, "0")}`}</td>
-                    <td className="px-4 py-4 text-sm">{sb.name}</td>
-                    <td className="px-4 py-4 text-sm">{getRollName(sb.roll_id)}</td>
-                    <td className="px-4 py-4 text-sm">{getBatchName(sb.batch_id)}</td>
-                    <td className="px-4 py-4 text-sm">{getStatusBadge(sb.status)}</td>
-                    <td className="px-4 py-4 text-sm">{sb.estimated_pieces}</td>
-                    <td className="px-4 py-4 text-sm">{formatDate(sb.start_date)}</td>
-                    <td className="px-4 py-4 text-sm">{formatDate(sb.due_date)}</td>
-                    <td className="px-4 py-4 text-sm relative">
-                      <div className="relative">
-                        <button
-                          onClick={() => toggleMenu(sb.id)}
-                          className="p-1 rounded hover:bg-gray-200 transition-colors"
-                        >
-                          <MoreVertical size={18} className="text-gray-600" />
-                        </button>
-                        {openMenuId === sb.id && (
-                          <div className="absolute right-0 mt-2 w-44 bg-white rounded shadow-lg z-50 border border-gray-200">
-                            <button
-                              onClick={() => handlePreview(sb.id)}
-                              className="w-full px-4 py-2 text-left hover:bg-gray-100 text-black flex items-center gap-2 text-sm"
-                              title="View"
-                            >
-                              <Eye size={14} />Preview
-                            </button>
-
-                            <button
-                              onClick={() => {
-                                setOpenMenuId(null);
-                                handleEdit(sb);
-                              }}
-                              className="w-full px-4 py-2 text-left hover:bg-gray-100 text-black flex items-center gap-2 text-sm"
-                            >
-                              <Edit2 size={14} /> Edit
-                            </button>
-                            <button
-                              onClick={() => handleDelete(sb.id)}
-                              disabled={deletingId === sb.id}
-                              className={`w-full px-4 py-2 text-left hover:bg-gray-100 flex items-center gap-2 text-sm ${
-                                deletingId === sb.id ? 'text-gray-400 cursor-not-allowed' : 'text-red-600'
-                              }`}
-                            >
-                              <Trash2 size={14} /> {deletingId === sb.id ? 'Deleting...' : 'Delete'}
-                            </button>
-                            <button
-                              onClick={() => {
-                                setOpenMenuId(null);
-                                handleSend(sb);
-                              }}
-                              className="w-full px-4 py-2 text-left hover:bg-gray-100 text-green-600 flex items-center gap-2 text-sm"
-                            >
-                              <Package size={14} /> Send to Production
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+              ))}
+            </tbody>
+          </table>
         )}
+          </div>
+
+          {/* Floating Action Bar */}
+          {selectedRows.size > 0 && (
+            <div className="fixed bottom-8 left-1/2 transform -translate-x-1/2 bg-white shadow-2xl rounded-full px-6 py-4 flex items-center gap-6 border border-gray-200 z-40">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center text-sm font-bold">
+                  {selectedRows.size}
+                </div>
+                <span className="text-sm font-medium text-gray-700">
+                  {selectedRows.size === 1 ? "sub-batch selected" : "sub-batches selected"}
+                </span>
+              </div>
+              <div className="w-px h-6 bg-gray-300"></div>
+              <button
+                onClick={handleBulkDelete}
+                className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-full hover:bg-red-700 transition-colors font-medium"
+              >
+                <Trash2 size={16} />
+                Delete Selected
+              </button>
+              <button
+                onClick={() => setSelectedRows(new Set())}
+                className="flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-full hover:bg-gray-200 transition-colors font-medium"
+              >
+                <X size={16} />
+                Clear
+              </button>
+            </div>
+          )}
+        </div>
       </div>
+
+      {/* 3-Tier Warning Modal */}
+      {showDeleteWarning && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          {/* Overlay */}
+          <div
+            className="absolute inset-0 bg-black/50"
+            onClick={cancelBulkDelete}
+          />
+
+          {/* Modal */}
+          <div className="relative bg-white w-full max-w-2xl rounded-lg shadow-xl p-6 m-4 max-h-[80vh] overflow-y-auto">
+            {/* Header */}
+            <div className="flex justify-between items-start mb-4">
+              <div>
+                <h3 className="text-xl font-bold text-gray-900">Confirm Bulk Delete</h3>
+                <p className="text-sm text-gray-600 mt-1">
+                  You are about to delete {selectedRows.size} sub-batch(es). Please review the impact below.
+                </p>
+              </div>
+              <button
+                onClick={cancelBulkDelete}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            {/* Warning Sections - Status-Based */}
+            <div className="space-y-4">
+              {/* Red Section - IN_PRODUCTION (BLOCKED) */}
+              {inProductionSubBatches.length > 0 && (
+                <div className="border-l-4 border-red-500 bg-red-50 p-4 rounded">
+                  <div className="flex items-start gap-3">
+                    <div className="w-6 h-6 bg-red-500 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                      <span className="text-white text-xs font-bold">✕</span>
+                    </div>
+                    <div className="flex-1">
+                      <h4 className="font-semibold text-red-900 mb-2">
+                        🚫 IN PRODUCTION - Cannot Delete ({inProductionSubBatches.length})
+                      </h4>
+                      <p className="text-sm text-red-800 mb-3">
+                        These sub-batches are actively being worked on by supervisors. They cannot be deleted while in production.
+                      </p>
+                      <div className="space-y-2">
+                        {inProductionSubBatches.map(sb => (
+                          <div key={sb.id} className="bg-white p-3 rounded border border-red-200">
+                            <div className="flex justify-between items-center">
+                              <span className="font-medium text-gray-900">{sb.name}</span>
+                              <span className="text-xs text-gray-600">ID: B00{sb.id.toString().padStart(2, "0")}</span>
+                            </div>
+                            <div className="text-sm text-gray-600 mt-1">
+                              {sb.estimated_pieces} pieces • {getStatusBadge(sb.status)}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Yellow Section - COMPLETED (BLOCKED - Contains Wage Data) */}
+              {completedSubBatches.length > 0 && (
+                <div className="border-l-4 border-yellow-500 bg-yellow-50 p-4 rounded">
+                  <div className="flex items-start gap-3">
+                    <div className="w-6 h-6 bg-yellow-500 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                      <span className="text-white text-xs font-bold">✕</span>
+                    </div>
+                    <div className="flex-1">
+                      <h4 className="font-semibold text-yellow-900 mb-2">
+                        💰 COMPLETED - Cannot Delete ({completedSubBatches.length})
+                      </h4>
+                      <p className="text-sm text-yellow-800 mb-3">
+                        These sub-batches contain worker logs and wage calculation data. They must be preserved for payroll records.
+                      </p>
+                      <div className="space-y-2">
+                        {completedSubBatches.map(sb => (
+                          <div key={sb.id} className="bg-white p-3 rounded border border-yellow-200">
+                            <div className="flex justify-between items-center">
+                              <span className="font-medium text-gray-900">{sb.name}</span>
+                              <span className="text-xs text-gray-600">ID: B00{sb.id.toString().padStart(2, "0")}</span>
+                            </div>
+                            <div className="text-sm text-gray-600 mt-1">
+                              {sb.estimated_pieces} pieces • {getStatusBadge(sb.status)}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Gray Section - CANCELLED (BLOCKED - Historical Data) */}
+              {cancelledSubBatches.length > 0 && (
+                <div className="border-l-4 border-gray-500 bg-gray-50 p-4 rounded">
+                  <div className="flex items-start gap-3">
+                    <div className="w-6 h-6 bg-gray-500 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                      <span className="text-white text-xs font-bold">✕</span>
+                    </div>
+                    <div className="flex-1">
+                      <h4 className="font-semibold text-gray-900 mb-2">
+                        📋 CANCELLED - Cannot Delete ({cancelledSubBatches.length})
+                      </h4>
+                      <p className="text-sm text-gray-800 mb-3">
+                        These sub-batches contain historical data that must be preserved for record-keeping.
+                      </p>
+                      <div className="space-y-2">
+                        {cancelledSubBatches.map(sb => (
+                          <div key={sb.id} className="bg-white p-3 rounded border border-gray-200">
+                            <div className="flex justify-between items-center">
+                              <span className="font-medium text-gray-900">{sb.name}</span>
+                              <span className="text-xs text-gray-600">ID: B00{sb.id.toString().padStart(2, "0")}</span>
+                            </div>
+                            <div className="text-sm text-gray-600 mt-1">
+                              {sb.estimated_pieces} pieces • {getStatusBadge(sb.status)}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Green Section - DRAFT (Can Delete) */}
+              {draftSubBatches.length > 0 && (
+                <div className="border-l-4 border-green-500 bg-green-50 p-4 rounded">
+                  <div className="flex items-start gap-3">
+                    <div className="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                      <span className="text-white text-xs font-bold">✓</span>
+                    </div>
+                    <div className="flex-1">
+                      <h4 className="font-semibold text-green-900 mb-2">
+                        ✅ DRAFT - Safe to Delete ({draftSubBatches.length})
+                      </h4>
+                      <p className="text-sm text-green-800 mb-3">
+                        These sub-batches are still in planning stage and can be safely deleted. Quantity will be restored to parent batches.
+                      </p>
+                      <div className="space-y-2">
+                        {draftSubBatches.map(sb => (
+                          <div key={sb.id} className="bg-white p-3 rounded border border-green-200">
+                            <div className="flex justify-between items-center">
+                              <span className="font-medium text-gray-900">{sb.name}</span>
+                              <span className="text-xs text-gray-600">ID: B00{sb.id.toString().padStart(2, "0")}</span>
+                            </div>
+                            <div className="text-sm text-gray-600 mt-1">
+                              {sb.estimated_pieces} pieces • {getStatusBadge(sb.status)}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Important Notice */}
+            {draftSubBatches.length > 0 && (
+              <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded">
+                <div className="flex gap-3">
+                  <Layers className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
+                  <div className="flex-1">
+                    <h4 className="font-semibold text-blue-900 mb-1">Only DRAFT Sub-Batches Will Be Deleted</h4>
+                    <ul className="text-sm text-blue-800 space-y-1 mt-2">
+                      <li>• {draftSubBatches.length} DRAFT sub-batch(es) will be permanently deleted</li>
+                      <li>• Quantity will be restored to their parent batches</li>
+                      <li>• {inProductionSubBatches.length + completedSubBatches.length + cancelledSubBatches.length} sub-batch(es) will NOT be deleted (protected)</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* No Deleteable Items Warning */}
+            {draftSubBatches.length === 0 && (
+              <div className="mt-6 p-4 bg-amber-50 border border-amber-200 rounded">
+                <div className="flex gap-3">
+                  <span className="text-2xl">⚠️</span>
+                  <div className="flex-1">
+                    <h4 className="font-semibold text-amber-900 mb-1">No Sub-Batches Can Be Deleted</h4>
+                    <p className="text-sm text-amber-800">
+                      All selected sub-batches are protected. Only DRAFT sub-batches can be deleted.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Actions */}
+            <div className="flex justify-end gap-3 mt-6">
+              <button
+                onClick={cancelBulkDelete}
+                className="px-6 py-2.5 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 font-medium transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleContinueDelete}
+                className="px-6 py-2.5 rounded-lg bg-red-600 text-white hover:bg-red-700 font-medium transition-colors"
+              >
+                Continue to Confirm
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Type-to-Confirm Modal */}
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          {/* Overlay */}
+          <div
+            className="absolute inset-0 bg-black/50"
+            onClick={cancelBulkDelete}
+          />
+
+          {/* Modal */}
+          <div className="relative bg-white w-full max-w-md rounded-lg shadow-xl p-6 m-4">
+            {/* Header */}
+            <div className="flex justify-between items-start mb-4">
+              <div>
+                <h3 className="text-xl font-bold text-gray-900">Final Confirmation</h3>
+                <p className="text-sm text-gray-600 mt-1">
+                  This action cannot be undone
+                </p>
+              </div>
+              <button
+                onClick={cancelBulkDelete}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            {/* Warning */}
+            <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded">
+              <div className="flex gap-3">
+                <Volleyball className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
+                <div>
+                  <h4 className="font-semibold text-red-900 mb-1">You are about to delete:</h4>
+                  <ul className="text-sm text-red-800 space-y-1">
+                    <li>• {draftSubBatches.length} DRAFT sub-batch(es)</li>
+                    <li>• All related size details and attachments</li>
+                    <li>• Quantity will be restored to parent batches</li>
+                  </ul>
+                  {(inProductionSubBatches.length + completedSubBatches.length + cancelledSubBatches.length) > 0 && (
+                    <p className="text-sm text-red-700 mt-3 font-semibold">
+                      Note: {inProductionSubBatches.length + completedSubBatches.length + cancelledSubBatches.length} sub-batch(es) will NOT be deleted (protected)
+                    </p>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Type to Confirm */}
+            <div className="mb-6">
+              <label className="block text-sm font-semibold text-gray-900 mb-2">
+                Type <span className="text-red-600 font-mono">delete</span> to confirm
+              </label>
+              <input
+                type="text"
+                value={deleteConfirmText}
+                onChange={(e) => setDeleteConfirmText(e.target.value)}
+                placeholder="Type 'delete' here"
+                className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent text-sm"
+                autoFocus
+              />
+            </div>
+
+            {/* Actions */}
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={cancelBulkDelete}
+                disabled={isDeleting}
+                className="px-6 py-2.5 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 font-medium transition-colors disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmBulkDelete}
+                disabled={isDeleting || deleteConfirmText.toLowerCase() !== "delete"}
+                className="px-6 py-2.5 rounded-lg bg-red-600 text-white hover:bg-red-700 font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isDeleting ? "Deleting..." : "Delete Sub-Batches"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Send to Production Modal */}
       {isSendModalOpen && selectedSubBatch && (
@@ -851,28 +1469,20 @@ const SubBatchView = () => {
 
       {/* Modal */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 overflow-y-auto">
-          <div className=" min-h-full p-4 sm:items-center sm:p-0">
-            <div className="fixed inset-0 bg-white/50 bg-opacity-25 transition-opacity" onClick={() => setIsModalOpen(false)} />
+        <div className="fixed inset-0 z-50 flex">
+          <div
+            className="absolute inset-0 bg-white/30 transition-opacity duration-300"
+            style={{ backdropFilter: 'blur(4px)' }}
+            onClick={() => setIsModalOpen(false)}
+          />
 
-            <div className="fixed right-0 top-0 h-full w-full max-w-md transform overflow-hidden bg-white shadow-xl transition-all">
-
-              <div className="bg-white px-6 pt-6 pb-4 h-full overflow-y-auto">
-
-                <div className="flex items-center justify-between mb-6">
-                  <div className="flex items-center gap-3">
-                    <Layers size={28} className="text-blue-600" />
-                    <h3 className="text-lg font-extrabold text-gray-900">
-                      {isPreview ? "Sub Batch Item Details" : editingSubBatch ? "Edit Sub Batch" : "Add Sub Batch"}
-                    </h3>
-                  </div>
-                  <button
-                    onClick={() => setIsModalOpen(false)}
-                    className="text-gray-400 hover:text-gray-600"
-                  >
-                    <X className="h-5 w-5" />
-                  </button>
-                </div>
+          <div className={`ml-auto w-full max-w-xl bg-white shadow-lg p-4 relative h-screen overflow-y-auto transition-transform duration-300 ease-in-out ${isModalOpen ? 'translate-x-0' : 'translate-x-full'}`}>
+            <button
+              className="absolute top-4 right-4 text-gray-500 hover:text-gray-700"
+              onClick={() => setIsModalOpen(false)}
+            >
+              <X size={20} />
+            </button>
 
                 {isPreview ? (
                   // Preview Layout
@@ -975,54 +1585,49 @@ const SubBatchView = () => {
                   </div>
                 ) : (
                   // Edit/Add Layout
-                  <div className="space-y-4">
-                  {/* ID */}
-                  <div className="flex flex-col">
-                    <label className="text-xxl font-semibold  text-gray-700 mb-1"># ID</label>
-                    <input
-                      type="text"
-                      value="B0011"
-                      className="w-full border border-gray-300 rounded-[10px] px-3 py-2 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                      disabled
-                    />
-                  </div>
+                  <>
+                    {/* Modern Header with Step Indicator */}
+                    <div className="border-b border-gray-200 pb-3 mb-4">
+                      <div className="flex items-center justify-between mb-2">
+                        <h3 className="text-xl font-bold text-gray-900" style={{ letterSpacing: '-0.01em' }}>
+                          {editingSubBatch ? "Edit Sub Batch" : "Add Sub Batch"}
+                        </h3>
+                        <span className="text-sm text-gray-500">Step 1 of 1</span>
+                      </div>
+
+                      {/* Progress Stepper */}
+                      <div className="mt-3 flex items-center gap-4">
+                        <div className="flex items-center gap-2">
+                          <div className="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center text-sm font-semibold">
+                            1
+                          </div>
+                          <span className="text-sm font-medium text-gray-900">Basic Info</span>
+                        </div>
+                        <div className="flex-1 h-[2px] bg-gray-200"></div>
+                      </div>
+                    </div>
+
+                    <div className="space-y-3">
+                      {/* Sub Batch Name */}
+                      <div>
+                        <label className="block text-sm font-semibold text-gray-900 mb-1.5">
+                          Sub Batch Name <span className="text-red-500">*</span>
+                        </label>
+                        <input
+                          type="text"
+                          placeholder="Enter sub batch name"
+                          value={formData.name || ""}
+                          onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                          className="w-full border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                          disabled={isPreview}
+                        />
+                      </div>
 
 
-                  {/* Name */}
-                  <div className="flex items-center gap-2">
-                    <Package size={20} className="text-black" />
-                    <p className="text-black font-semibold">Subbatch Name </p>
-                  </div>
-                  <input
-                    type="text"
-                    placeholder="Enter name"
-                    value={formData.name || ""}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    className="w-full border border-gray-300 rounded-[10px] px-3 py-2 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                    disabled={isPreview}
-                  />
-
-
-
-                  {/* Roll */}
-                  <div className="flex items-center gap-2">
-                    <Volleyball size={20} className="text-black" />
-                    <p className="text-black font-semibold ">Roll Name </p>
-                  </div>
-                  <select
-                    value={formData.roll_id}
-                    onChange={(e) => setFormData({ ...formData, roll_id: e.target.value })}
-                    className="w-full border border-gray-300 rounded-[10px] px-3 py-2 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                    disabled={isPreview}
-                  >
-                    <option value="">Select roll</option>
-                    {rolls.map((roll) => <option key={roll.id} value={roll.id}>{roll.name}</option>)}
-                  </select>
-
-                  {/* Batch */}
+                  {/* Batch - MOVED TO TOP */}
                   <div className="flex items-center gap-2">
                     <PackageMinus size={20} className="text-black" />
-                    <p className="text-black font-semibold ">Select Batch </p>
+                    <p className="text-black font-semibold ">Select Batch <span className="text-red-500">*</span></p>
                   </div>
 
                   <select
@@ -1031,18 +1636,42 @@ const SubBatchView = () => {
                       const selectedBatchId = e.target.value;
                       const selectedBatch = batches.find(b => b.id === Number(selectedBatchId));
 
+                      // Auto-fill roll when batch is selected
                       setFormData({
                         ...formData,
                         batch_id: selectedBatchId,
-                        roll_id: selectedBatch?.roll_id ? String(selectedBatch.roll_id) : formData.roll_id
+                        roll_id: selectedBatch?.roll_id ? String(selectedBatch.roll_id) : ''
                       });
                     }}
-                    className="w-full border border-gray-300 rounded-[10px] px-3 py-2 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    className="w-full border border-gray-300 rounded-[10px] px-3 py-2 focus:outline-none focus:ring-1 focus:ring-blue-500 text-sm"
                     disabled={isPreview}
+                    required
                   >
-                    <option value="">Select batch...</option>
-                    {batches.map((batch) => <option key={batch.id} value={batch.id}>{batch.name}</option>)}
+                    <option value="">Select batch first...</option>
+                    {[...batches]
+                      .sort((a, b) => b.id - a.id) // Sort by ID descending (newest first)
+                      .map((batch) => (
+                        <option key={batch.id} value={batch.id}>
+                          {`${batch.name} (B${String(batch.id).padStart(3, '0')}) | Qty: ${batch.quantity} ${batch.unit || 'pcs'} | Color: ${batch.color || 'N/A'} | Vendor: ${batch.vendor?.name || 'No Vendor'}`}
+                        </option>
+                      ))}
                   </select>
+
+                      {/* Roll - AUTO-FILLED */}
+                      <div>
+                        <label className="block text-sm font-semibold text-gray-900 mb-1.5">
+                          Roll Name <span className="text-xs text-gray-500">(Auto-filled from Batch)</span>
+                        </label>
+                        <select
+                          value={formData.roll_id}
+                          onChange={(e) => setFormData({ ...formData, roll_id: e.target.value })}
+                          className="w-full border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm bg-gray-100 cursor-not-allowed"
+                          disabled={true} // Always disabled - auto-filled from batch
+                        >
+                          <option value="">Select batch first to auto-fill roll...</option>
+                          {rolls.map((roll) => <option key={roll.id} value={roll.id}>{roll.name}</option>)}
+                        </select>
+                      </div>
 
                   {/* Estimated Pieces */}
                   <div className="flex items-center gap-2">
@@ -1260,29 +1889,29 @@ const SubBatchView = () => {
                     </div>
                   </div>
 
-                  {/* Buttons */}
-                  <div className="mt-6 flex justify-between ">
-                    <button
-                      onClick={() => setIsModalOpen(false)}
-                      className="px-4 py-2 bg-gray-100 text-gray-700 rounded-[10px] rounded hover:bg-gray-200 font-extrabold"
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      onClick={() => {
-                        if (window.confirm("Are you sure you want to save this subbatch?")) {
-                          handleSaveSubBatch();
-                        }
-                      }}
-                      className="px-4 py-2 bg-[#6B98FF] rounded-[10px] text-white hover:bg-blue-600 font-extrabold"
-                    >
-                      Save
-                    </button>
-                  </div>
-                </div>
+                    </div>
+
+                    {/* Footer Buttons */}
+                    <div className="flex justify-end gap-3 mt-4 pt-4 border-t border-gray-200 sticky bottom-0 bg-white">
+                      <button
+                        onClick={() => setIsModalOpen(false)}
+                        className="px-6 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 font-medium transition-colors"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        onClick={() => {
+                          if (window.confirm("Are you sure you want to save this sub batch?")) {
+                            handleSaveSubBatch();
+                          }
+                        }}
+                        className="px-6 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 font-medium transition-colors shadow-sm"
+                      >
+                        {editingSubBatch ? "Update Sub Batch" : "Save Sub Batch"}
+                      </button>
+                    </div>
+                  </>
                 )}
-              </div>
-            </div>
           </div>
         </div>
       )}
