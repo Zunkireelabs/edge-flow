@@ -202,33 +202,35 @@ const CreateSupervisor = () => {
             </p>
           </div>
         ) : (
-          <table className="w-full border-collapse">
+          <table className="w-full min-w-full">
             <thead>
               <tr className="border-b border-gray-200">
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">ID</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Name</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Email</th>
-                <th className="px-4 py-3 text-right text-xs font-semibold text-gray-700 uppercase tracking-wider">Actions</th>
+                <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">ID</th>
+                <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Name</th>
+                <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Email</th>
+                <th className="px-4 py-3 text-right text-sm font-medium text-gray-500">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
               {supervisors.map((sup) => (
                 <tr key={sup.id} className="hover:bg-gray-50 transition-colors">
-                  <td className="px-4 py-3 text-sm font-medium text-gray-900">SU{sup.id}</td>
-                  <td className="px-4 py-3 text-sm text-gray-900">{sup.name}</td>
-                  <td className="px-4 py-3 text-sm text-gray-600">{sup.email}</td>
-                  <td className="px-4 py-3 text-right">
-                    <div className="flex items-center justify-end gap-2">
+                  <td className="px-4 py-3.5 text-sm text-gray-500">S{String(sup.id).padStart(3, '0')}</td>
+                  <td className="px-4 py-3.5">
+                    <span className="text-sm font-medium text-blue-600 hover:text-blue-700 hover:underline cursor-pointer">{sup.name}</span>
+                  </td>
+                  <td className="px-4 py-3.5 text-sm text-gray-600">{sup.email}</td>
+                  <td className="px-4 py-3.5 text-right">
+                    <div className="flex items-center justify-end gap-1">
                       <button
                         onClick={() => handleEdit(sup)}
-                        className="p-1.5 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
+                        className="p-1.5 rounded hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors"
                         title="Edit"
                       >
                         <Edit2 size={16} />
                       </button>
                       <button
                         onClick={() => handleDelete(sup.id)}
-                        className="p-1.5 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
+                        className="p-1.5 rounded hover:bg-gray-100 text-gray-400 hover:text-red-500 transition-colors"
                         title="Delete"
                       >
                         <Trash2 size={16} />

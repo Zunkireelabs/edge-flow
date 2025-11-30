@@ -639,10 +639,10 @@ const BatchView = () => {
                 </p>
               </div>
             ) : (
-              <table className="w-max min-w-full table-auto border-collapse">
+              <table className="w-full min-w-full">
                 <thead>
                   <tr className="border-b border-gray-200">
-                    <th className="px-4 py-2.5">
+                    <th className="px-4 py-3 text-left w-12">
                       <input
                         type="checkbox"
                         checked={selectedRows.size === filteredBatches.length}
@@ -650,23 +650,23 @@ const BatchView = () => {
                         className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                       />
                     </th>
-                    <th className="px-4 py-2.5 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">ID</th>
-                    <th className="px-4 py-2.5 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">BATCH</th>
-                    <th className="px-4 py-2.5 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">QUANTITY</th>
-                    <th className="px-4 py-2.5 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">UNIT</th>
-                    <th className="px-4 py-2.5 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">COLOR</th>
-                    <th className="px-4 py-2.5 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">ROLL</th>
-                    <th className="px-4 py-2.5 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">VENDOR</th>
-                    <th className="px-4 py-2.5 text-right text-xs font-semibold text-gray-700 uppercase tracking-wider">ACTIONS</th>
+                    <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">ID</th>
+                    <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Name</th>
+                    <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Quantity</th>
+                    <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Unit</th>
+                    <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Color</th>
+                    <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Roll</th>
+                    <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Vendor</th>
+                    <th className="px-4 py-3 text-right text-sm font-medium text-gray-500">Actions</th>
                   </tr>
                 </thead>
-                <tbody className="bg-white divide-y divide-gray-100">
+                <tbody className="divide-y divide-gray-100">
                   {filteredBatches.map((batch) => (
                     <tr
                       key={batch.id}
-                      className={selectedRows.has(batch.id) ? 'bg-blue-50 border-l-4 border-l-blue-500' : 'hover:bg-gray-50 border-l-4 border-l-transparent'}
+                      className={`transition-colors ${selectedRows.has(batch.id) ? 'bg-blue-50' : 'hover:bg-gray-50'}`}
                     >
-                      <td className="px-4 py-2.5">
+                      <td className="px-4 py-3.5">
                         <input
                           type="checkbox"
                           checked={selectedRows.has(batch.id)}
@@ -674,47 +674,36 @@ const BatchView = () => {
                           className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                         />
                       </td>
-                      <td className="px-4 py-2.5 text-sm text-gray-900 font-medium">BA00{batch.id}</td>
-                      <td className="px-4 py-2.5 text-sm text-gray-900">{batch.name}</td>
-                      <td className="px-4 py-2.5 text-sm text-gray-900">{batch.quantity}</td>
-                      <td className="px-4 py-2.5 text-sm text-gray-900">{batch.unit}</td>
-                      <td className="px-4 py-2.5 text-sm">
-                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
-                          {batch.color}
-                        </span>
+                      <td className="px-4 py-3.5 text-sm text-gray-500">B{String(batch.id).padStart(3, '0')}</td>
+                      <td className="px-4 py-3.5">
+                        <span className="text-sm font-medium text-blue-600 hover:text-blue-700 hover:underline cursor-pointer">{batch.name}</span>
                       </td>
-                      <td className="px-4 py-2.5 text-sm text-gray-900">{batch.roll?.name || "-"}</td>
-                      <td className="px-4 py-2.5 text-sm text-gray-900">
-                        {batch.vendor ? (
-                          <div className="flex items-center gap-2">
-                            <div className={`w-8 h-8 rounded-full ${getAvatarColor(batch.vendor.name)} flex items-center justify-center text-white text-xs font-semibold`}>
-                              {getVendorInitials(batch.vendor.name)}
-                            </div>
-                            <span>{batch.vendor.name}</span>
-                          </div>
-                        ) : (
-                          "-"
-                        )}
+                      <td className="px-4 py-3.5 text-sm text-gray-600">{batch.quantity}</td>
+                      <td className="px-4 py-3.5 text-sm text-gray-600">{batch.unit}</td>
+                      <td className="px-4 py-3.5 text-sm text-gray-600">{batch.color}</td>
+                      <td className="px-4 py-3.5 text-sm text-gray-600">{batch.roll?.name || <span className="text-gray-400">—</span>}</td>
+                      <td className="px-4 py-3.5 text-sm text-gray-600">
+                        {batch.vendor ? batch.vendor.name : <span className="text-gray-400">—</span>}
                       </td>
-                      <td className="px-4 py-2.5 text-right">
-                        <div className="flex items-center justify-end gap-2">
+                      <td className="px-4 py-3.5 text-right">
+                        <div className="flex items-center justify-end gap-1">
                           <button
                             onClick={() => handlePreview(batch)}
-                            className="p-1.5 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
+                            className="p-1.5 rounded hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors"
                             title="Preview"
                           >
                             <Eye size={16} />
                           </button>
                           <button
                             onClick={() => handleEdit(batch)}
-                            className="p-1.5 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
+                            className="p-1.5 rounded hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors"
                             title="Edit"
                           >
                             <Edit2 size={16} />
                           </button>
                           <button
                             onClick={() => handleDelete(batch.id)}
-                            className="p-1.5 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
+                            className="p-1.5 rounded hover:bg-gray-100 text-gray-400 hover:text-red-500 transition-colors"
                             title="Delete"
                           >
                             <Trash2 size={16} />

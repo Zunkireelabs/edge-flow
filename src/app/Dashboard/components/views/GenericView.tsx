@@ -195,46 +195,48 @@ const VendorView = () => {
             </p>
           </div>
         ) : (
-          <table className="w-full table-auto border-collapse">
+          <table className="w-full min-w-full">
             <thead>
               <tr className="border-b border-gray-200">
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">S.N.</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">ID</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Name</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">VAT/PAN</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Address</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Phone</th>
-                <th className="px-4 py-3 text-right text-xs font-semibold text-gray-700 uppercase tracking-wider">Actions</th>
+                <th className="px-4 py-3 text-left text-sm font-medium text-gray-500 w-16">S.N.</th>
+                <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">ID</th>
+                <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Name</th>
+                <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">VAT/PAN</th>
+                <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Address</th>
+                <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Phone</th>
+                <th className="px-4 py-3 text-right text-sm font-medium text-gray-500">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
               {vendors.map((vendor, index) => (
                 <tr key={vendor.id} className="hover:bg-gray-50 transition-colors">
-                  <td className="px-4 py-3 text-sm text-gray-600">{index + 1}</td>
-                  <td className="px-4 py-3 text-sm font-medium text-gray-900">VE{vendor.id}</td>
-                  <td className="px-4 py-3 text-sm text-gray-900">{vendor.name}</td>
-                  <td className="px-4 py-3 text-sm text-gray-600">{vendor.vat_pan || "-"}</td>
-                  <td className="px-4 py-3 text-sm text-gray-600">{vendor.address || "-"}</td>
-                  <td className="px-4 py-3 text-sm text-gray-600">{vendor.phone || "-"}</td>
-                  <td className="px-4 py-3 text-right">
-                    <div className="flex items-center justify-end gap-2">
+                  <td className="px-4 py-3.5 text-sm text-gray-400">{index + 1}</td>
+                  <td className="px-4 py-3.5 text-sm text-gray-500">V{String(vendor.id).padStart(3, '0')}</td>
+                  <td className="px-4 py-3.5">
+                    <span className="text-sm font-medium text-blue-600 hover:text-blue-700 hover:underline cursor-pointer">{vendor.name}</span>
+                  </td>
+                  <td className="px-4 py-3.5 text-sm text-gray-600">{vendor.vat_pan || <span className="text-gray-400">—</span>}</td>
+                  <td className="px-4 py-3.5 text-sm text-gray-600">{vendor.address || <span className="text-gray-400">—</span>}</td>
+                  <td className="px-4 py-3.5 text-sm text-gray-600">{vendor.phone || <span className="text-gray-400">—</span>}</td>
+                  <td className="px-4 py-3.5 text-right">
+                    <div className="flex items-center justify-end gap-1">
                       <button
                         onClick={() => handlePreview(vendor)}
-                        className="p-1.5 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
+                        className="p-1.5 rounded hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors"
                         title="Preview"
                       >
                         <Eye size={16} />
                       </button>
                       <button
                         onClick={() => handleEdit(vendor)}
-                        className="p-1.5 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
+                        className="p-1.5 rounded hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors"
                         title="Edit"
                       >
                         <Edit2 size={16} />
                       </button>
                       <button
                         onClick={() => handleDelete(vendor.id)}
-                        className="p-1.5 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
+                        className="p-1.5 rounded hover:bg-gray-100 text-gray-400 hover:text-red-500 transition-colors"
                         title="Delete"
                       >
                         <Trash2 size={16} />

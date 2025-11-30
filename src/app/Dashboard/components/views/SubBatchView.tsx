@@ -920,10 +920,10 @@ const SubBatchView = () => {
             </div>
           </div>
         ) : (
-          <table className="w-max min-w-full table-auto border-collapse">
+          <table className="w-full min-w-full">
             <thead>
               <tr className="border-b border-gray-200">
-                <th className="px-4 py-2.5">
+                <th className="px-4 py-3 text-left w-12">
                   <input
                     type="checkbox"
                     checked={selectedRows.size === filteredSubBatches.length}
@@ -931,24 +931,24 @@ const SubBatchView = () => {
                     className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                   />
                 </th>
-                <th className="px-4 py-2.5 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">ID</th>
-                <th className="px-4 py-2.5 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">NAME</th>
-                <th className="px-4 py-2.5 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">PARENT ROLL</th>
-                <th className="px-4 py-2.5 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">PARENT BATCH</th>
-                <th className="px-4 py-2.5 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">STATUS</th>
-                <th className="px-4 py-2.5 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">PIECES</th>
-                <th className="px-4 py-2.5 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">START DATE</th>
-                <th className="px-4 py-2.5 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">DUE DATE</th>
-                <th className="px-4 py-2.5 text-right text-xs font-semibold text-gray-700 uppercase tracking-wider">ACTIONS</th>
+                <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">ID</th>
+                <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Name</th>
+                <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Parent Roll</th>
+                <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Parent Batch</th>
+                <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Status</th>
+                <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Pieces</th>
+                <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Start Date</th>
+                <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Due Date</th>
+                <th className="px-4 py-3 text-right text-sm font-medium text-gray-500">Actions</th>
               </tr>
             </thead>
-            <tbody className="bg-white divide-y divide-gray-100">
+            <tbody className="divide-y divide-gray-100">
               {filteredSubBatches.map((sb) => (
                 <tr
                   key={sb.id}
-                  className={selectedRows.has(sb.id) ? 'bg-blue-50 border-l-4 border-l-blue-500' : 'hover:bg-gray-50 border-l-4 border-l-transparent'}
+                  className={`transition-colors ${selectedRows.has(sb.id) ? 'bg-blue-50' : 'hover:bg-gray-50'}`}
                 >
-                  <td className="px-4 py-2.5">
+                  <td className="px-4 py-3.5">
                     <input
                       type="checkbox"
                       checked={selectedRows.has(sb.id)}
@@ -956,26 +956,28 @@ const SubBatchView = () => {
                       className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                     />
                   </td>
-                  <td className="px-4 py-2.5 text-sm text-gray-900 font-medium">{`B00${sb.id.toString().padStart(2, "0")}`}</td>
-                  <td className="px-4 py-2.5 text-sm text-gray-900">{sb.name}</td>
-                  <td className="px-4 py-2.5 text-sm text-gray-900">{getRollName(sb.roll_id)}</td>
-                  <td className="px-4 py-2.5 text-sm text-gray-900">{getBatchName(sb.batch_id)}</td>
-                  <td className="px-4 py-2.5 text-sm">{getStatusBadge(sb.status)}</td>
-                  <td className="px-4 py-2.5 text-sm text-gray-900">{sb.estimated_pieces}</td>
-                  <td className="px-4 py-2.5 text-sm text-gray-900">{formatDate(sb.start_date)}</td>
-                  <td className="px-4 py-2.5 text-sm text-gray-900">{formatDate(sb.due_date)}</td>
-                  <td className="px-4 py-2.5 text-right">
-                    <div className="flex items-center justify-end gap-2">
+                  <td className="px-4 py-3.5 text-sm text-gray-500">SB{String(sb.id).padStart(3, '0')}</td>
+                  <td className="px-4 py-3.5">
+                    <span className="text-sm font-medium text-blue-600 hover:text-blue-700 hover:underline cursor-pointer">{sb.name}</span>
+                  </td>
+                  <td className="px-4 py-3.5 text-sm text-gray-600">{getRollName(sb.roll_id)}</td>
+                  <td className="px-4 py-3.5 text-sm text-gray-600">{getBatchName(sb.batch_id)}</td>
+                  <td className="px-4 py-3.5 text-sm">{getStatusBadge(sb.status)}</td>
+                  <td className="px-4 py-3.5 text-sm text-gray-600">{sb.estimated_pieces}</td>
+                  <td className="px-4 py-3.5 text-sm text-gray-600">{formatDate(sb.start_date)}</td>
+                  <td className="px-4 py-3.5 text-sm text-gray-600">{formatDate(sb.due_date)}</td>
+                  <td className="px-4 py-3.5 text-right">
+                    <div className="flex items-center justify-end gap-1">
                       <button
                         onClick={() => handlePreview(sb.id)}
-                        className="p-1.5 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
+                        className="p-1.5 rounded hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors"
                         title="Preview"
                       >
                         <Eye size={16} />
                       </button>
                       <button
                         onClick={() => handleEdit(sb)}
-                        className="p-1.5 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
+                        className="p-1.5 rounded hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors"
                         title="Edit"
                       >
                         <Edit2 size={16} />
@@ -983,14 +985,14 @@ const SubBatchView = () => {
                       <button
                         onClick={() => handleDelete(sb.id)}
                         disabled={deletingId === sb.id}
-                        className="p-1.5 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="p-1.5 rounded hover:bg-gray-100 text-gray-400 hover:text-red-500 transition-colors disabled:opacity-50"
                         title="Delete"
                       >
                         <Trash2 size={16} />
                       </button>
                       <button
                         onClick={() => handleSend(sb)}
-                        className="p-1.5 text-gray-600 hover:text-green-600 hover:bg-green-50 rounded transition-colors"
+                        className="p-1.5 rounded hover:bg-gray-100 text-gray-400 hover:text-green-600 transition-colors"
                         title="Send to Production"
                       >
                         <Package size={16} />

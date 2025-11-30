@@ -339,50 +339,48 @@ const DepartmentForm = () => {
             </p>
           </div>
         ) : (
-          <table className="w-full table-auto border-collapse">
+          <table className="w-full min-w-full">
             <thead>
               <tr className="border-b border-gray-200">
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">S.N.</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">ID</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Department Name</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Supervisor</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Workers</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Remarks</th>
-                <th className="px-4 py-3 text-right text-xs font-semibold text-gray-700 uppercase tracking-wider">Actions</th>
+                <th className="px-4 py-3 text-left text-sm font-medium text-gray-500 w-16">S.N.</th>
+                <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">ID</th>
+                <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Department Name</th>
+                <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Supervisor</th>
+                <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Workers</th>
+                <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Remarks</th>
+                <th className="px-4 py-3 text-right text-sm font-medium text-gray-500">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
               {departments.map((dept, index) => (
                 <tr key={dept.id} className="hover:bg-gray-50 transition-colors">
-                  <td className="px-4 py-3 text-sm text-gray-600">{index + 1}</td>
-                  <td className="px-4 py-3 text-sm font-medium text-gray-900">D00{dept.id}</td>
-                  <td className="px-4 py-3 text-sm text-gray-900">{dept.name}</td>
-                  <td className="px-4 py-3 text-sm text-gray-600">{getSupervisorName(dept.supervisor)}</td>
-                  <td className="px-4 py-3 text-sm text-gray-600">
-                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                      {dept.workers?.length || 0} Workers
-                    </span>
+                  <td className="px-4 py-3.5 text-sm text-gray-400">{index + 1}</td>
+                  <td className="px-4 py-3.5 text-sm text-gray-500">D{String(dept.id).padStart(3, '0')}</td>
+                  <td className="px-4 py-3.5">
+                    <span className="text-sm font-medium text-blue-600 hover:text-blue-700 hover:underline cursor-pointer">{dept.name}</span>
                   </td>
-                  <td className="px-4 py-3 text-sm text-gray-600">{dept.remarks || 'N/A'}</td>
-                  <td className="px-4 py-3 text-right">
-                    <div className="flex items-center justify-end gap-2">
+                  <td className="px-4 py-3.5 text-sm text-gray-600">{getSupervisorName(dept.supervisor)}</td>
+                  <td className="px-4 py-3.5 text-sm text-gray-600">{dept.workers?.length || 0} workers</td>
+                  <td className="px-4 py-3.5 text-sm text-gray-600">{dept.remarks || <span className="text-gray-400">—</span>}</td>
+                  <td className="px-4 py-3.5 text-right">
+                    <div className="flex items-center justify-end gap-1">
                       <button
                         onClick={() => handlePreview(dept)}
-                        className="p-1.5 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
+                        className="p-1.5 rounded hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors"
                         title="Preview"
                       >
                         <Eye size={16} />
                       </button>
                       <button
                         onClick={() => handleEdit(dept)}
-                        className="p-1.5 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
+                        className="p-1.5 rounded hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors"
                         title="Edit"
                       >
                         <Edit2 size={16} />
                       </button>
                       <button
                         onClick={() => handleDelete(dept.id)}
-                        className="p-1.5 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
+                        className="p-1.5 rounded hover:bg-gray-100 text-gray-400 hover:text-red-500 transition-colors"
                         title="Delete"
                       >
                         <Trash2 size={16} />

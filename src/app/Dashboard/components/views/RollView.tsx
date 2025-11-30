@@ -573,10 +573,10 @@ const RollView = () => {
             </p>
           </div>
         ) : (
-          <table className="w-max min-w-full table-auto border-collapse">
+          <table className="w-full min-w-full">
             <thead>
               <tr className="border-b border-gray-200">
-                <th className="px-4 py-2.5 text-left w-12">
+                <th className="px-4 py-3 text-left w-12">
                   <input
                     type="checkbox"
                     checked={selectedRows.size === filteredRolls.length && filteredRolls.length > 0}
@@ -584,26 +584,26 @@ const RollView = () => {
                     className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                   />
                 </th>
-                <th className="px-4 py-2.5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
-                <th className="px-4 py-2.5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ROLL</th>
-                <th className="px-4 py-2.5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">QUANTITY</th>
-                <th className="px-4 py-2.5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">UNIT</th>
-                <th className="px-4 py-2.5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">COLOR</th>
-                <th className="px-4 py-2.5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">VENDOR</th>
-                <th className="px-4 py-2.5 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">ACTIONS</th>
+                <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">ID</th>
+                <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Name</th>
+                <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Quantity</th>
+                <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Unit</th>
+                <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Color</th>
+                <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Vendor</th>
+                <th className="px-4 py-3 text-right text-sm font-medium text-gray-500">Actions</th>
               </tr>
             </thead>
-            <tbody className="bg-white divide-y divide-gray-100">
+            <tbody className="divide-y divide-gray-100">
               {filteredRolls.map((roll, index) => (
                 <tr
                   key={roll.id}
-                  className={`transition-all ${
+                  className={`transition-colors ${
                     selectedRows.has(roll.id)
-                      ? 'bg-blue-50 border-l-4 border-l-blue-500'
-                      : 'hover:bg-gray-50 border-l-4 border-l-transparent'
+                      ? 'bg-blue-50'
+                      : 'hover:bg-gray-50'
                   }`}
                 >
-                  <td className="px-4 py-2.5">
+                  <td className="px-4 py-3.5">
                     <input
                       type="checkbox"
                       checked={selectedRows.has(roll.id)}
@@ -611,50 +611,35 @@ const RollView = () => {
                       className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                     />
                   </td>
-                  <td className="px-4 py-2.5 text-sm font-medium text-gray-900">R00{roll.id}</td>
-                  <td className="px-4 py-2.5">
-                    <div className="flex flex-col">
-                      <span className="text-sm font-medium text-gray-900">{roll.name}</span>
-                    </div>
+                  <td className="px-4 py-3.5 text-sm text-gray-500">R{String(roll.id).padStart(3, '0')}</td>
+                  <td className="px-4 py-3.5">
+                    <span className="text-sm font-medium text-blue-600 hover:text-blue-700 hover:underline cursor-pointer">{roll.name}</span>
                   </td>
-                  <td className="px-4 py-2.5 text-sm text-gray-700">{roll.quantity}</td>
-                  <td className="px-4 py-2.5 text-sm text-gray-700">{roll.unit}</td>
-                  <td className="px-4 py-2.5">
-                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
-                      {roll.color}
-                    </span>
+                  <td className="px-4 py-3.5 text-sm text-gray-600">{roll.quantity}</td>
+                  <td className="px-4 py-3.5 text-sm text-gray-600">{roll.unit}</td>
+                  <td className="px-4 py-3.5 text-sm text-gray-600">{roll.color}</td>
+                  <td className="px-4 py-3.5 text-sm text-gray-600">
+                    {roll.vendor ? roll.vendor.name : <span className="text-gray-400">—</span>}
                   </td>
-                  <td className="px-4 py-2.5">
-                    {roll.vendor ? (
-                      <div className="flex items-center gap-2">
-                        <div className={`w-8 h-8 rounded-full ${getAvatarColor(roll.vendor.name)} flex items-center justify-center text-white text-xs font-semibold`}>
-                          {getVendorInitials(roll.vendor.name)}
-                        </div>
-                        <span className="text-sm text-gray-700">{roll.vendor.name}</span>
-                      </div>
-                    ) : (
-                      <span className="text-sm text-gray-400">-</span>
-                    )}
-                  </td>
-                  <td className="px-4 py-2.5 text-right">
-                    <div className="flex items-center justify-end gap-2">
+                  <td className="px-4 py-3.5 text-right">
+                    <div className="flex items-center justify-end gap-1">
                       <button
                         onClick={() => handlePreview(roll)}
-                        className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-600 hover:text-blue-600 transition-colors"
+                        className="p-1.5 rounded hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors"
                         title="Preview"
                       >
                         <Eye size={16} />
                       </button>
                       <button
                         onClick={() => handleEdit(roll)}
-                        className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-600 hover:text-blue-600 transition-colors"
+                        className="p-1.5 rounded hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors"
                         title="Edit"
                       >
                         <Edit2 size={16} />
                       </button>
                       <button
                         onClick={() => handleDelete(roll.id)}
-                        className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-600 hover:text-red-600 transition-colors"
+                        className="p-1.5 rounded hover:bg-gray-100 text-gray-400 hover:text-red-500 transition-colors"
                         title="Delete"
                       >
                         <Trash2 size={16} />

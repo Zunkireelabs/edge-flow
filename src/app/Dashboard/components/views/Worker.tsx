@@ -178,52 +178,50 @@ const WorkerPage = () => {
                         <p className="text-gray-500 text-sm">Click Add Worker to get started</p>
                     </div>
                 ) : (
-                    <table className="w-full table-auto border-collapse">
+                    <table className="w-full min-w-full">
                         <thead>
                             <tr className="border-b border-gray-200">
-                                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">S.N.</th>
-                                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">ID</th>
-                                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Name</th>
-                                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">PAN</th>
-                                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Address</th>
-                                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Wage Type</th>
-                                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Wage Rate</th>
-                                <th className="px-4 py-3 text-right text-xs font-semibold text-gray-700 uppercase tracking-wider">Actions</th>
+                                <th className="px-4 py-3 text-left text-sm font-medium text-gray-500 w-16">S.N.</th>
+                                <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">ID</th>
+                                <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Name</th>
+                                <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">PAN</th>
+                                <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Address</th>
+                                <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Wage Type</th>
+                                <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Wage Rate</th>
+                                <th className="px-4 py-3 text-right text-sm font-medium text-gray-500">Actions</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-100">
                             {workers.map((worker, index) => (
                                 <tr key={worker.id} className="hover:bg-gray-50 transition-colors">
-                                    <td className="px-4 py-3 text-sm text-gray-600">{index + 1}</td>
-                                    <td className="px-4 py-3 text-sm text-gray-900 font-medium">WR{worker.id}</td>
-                                    <td className="px-4 py-3 text-sm text-gray-900">{worker.name}</td>
-                                    <td className="px-4 py-3 text-sm text-gray-600">{worker.pan}</td>
-                                    <td className="px-4 py-3 text-sm text-gray-600">{worker.address}</td>
-                                    <td className="px-4 py-3 text-sm text-gray-600">
-                                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
-                                        {worker.wage_type}
-                                      </span>
+                                    <td className="px-4 py-3.5 text-sm text-gray-400">{index + 1}</td>
+                                    <td className="px-4 py-3.5 text-sm text-gray-500">W{String(worker.id).padStart(3, '0')}</td>
+                                    <td className="px-4 py-3.5">
+                                      <span className="text-sm font-medium text-blue-600 hover:text-blue-700 hover:underline cursor-pointer">{worker.name}</span>
                                     </td>
-                                    <td className="px-4 py-3 text-sm text-gray-900 font-medium">{worker.wage_rate}</td>
-                                    <td className="px-4 py-3 text-right">
-                                        <div className="flex items-center justify-end gap-2">
+                                    <td className="px-4 py-3.5 text-sm text-gray-600">{worker.pan}</td>
+                                    <td className="px-4 py-3.5 text-sm text-gray-600">{worker.address}</td>
+                                    <td className="px-4 py-3.5 text-sm text-gray-600">{worker.wage_type}</td>
+                                    <td className="px-4 py-3.5 text-sm text-gray-600">{worker.wage_rate}</td>
+                                    <td className="px-4 py-3.5 text-right">
+                                        <div className="flex items-center justify-end gap-1">
                                             <button
                                                 onClick={() => handlePreview(worker)}
-                                                className="p-1.5 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
+                                                className="p-1.5 rounded hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors"
                                                 title="Preview"
                                             >
                                                 <Eye size={16} />
                                             </button>
                                             <button
                                                 onClick={() => handleEdit(worker)}
-                                                className="p-1.5 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
+                                                className="p-1.5 rounded hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors"
                                                 title="Edit"
                                             >
                                                 <Edit2 size={16} />
                                             </button>
                                             <button
                                                 onClick={() => handleDelete(worker.id)}
-                                                className="p-1.5 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
+                                                className="p-1.5 rounded hover:bg-gray-100 text-gray-400 hover:text-red-500 transition-colors"
                                                 title="Delete"
                                             >
                                                 <Trash2 size={16} />
