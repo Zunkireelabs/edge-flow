@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import Loader from "@/app/Components/Loader";
 import NepaliDatePicker from "@/app/Components/NepaliDatePicker";
+import { useToast } from "@/app/Components/ToastContext";
 
 interface WorkerAssignment {
   id: string | number;
@@ -56,6 +57,7 @@ const GET_WORKERS = process.env.NEXT_PUBLIC_GET_WORKERS;
 const GET_SUPERVISOR = process.env.NEXT_PUBLIC_GET_SUPERVISOR;
 
 const DepartmentForm = () => {
+  const { showToast, showConfirm } = useToast();
   const [departments, setDepartments] = useState<Department[]>([]);
   const [loading, setLoading] = useState(true);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
@@ -138,7 +140,7 @@ const DepartmentForm = () => {
       setDepartments(normalizedData);
     } catch (err) {
       console.error("Fetch error:", err);
-      alert("Failed to fetch departments.");
+      showToast("error", "Failed to fetch departments.");
     } finally {
       setLoading(false);
     }
@@ -171,7 +173,7 @@ const DepartmentForm = () => {
       setSupervisors(supervisorsArray);
     } catch (err) {
       console.error("Fetch supervisors error:", err);
-      alert("Failed to fetch supervisors.");
+      showToast("error", "Failed to fetch supervisors.");
     }
   };
 
@@ -185,7 +187,7 @@ const DepartmentForm = () => {
       console.log(data)
     } catch (err) {
       console.error("Fetch workers error:", err);
-      alert("Failed to fetch workers.");
+      showToast("error", "Failed to fetch workers.");
     }
   };
   useEffect(() => {
@@ -201,11 +203,11 @@ const DepartmentForm = () => {
       setSaveLoading(true);
 
       if (!formData.name.trim()) {
-        alert("Department name is required");
+        showToast("warning", "Department name is required");
         return;
       }
       if (!formData.supervisor.trim()) {
-        alert("Supervisor is required");
+        showToast("warning", "Supervisor is required");
         return;
       }
 
@@ -240,10 +242,10 @@ const DepartmentForm = () => {
       if (!response.ok) throw new Error("Failed to save department");
 
       await fetchDepartments();
-      alert(`Department ${editingDept ? "updated" : "created"} successfully`);
+      showToast("success", `Department ${editingDept ? "updated" : "created"} successfully`);
     } catch (err) {
       console.error("Save error:", err);
-      alert("Error saving department.");
+      showToast("error", "Error saving department.");
     } finally {
       setSaveLoading(false);
       resetFormData();
@@ -283,15 +285,24 @@ const DepartmentForm = () => {
 
   // Delete
   const handleDelete = async (id: number | string) => {
-    if (!confirm("Are you sure you want to delete this department?")) return;
+    const confirmed = await showConfirm({
+      title: "Delete Department",
+      message: "Are you sure you want to delete this department? This action cannot be undone.",
+      confirmText: "Delete",
+      cancelText: "Cancel",
+      type: "danger",
+    });
+
+    if (!confirmed) return;
+
     try {
       const res = await fetch(`${DELETE_DEPARTMENTS}/${id}`, { method: "DELETE" });
       if (!res.ok) throw new Error("Failed to delete department");
       await fetchDepartments();
-      alert("Department deleted successfully");
+      showToast("success", "Department deleted successfully");
     } catch (err) {
       console.error("Delete error:", err);
-      alert("Failed to delete department");
+      showToast("error", "Failed to delete department");
     }
   };
 
@@ -304,19 +315,18 @@ const DepartmentForm = () => {
   };
 
   return (
-    <div className="p-8 bg-gray-50 min-h-full">
+    <div className="p-8 bg-white min-h-full">
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex items-center justify-between mb-4">
         <div>
-          <h2 className="text-2xl font-bold">Department Management</h2>
-          <p className="text-gray-500">Manage departments, supervisors, and workers</p>
+          <h2 className="text-xl font-semibold text-gray-900">Department Management</h2>
+          <p className="text-gray-500 text-sm">Manage departments, supervisors, and workers</p>
         </div>
         <button
           className="flex items-center gap-2 bg-[#2272B4] text-white px-5 py-2.5 rounded font-semibold shadow-md hover:bg-[#0E538B] hover:shadow-lg transition-all duration-200 hover:scale-105"
           onClick={() => {
             resetFormData();
             setIsDrawerOpen(true);
-            setOpenMenuId(null);
             setIsPreview(false);
           }}
         >
@@ -324,8 +334,8 @@ const DepartmentForm = () => {
         </button>
       </div>
 
-      {/* Table */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+      {/* Table - Databricks style */}
+      <div className="bg-white overflow-hidden">
         {loading ? (
           <div className="p-6">
             <Loader loading={true} message="Loading Departments..." />
@@ -341,28 +351,28 @@ const DepartmentForm = () => {
         ) : (
           <table className="w-full min-w-full">
             <thead>
-              <tr className="border-b border-gray-200">
-                <th className="px-4 py-3 text-left text-sm font-medium text-gray-500 w-16">S.N.</th>
-                <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">ID</th>
-                <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Department Name</th>
-                <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Supervisor</th>
-                <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Workers</th>
-                <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Remarks</th>
-                <th className="px-4 py-3 text-right text-sm font-medium text-gray-500">Actions</th>
+              <tr className="border-b border-gray-100 bg-gray-50/50">
+                <th className="px-4 py-3 text-left text-sm font-normal text-gray-500 w-16">S.N.</th>
+                <th className="px-4 py-3 text-left text-sm font-normal text-gray-500">ID</th>
+                <th className="px-4 py-3 text-left text-sm font-normal text-gray-500">Department Name</th>
+                <th className="px-4 py-3 text-left text-sm font-normal text-gray-500">Supervisor</th>
+                <th className="px-4 py-3 text-left text-sm font-normal text-gray-500">Workers</th>
+                <th className="px-4 py-3 text-left text-sm font-normal text-gray-500">Remarks</th>
+                <th className="px-4 py-3 text-right text-sm font-normal text-gray-500">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
               {departments.map((dept, index) => (
                 <tr key={dept.id} className="hover:bg-gray-50 transition-colors">
-                  <td className="px-4 py-3.5 text-sm text-gray-400">{index + 1}</td>
-                  <td className="px-4 py-3.5 text-sm text-gray-500">D{String(dept.id).padStart(3, '0')}</td>
-                  <td className="px-4 py-3.5">
-                    <span className="text-sm font-medium text-blue-600 hover:text-blue-700 hover:underline cursor-pointer">{dept.name}</span>
+                  <td className="px-4 py-3 text-sm text-gray-400">{index + 1}</td>
+                  <td className="px-4 py-3 text-sm text-gray-500">D{String(dept.id).padStart(3, '0')}</td>
+                  <td className="px-4 py-3">
+                    <span className="text-sm font-normal text-[#2272B4] hover:underline cursor-pointer">{dept.name}</span>
                   </td>
-                  <td className="px-4 py-3.5 text-sm text-gray-600">{getSupervisorName(dept.supervisor)}</td>
-                  <td className="px-4 py-3.5 text-sm text-gray-600">{dept.workers?.length || 0} workers</td>
-                  <td className="px-4 py-3.5 text-sm text-gray-600">{dept.remarks || <span className="text-gray-400">—</span>}</td>
-                  <td className="px-4 py-3.5 text-right">
+                  <td className="px-4 py-3 text-sm text-gray-600">{getSupervisorName(dept.supervisor)}</td>
+                  <td className="px-4 py-3 text-sm text-gray-600">{dept.workers?.length || 0} workers</td>
+                  <td className="px-4 py-3 text-sm text-gray-600">{dept.remarks || <span className="text-gray-400">—</span>}</td>
+                  <td className="px-4 py-3 text-right">
                     <div className="flex items-center justify-end gap-1">
                       <button
                         onClick={() => handlePreview(dept)}

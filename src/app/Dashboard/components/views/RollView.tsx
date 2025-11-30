@@ -20,6 +20,7 @@ import {
   Filter,
 } from "lucide-react";
 import Loader from "@/app/Components/Loader";
+import { useToast } from "@/app/Components/ToastContext";
 
 interface Vendor {
   id: number | string;
@@ -47,6 +48,7 @@ const DELETE_ROLL = process.env.NEXT_PUBLIC_DELETE_ROLL;
 const GET_VENDORS = process.env.NEXT_PUBLIC_API_VENDOR;
 
 const RollView = () => {
+  const { showToast, showConfirm } = useToast();
   const [rolls, setRolls] = useState<Roll[]>([]);
   const [loading, setLoading] = useState(true);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
@@ -171,7 +173,7 @@ const RollView = () => {
       setRolls(data);
     } catch (err) {
       console.error("Fetch error:", err);
-      alert("Failed to fetch rolls. Please try again.");
+      showToast("error", "Failed to fetch rolls. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -186,7 +188,7 @@ const RollView = () => {
       setVendors(data);
     } catch (err) {
       console.error("Fetch vendors error:", err);
-      alert("Failed to fetch vendors.");
+      showToast("error", "Failed to fetch vendors.");
     }
   };
 
@@ -231,11 +233,11 @@ const RollView = () => {
 
       // Validation
       if (!formData.name.trim()) {
-        alert("Roll name is required");
+        showToast("warning", "Roll name is required");
         return;
       }
       if (!formData.quantity || Number(formData.quantity) <= 0) {
-        alert("Valid quantity is required");
+        showToast("warning", "Valid quantity is required");
         return;
       }
 
@@ -287,11 +289,11 @@ const RollView = () => {
       await fetchRolls();
 
       // Show success message
-      alert(`Roll ${editingRoll ? 'updated' : 'created'} successfully!`);
+      showToast("success", `Roll ${editingRoll ? 'updated' : 'created'} successfully!`);
 
     } catch (err) {
       console.error("Save error:", err);
-      alert(`Error ${editingRoll ? 'updating' : 'creating'} roll: ${err instanceof Error ? err.message : 'Unknown error'}`);
+      showToast("error", `Error ${editingRoll ? 'updating' : 'creating'} roll: ${err instanceof Error ? err.message : 'Unknown error'}`);
     } finally {
       setSaveLoading(false);
       resetFormData();
@@ -334,18 +336,24 @@ const RollView = () => {
 
   // Delete
   const handleDelete = async (id: number | string) => {
-    if (!confirm("Are you sure you want to delete this roll?")) {
-      return;
-    }
+    const confirmed = await showConfirm({
+      title: "Delete Roll",
+      message: "Are you sure you want to delete this roll? This action cannot be undone.",
+      confirmText: "Delete",
+      cancelText: "Cancel",
+      type: "danger",
+    });
+
+    if (!confirmed) return;
 
     try {
       const res = await fetch(`${DELETE_ROLL}/${id}`, { method: "DELETE" });
       if (!res.ok) throw new Error("Failed to delete roll");
       await fetchRolls();
-      alert("Roll deleted successfully!");
+      showToast("success", "Roll deleted successfully!");
     } catch (err) {
       console.error("Delete error:", err);
-      alert("Failed to delete roll. Please try again.");
+      showToast("error", "Failed to delete roll. Please try again.");
     }
   };
 
@@ -359,7 +367,7 @@ const RollView = () => {
   };
 
   return (
-    <div className="pr-8 bg-gray-50 min-h-screen">
+    <div className="pr-8 bg-white min-h-screen">
       {/* Main Layout: Filter Sidebar + Content */}
       <div className="flex min-h-screen">
         {/* Filters Sidebar */}
@@ -528,7 +536,7 @@ const RollView = () => {
         {/* Main Content Area */}
         <div className="flex-1 pl-6 min-h-screen">
           {/* Header */}
-          <div className="flex items-center justify-between mb-6 pt-6">
+          <div className="flex items-center justify-between mb-4 pt-6">
             <div className="flex items-start gap-3">
               <button
                 onClick={() => setFilterSidebarOpen(!filterSidebarOpen)}
@@ -538,8 +546,8 @@ const RollView = () => {
                 <Filter className="w-5 h-5 text-gray-600" />
               </button>
               <div>
-                <h2 className="text-2xl font-bold">Roll View</h2>
-                <p className="text-gray-500 text-l font-regular">
+                <h2 className="text-xl font-semibold text-gray-900">Roll View</h2>
+                <p className="text-gray-500 text-sm">
                   Manage production rolls and track progress
                 </p>
               </div>
@@ -557,8 +565,8 @@ const RollView = () => {
             </button>
           </div>
 
-          {/* Table Container */}
-          <div className="bg-white rounded-lg shadow overflow-x-auto">
+          {/* Table Container - Databricks style: clean, borderless */}
+          <div className="bg-white overflow-x-auto">
         {loading ? (
           <div className="p-6">
             <Loader loading={true} message="Loading Rolls.." />
@@ -575,22 +583,22 @@ const RollView = () => {
         ) : (
           <table className="w-full min-w-full">
             <thead>
-              <tr className="border-b border-gray-200">
+              <tr className="border-b border-gray-100 bg-gray-50/50">
                 <th className="px-4 py-3 text-left w-12">
                   <input
                     type="checkbox"
                     checked={selectedRows.size === filteredRolls.length && filteredRolls.length > 0}
                     onChange={toggleAllRows}
-                    className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                    className="w-4 h-4 rounded border-gray-300 text-[#2272B4] focus:ring-[#2272B4]"
                   />
                 </th>
-                <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">ID</th>
-                <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Name</th>
-                <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Quantity</th>
-                <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Unit</th>
-                <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Color</th>
-                <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Vendor</th>
-                <th className="px-4 py-3 text-right text-sm font-medium text-gray-500">Actions</th>
+                <th className="px-4 py-3 text-left text-sm font-normal text-gray-500">ID</th>
+                <th className="px-4 py-3 text-left text-sm font-normal text-gray-500">Name</th>
+                <th className="px-4 py-3 text-left text-sm font-normal text-gray-500">Quantity</th>
+                <th className="px-4 py-3 text-left text-sm font-normal text-gray-500">Unit</th>
+                <th className="px-4 py-3 text-left text-sm font-normal text-gray-500">Color</th>
+                <th className="px-4 py-3 text-left text-sm font-normal text-gray-500">Vendor</th>
+                <th className="px-4 py-3 text-right text-sm font-normal text-gray-500">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
@@ -603,25 +611,25 @@ const RollView = () => {
                       : 'hover:bg-gray-50'
                   }`}
                 >
-                  <td className="px-4 py-3.5">
+                  <td className="px-4 py-3">
                     <input
                       type="checkbox"
                       checked={selectedRows.has(roll.id)}
                       onChange={() => toggleRowSelection(roll.id)}
-                      className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                      className="w-4 h-4 rounded border-gray-300 text-[#2272B4] focus:ring-[#2272B4]"
                     />
                   </td>
-                  <td className="px-4 py-3.5 text-sm text-gray-500">R{String(roll.id).padStart(3, '0')}</td>
-                  <td className="px-4 py-3.5">
-                    <span className="text-sm font-medium text-blue-600 hover:text-blue-700 hover:underline cursor-pointer">{roll.name}</span>
+                  <td className="px-4 py-3 text-sm text-gray-500">R{String(roll.id).padStart(3, '0')}</td>
+                  <td className="px-4 py-3">
+                    <span className="text-sm font-normal text-[#2272B4] hover:underline cursor-pointer">{roll.name}</span>
                   </td>
-                  <td className="px-4 py-3.5 text-sm text-gray-600">{roll.quantity}</td>
-                  <td className="px-4 py-3.5 text-sm text-gray-600">{roll.unit}</td>
-                  <td className="px-4 py-3.5 text-sm text-gray-600">{roll.color}</td>
-                  <td className="px-4 py-3.5 text-sm text-gray-600">
+                  <td className="px-4 py-3 text-sm text-gray-600">{roll.quantity}</td>
+                  <td className="px-4 py-3 text-sm text-gray-600">{roll.unit}</td>
+                  <td className="px-4 py-3 text-sm text-gray-600">{roll.color}</td>
+                  <td className="px-4 py-3 text-sm text-gray-600">
                     {roll.vendor ? roll.vendor.name : <span className="text-gray-400">—</span>}
                   </td>
-                  <td className="px-4 py-3.5 text-right">
+                  <td className="px-4 py-3 text-right">
                     <div className="flex items-center justify-end gap-1">
                       <button
                         onClick={() => handlePreview(roll)}

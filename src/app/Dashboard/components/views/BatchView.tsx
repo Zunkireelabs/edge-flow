@@ -5,6 +5,7 @@ import axios from "axios";
 import { Plus, X, Edit2, Trash2, MoreVertical, BrickWall, Package, Palette, Scale, Shell, Truck, Eye, Filter, ChevronLeft } from "lucide-react";
 import Loader from "@/app/Components/Loader";
 import Select from "react-select";
+import { useToast } from "@/app/Components/ToastContext";
 
 type Vendor = {
   id: number;
@@ -37,6 +38,7 @@ type Batch = {
 };
 
 const BatchView = () => {
+  const { showToast, showConfirm } = useToast();
   const [batches, setBatches] = useState<Batch[]>([]);
   const [rolls, setRolls] = useState<Roll[]>([]);
   const [vendors, setVendors] = useState<Vendor[]>([]);
@@ -163,7 +165,7 @@ const BatchView = () => {
       setBatches(res.data);
     } catch (err) {
       console.error("Failed to fetch batches:", err);
-      alert("Failed to fetch batches. Please try again.");
+      showToast("error", "Failed to fetch batches. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -176,7 +178,7 @@ const BatchView = () => {
       setRolls(res.data);
     } catch (err) {
       console.error("Failed to fetch rolls:", err);
-      alert("Failed to fetch rolls.");
+      showToast("error", "Failed to fetch rolls.");
     }
   }, [API]);
 
@@ -188,7 +190,7 @@ const BatchView = () => {
       console.log("✅ Vendors fetched:", res.data);
     } catch (err) {
       console.error("Failed to fetch vendors:", err);
-      alert("Failed to fetch vendors.");
+      showToast("error", "Failed to fetch vendors.");
     }
   }, [API]);
 
@@ -251,11 +253,11 @@ const BatchView = () => {
 
       // Validation
       if (!formData.name.trim()) {
-        alert("Batch name is required");
+        showToast("warning", "Batch name is required");
         return;
       }
       if (!formData.quantity || formData.quantity <= 0) {
-        alert("Valid quantity is required");
+        showToast("warning", "Valid quantity is required");
         return;
       }
 
@@ -280,11 +282,11 @@ const BatchView = () => {
       if (editingBatch) {
         console.log("🔄 Updating batch with ID:", editingBatch.id);
         await axios.put(`${API}/batches/${editingBatch.id}`, payload);
-        alert("Batch updated successfully!");
+        showToast("success", "Batch updated successfully!");
       } else {
         console.log("➕ Creating new batch");
         await axios.post(`${API}/batches`, payload);
-        alert("Batch created successfully!");
+        showToast("success", "Batch created successfully!");
       }
 
       // Reset and close
@@ -296,7 +298,7 @@ const BatchView = () => {
 
     } catch (err) {
       console.error("Save error:", err);
-      alert(`Error ${editingBatch ? 'updating' : 'creating'} batch. Please try again.`);
+      showToast("error", `Error ${editingBatch ? 'updating' : 'creating'} batch. Please try again.`);
     } finally {
       setSaveLoading(false);
     }
@@ -334,24 +336,30 @@ const BatchView = () => {
   };
 
   const handleDelete = async (id: number) => {
-    if (!confirm("Are you sure you want to delete this batch?")) {
-      return;
-    }
+    const confirmed = await showConfirm({
+      title: "Delete Batch",
+      message: "Are you sure you want to delete this batch? This action cannot be undone.",
+      confirmText: "Delete",
+      cancelText: "Cancel",
+      type: "danger",
+    });
+
+    if (!confirmed) return;
 
     try {
       await axios.delete(`${API}/batches/${id}`);
       await fetchBatches();
-      alert("Batch deleted successfully!");
+      showToast("success", "Batch deleted successfully!");
     } catch (err) {
       console.error("Delete error:", err);
-      alert("Failed to delete batch. Please try again.");
+      showToast("error", "Failed to delete batch. Please try again.");
     }
   };
 
   // Bulk Delete Functions
   const handleBulkDelete = async () => {
     if (selectedRows.size === 0) {
-      alert("Please select batches to delete");
+      showToast("warning", "Please select batches to delete");
       return;
     }
 
@@ -394,7 +402,7 @@ const BatchView = () => {
       }
     } catch (err) {
       console.error("Error in bulk delete:", err);
-      alert("An unexpected error occurred. Please try again.");
+      showToast("error", "An unexpected error occurred. Please try again.");
     }
   };
 
@@ -405,7 +413,7 @@ const BatchView = () => {
 
   const confirmBulkDelete = async () => {
     if (deleteConfirmText.toLowerCase() !== "delete") {
-      alert("Please type 'delete' to confirm");
+      showToast("warning", "Please type 'delete' to confirm");
       return;
     }
 
@@ -426,10 +434,10 @@ const BatchView = () => {
       setBatchesWithSubBatches([]);
       setCleanBatches([]);
 
-      alert(`Successfully deleted ${selectedBatchIds.length} batch(es)`);
+      showToast("success", `Successfully deleted ${selectedBatchIds.length} batch(es)`);
     } catch (err) {
       console.error("Bulk delete error:", err);
-      alert("Failed to delete some batches. Please try again.");
+      showToast("error", "Failed to delete some batches. Please try again.");
     } finally {
       setIsDeleting(false);
     }
@@ -452,7 +460,7 @@ const BatchView = () => {
   };
 
   return (
-    <div className="pr-8 bg-gray-50 min-h-screen">
+    <div className="pr-8 bg-white min-h-screen">
       {/* Main Layout: Filter Sidebar + Content */}
       <div className="flex min-h-screen">
         {/* Filters Sidebar */}
@@ -596,7 +604,7 @@ const BatchView = () => {
         {/* Main Content Area */}
         <div className="flex-1 pl-6 min-h-screen">
           {/* Header */}
-          <div className="flex items-center justify-between mb-6 pt-6">
+          <div className="flex items-center justify-between mb-4 pt-6">
             <div className="flex items-start gap-3">
               <button
                 onClick={() => setFilterSidebarOpen(!filterSidebarOpen)}
@@ -606,8 +614,8 @@ const BatchView = () => {
                 <Filter className="w-5 h-5 text-gray-600" />
               </button>
               <div>
-                <h2 className="text-2xl font-bold">Batch View</h2>
-                <p className="text-gray-500 text-l font-regular">
+                <h2 className="text-xl font-semibold text-gray-900">Batch View</h2>
+                <p className="text-gray-500 text-sm">
                   Manage production batches and track progress
                 </p>
               </div>
@@ -626,8 +634,8 @@ const BatchView = () => {
             </button>
           </div>
 
-          {/* Table Container */}
-          <div className="bg-white rounded-lg shadow overflow-x-auto">
+          {/* Table Container - Databricks style: clean, borderless */}
+          <div className="bg-white overflow-x-auto">
             {loading ? (
               <Loader loading={true} message="Loading Batches..." />
             ) : filteredBatches.length === 0 ? (
@@ -641,23 +649,23 @@ const BatchView = () => {
             ) : (
               <table className="w-full min-w-full">
                 <thead>
-                  <tr className="border-b border-gray-200">
+                  <tr className="border-b border-gray-100 bg-gray-50/50">
                     <th className="px-4 py-3 text-left w-12">
                       <input
                         type="checkbox"
                         checked={selectedRows.size === filteredBatches.length}
                         onChange={toggleAllRows}
-                        className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                        className="w-4 h-4 rounded border-gray-300 text-[#2272B4] focus:ring-[#2272B4]"
                       />
                     </th>
-                    <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">ID</th>
-                    <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Name</th>
-                    <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Quantity</th>
-                    <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Unit</th>
-                    <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Color</th>
-                    <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Roll</th>
-                    <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Vendor</th>
-                    <th className="px-4 py-3 text-right text-sm font-medium text-gray-500">Actions</th>
+                    <th className="px-4 py-3 text-left text-sm font-normal text-gray-500">ID</th>
+                    <th className="px-4 py-3 text-left text-sm font-normal text-gray-500">Name</th>
+                    <th className="px-4 py-3 text-left text-sm font-normal text-gray-500">Quantity</th>
+                    <th className="px-4 py-3 text-left text-sm font-normal text-gray-500">Unit</th>
+                    <th className="px-4 py-3 text-left text-sm font-normal text-gray-500">Color</th>
+                    <th className="px-4 py-3 text-left text-sm font-normal text-gray-500">Roll</th>
+                    <th className="px-4 py-3 text-left text-sm font-normal text-gray-500">Vendor</th>
+                    <th className="px-4 py-3 text-right text-sm font-normal text-gray-500">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
@@ -666,26 +674,26 @@ const BatchView = () => {
                       key={batch.id}
                       className={`transition-colors ${selectedRows.has(batch.id) ? 'bg-blue-50' : 'hover:bg-gray-50'}`}
                     >
-                      <td className="px-4 py-3.5">
+                      <td className="px-4 py-3">
                         <input
                           type="checkbox"
                           checked={selectedRows.has(batch.id)}
                           onChange={() => toggleRowSelection(batch.id)}
-                          className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                          className="w-4 h-4 rounded border-gray-300 text-[#2272B4] focus:ring-[#2272B4]"
                         />
                       </td>
-                      <td className="px-4 py-3.5 text-sm text-gray-500">B{String(batch.id).padStart(3, '0')}</td>
-                      <td className="px-4 py-3.5">
-                        <span className="text-sm font-medium text-blue-600 hover:text-blue-700 hover:underline cursor-pointer">{batch.name}</span>
+                      <td className="px-4 py-3 text-sm text-gray-500">B{String(batch.id).padStart(3, '0')}</td>
+                      <td className="px-4 py-3">
+                        <span className="text-sm font-normal text-[#2272B4] hover:underline cursor-pointer">{batch.name}</span>
                       </td>
-                      <td className="px-4 py-3.5 text-sm text-gray-600">{batch.quantity}</td>
-                      <td className="px-4 py-3.5 text-sm text-gray-600">{batch.unit}</td>
-                      <td className="px-4 py-3.5 text-sm text-gray-600">{batch.color}</td>
-                      <td className="px-4 py-3.5 text-sm text-gray-600">{batch.roll?.name || <span className="text-gray-400">—</span>}</td>
-                      <td className="px-4 py-3.5 text-sm text-gray-600">
+                      <td className="px-4 py-3 text-sm text-gray-600">{batch.quantity}</td>
+                      <td className="px-4 py-3 text-sm text-gray-600">{batch.unit}</td>
+                      <td className="px-4 py-3 text-sm text-gray-600">{batch.color}</td>
+                      <td className="px-4 py-3 text-sm text-gray-600">{batch.roll?.name || <span className="text-gray-400">—</span>}</td>
+                      <td className="px-4 py-3 text-sm text-gray-600">
                         {batch.vendor ? batch.vendor.name : <span className="text-gray-400">—</span>}
                       </td>
-                      <td className="px-4 py-3.5 text-right">
+                      <td className="px-4 py-3 text-right">
                         <div className="flex items-center justify-end gap-1">
                           <button
                             onClick={() => handlePreview(batch)}

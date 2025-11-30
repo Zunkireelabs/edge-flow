@@ -4,6 +4,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import axios from "axios";
 import { Plus, Edit2, Trash2, X, Eye, Shell, Users, MapPin, Scale, CircleDollarSign, FileText } from "lucide-react";
 import Loader from "@/app/Components/Loader";
+import { useToast } from "@/app/Components/ToastContext";
 
 interface Worker {
     id: number;
@@ -22,6 +23,7 @@ const API = {
 };
 
 const WorkerPage = () => {
+    const { showToast, showConfirm } = useToast();
     const [workers, setWorkers] = useState<Worker[]>([]);
     const [loading, setLoading] = useState(true);
     const [isDrawerOpen, setIsDrawerOpen] = useState(false);
@@ -45,7 +47,7 @@ const WorkerPage = () => {
             setWorkers(res.data);
         } catch (error) {
             console.error(error);
-            alert("Failed to fetch workers.");
+            showToast("error", "Failed to fetch workers.");
         } finally {
             setLoading(false);
         }
@@ -89,14 +91,23 @@ const WorkerPage = () => {
     };
 
     const handleDelete = async (id: number) => {
-        if (!confirm("Are you sure you want to delete this worker?")) return;
+        const confirmed = await showConfirm({
+            title: "Delete Worker",
+            message: "Are you sure you want to delete this worker? This action cannot be undone.",
+            confirmText: "Delete",
+            cancelText: "Cancel",
+            type: "danger",
+        });
+
+        if (!confirmed) return;
+
         try {
             await axios.delete(API.delete(id));
             fetchWorkers();
-            alert("Worker deleted successfully!");
+            showToast("success", "Worker deleted successfully!");
         } catch (error) {
             console.error(error);
-            alert("Failed to delete worker.");
+            showToast("error", "Failed to delete worker.");
         }
     };
 
@@ -105,10 +116,10 @@ const WorkerPage = () => {
             setSaveLoading(true);
 
             // Validation
-            if (!formData.name.trim()) return alert("Name required");
-            if (!formData.pan.trim()) return alert("PAN required");
-            if (!formData.address.trim()) return alert("Address required");
-            if (!formData.wage_rate_input || Number(formData.wage_rate_input) <= 0) return alert("Valid wage rate required");
+            if (!formData.name.trim()) { showToast("warning", "Name required"); return; }
+            if (!formData.pan.trim()) { showToast("warning", "PAN required"); return; }
+            if (!formData.address.trim()) { showToast("warning", "Address required"); return; }
+            if (!formData.wage_rate_input || Number(formData.wage_rate_input) <= 0) { showToast("warning", "Valid wage rate required"); return; }
 
             const payload = {
                 name: formData.name.trim(),
@@ -120,17 +131,17 @@ const WorkerPage = () => {
 
             if (editingWorker) {
                 await axios.put(API.update(editingWorker.id), payload);
-                alert("Worker updated successfully!");
+                showToast("success", "Worker updated successfully!");
             } else {
                 await axios.post(API.create!, payload);
-                alert("Worker created successfully!");
+                showToast("success", "Worker created successfully!");
             }
 
             fetchWorkers();
             closeDrawer();
         } catch (error) {
             console.error(error);
-            alert("Failed to save worker.");
+            showToast("error", "Failed to save worker.");
         } finally {
             setSaveLoading(false);
         }
@@ -150,12 +161,12 @@ const WorkerPage = () => {
     };
 
     return (
-        <div className="min-h-screen bg-gray-50 p-6">
+        <div className="min-h-screen bg-white p-6">
             {/* Header */}
-            <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center justify-between mb-4">
                 <div>
-                    <h1 className="text-2xl font-semibold text-gray-900 mb-2">Workers</h1>
-                    <p className="text-sm text-gray-600">Manage workers, wages and details</p>
+                    <h1 className="text-xl font-semibold text-gray-900">Workers</h1>
+                    <p className="text-gray-500 text-sm">Manage workers, wages and details</p>
                 </div>
                 <button
                     className="flex items-center gap-2 bg-[#2272B4] text-white px-5 py-2.5 rounded font-semibold shadow-md hover:bg-[#0E538B] hover:shadow-lg transition-all duration-200 hover:scale-105"
@@ -166,7 +177,7 @@ const WorkerPage = () => {
             </div>
 
             {/* Main Table */}
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+            <div className="bg-white overflow-hidden">
                 {loading ? (
                    <div className="p-6">
                      <Loader loading={true} message="Loading Workers..." />
@@ -180,30 +191,30 @@ const WorkerPage = () => {
                 ) : (
                     <table className="w-full min-w-full">
                         <thead>
-                            <tr className="border-b border-gray-200">
-                                <th className="px-4 py-3 text-left text-sm font-medium text-gray-500 w-16">S.N.</th>
-                                <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">ID</th>
-                                <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Name</th>
-                                <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">PAN</th>
-                                <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Address</th>
-                                <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Wage Type</th>
-                                <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Wage Rate</th>
-                                <th className="px-4 py-3 text-right text-sm font-medium text-gray-500">Actions</th>
+                            <tr className="border-b border-gray-100 bg-gray-50/50">
+                                <th className="px-4 py-3 text-left text-sm font-normal text-gray-500 w-16">S.N.</th>
+                                <th className="px-4 py-3 text-left text-sm font-normal text-gray-500">ID</th>
+                                <th className="px-4 py-3 text-left text-sm font-normal text-gray-500">Name</th>
+                                <th className="px-4 py-3 text-left text-sm font-normal text-gray-500">PAN</th>
+                                <th className="px-4 py-3 text-left text-sm font-normal text-gray-500">Address</th>
+                                <th className="px-4 py-3 text-left text-sm font-normal text-gray-500">Wage Type</th>
+                                <th className="px-4 py-3 text-left text-sm font-normal text-gray-500">Wage Rate</th>
+                                <th className="px-4 py-3 text-right text-sm font-normal text-gray-500">Actions</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-100">
                             {workers.map((worker, index) => (
                                 <tr key={worker.id} className="hover:bg-gray-50 transition-colors">
-                                    <td className="px-4 py-3.5 text-sm text-gray-400">{index + 1}</td>
-                                    <td className="px-4 py-3.5 text-sm text-gray-500">W{String(worker.id).padStart(3, '0')}</td>
-                                    <td className="px-4 py-3.5">
-                                      <span className="text-sm font-medium text-blue-600 hover:text-blue-700 hover:underline cursor-pointer">{worker.name}</span>
+                                    <td className="px-4 py-3 text-sm text-gray-400">{index + 1}</td>
+                                    <td className="px-4 py-3 text-sm text-gray-500">W{String(worker.id).padStart(3, '0')}</td>
+                                    <td className="px-4 py-3">
+                                      <span className="text-sm font-normal text-[#2272B4] hover:underline cursor-pointer">{worker.name}</span>
                                     </td>
-                                    <td className="px-4 py-3.5 text-sm text-gray-600">{worker.pan}</td>
-                                    <td className="px-4 py-3.5 text-sm text-gray-600">{worker.address}</td>
-                                    <td className="px-4 py-3.5 text-sm text-gray-600">{worker.wage_type}</td>
-                                    <td className="px-4 py-3.5 text-sm text-gray-600">{worker.wage_rate}</td>
-                                    <td className="px-4 py-3.5 text-right">
+                                    <td className="px-4 py-3 text-sm text-gray-600">{worker.pan}</td>
+                                    <td className="px-4 py-3 text-sm text-gray-600">{worker.address}</td>
+                                    <td className="px-4 py-3 text-sm text-gray-600">{worker.wage_type}</td>
+                                    <td className="px-4 py-3 text-sm text-gray-600">{worker.wage_rate}</td>
+                                    <td className="px-4 py-3 text-right">
                                         <div className="flex items-center justify-end gap-1">
                                             <button
                                                 onClick={() => handlePreview(worker)}

@@ -4,6 +4,7 @@
 import React, { useState, useEffect } from "react";
 import { Plus, X, Trash2, Edit2, Users, Mail, KeyRound } from "lucide-react";
 import Loader from "@/app/Components/Loader";
+import { useToast } from "@/app/Components/ToastContext";
 
 // Supervisor interface
 interface Supervisor {
@@ -22,6 +23,7 @@ const CREATE_SUPERVISOR = process.env.NEXT_PUBLIC_CREATE_SUPERVISOR!;
 const GET_SUPERVISORS = process.env.NEXT_PUBLIC_GET_SUPERVISOR!;
 
 const CreateSupervisor = () => {
+  const { showToast, showConfirm } = useToast();
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [saveLoading, setSaveLoading] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -54,7 +56,7 @@ const CreateSupervisor = () => {
       setSupervisors(supervisorsArray);
     } catch (err) {
       console.error(err);
-      alert("Error fetching supervisors.");
+      showToast("error", "Error fetching supervisors.");
     } finally {
       setLoading(false);
     }
@@ -74,13 +76,13 @@ const CreateSupervisor = () => {
       setSaveLoading(true);
       const token = localStorage.getItem("token");
       if (!token) {
-        alert("Admin not logged in!");
+        showToast("error", "Admin not logged in!");
         window.location.href = "/login";
         return;
       }
 
       if (!editingId && (!formData.name || !formData.email || !formData.password)) {
-        alert("Name, email, and password are required for new supervisor");
+        showToast("warning", "Name, email, and password are required for new supervisor");
         return;
       }
 
@@ -114,24 +116,32 @@ const CreateSupervisor = () => {
       }
 
       await fetchSupervisors();
-      alert(`Supervisor ${editingId ? "updated" : "created"} successfully!`);
+      showToast("success", `Supervisor ${editingId ? "updated" : "created"} successfully!`);
       resetForm();
       setIsDrawerOpen(false);
     } catch (err: any) {
       console.error(err);
-      alert(err.message || "Error saving supervisor.");
+      showToast("error", err.message || "Error saving supervisor.");
     } finally {
       setSaveLoading(false);
     }
   };
 
   const handleDelete = async (id: number) => {
-    if (!confirm("Are you sure you want to delete this supervisor?")) return;
+    const confirmed = await showConfirm({
+      title: "Delete Supervisor",
+      message: "Are you sure you want to delete this supervisor? This action cannot be undone.",
+      confirmText: "Delete",
+      cancelText: "Cancel",
+      type: "danger",
+    });
+
+    if (!confirmed) return;
 
     try {
       const token = localStorage.getItem("token");
       if (!token) {
-        alert("Admin not logged in!");
+        showToast("error", "Admin not logged in!");
         window.location.href = "/login";
         return;
       }
@@ -149,10 +159,10 @@ const CreateSupervisor = () => {
       }
 
       await fetchSupervisors();
-      alert("Supervisor deleted successfully!");
+      showToast("success", "Supervisor deleted successfully!");
     } catch (err: any) {
       console.error(err);
-      alert(err.message || "Error deleting supervisor.");
+      showToast("error", err.message || "Error deleting supervisor.");
     }
   };
 
@@ -169,10 +179,10 @@ const CreateSupervisor = () => {
 
   return (
     <div className="p-8">
-      <div className="flex justify-between items-center mb-6">
+      <div className="flex justify-between items-center mb-4">
         <div>
-          <h2 className="text-2xl font-bold">Supervisor View</h2>
-          <p className="text-gray-500 text-l font-regular">
+          <h2 className="text-xl font-semibold text-gray-900">Supervisor View</h2>
+          <p className="text-gray-500 text-sm">
             Manage Supervisor and look after it.
           </p>
         </div>
@@ -188,7 +198,7 @@ const CreateSupervisor = () => {
         </button>
       </div>
 
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+      <div className="bg-white overflow-hidden">
         {loading ? (
           <div className="p-6">
             <Loader loading={true} message="Loading Supervisors..." />
@@ -204,22 +214,22 @@ const CreateSupervisor = () => {
         ) : (
           <table className="w-full min-w-full">
             <thead>
-              <tr className="border-b border-gray-200">
-                <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">ID</th>
-                <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Name</th>
-                <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Email</th>
-                <th className="px-4 py-3 text-right text-sm font-medium text-gray-500">Actions</th>
+              <tr className="border-b border-gray-100 bg-gray-50/50">
+                <th className="px-4 py-3 text-left text-sm font-normal text-gray-500">ID</th>
+                <th className="px-4 py-3 text-left text-sm font-normal text-gray-500">Name</th>
+                <th className="px-4 py-3 text-left text-sm font-normal text-gray-500">Email</th>
+                <th className="px-4 py-3 text-right text-sm font-normal text-gray-500">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
               {supervisors.map((sup) => (
                 <tr key={sup.id} className="hover:bg-gray-50 transition-colors">
-                  <td className="px-4 py-3.5 text-sm text-gray-500">S{String(sup.id).padStart(3, '0')}</td>
-                  <td className="px-4 py-3.5">
-                    <span className="text-sm font-medium text-blue-600 hover:text-blue-700 hover:underline cursor-pointer">{sup.name}</span>
+                  <td className="px-4 py-3 text-sm text-gray-500">S{String(sup.id).padStart(3, '0')}</td>
+                  <td className="px-4 py-3">
+                    <span className="text-sm font-normal text-[#2272B4] hover:underline cursor-pointer">{sup.name}</span>
                   </td>
-                  <td className="px-4 py-3.5 text-sm text-gray-600">{sup.email}</td>
-                  <td className="px-4 py-3.5 text-right">
+                  <td className="px-4 py-3 text-sm text-gray-600">{sup.email}</td>
+                  <td className="px-4 py-3 text-right">
                     <div className="flex items-center justify-end gap-1">
                       <button
                         onClick={() => handleEdit(sup)}

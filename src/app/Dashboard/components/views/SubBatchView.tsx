@@ -7,6 +7,7 @@ import axios from "axios";
 import { Plus, Edit2, Trash2, X, FileX, Layers, Package, Volleyball, PackageMinus, ClockAlert, Clock, MoreVertical, Eye, Filter, ChevronLeft } from "lucide-react";
 import Loader from "@/app/Components/Loader";
 import NepaliDatePicker from "@/app/Components/NepaliDatePicker";
+import { useToast } from "@/app/Components/ToastContext";
 
 const API = process.env.NEXT_PUBLIC_API_URL ;
 
@@ -71,6 +72,7 @@ interface WorkflowStep {
 }
 
 const SubBatchView = () => {
+  const { showToast, showConfirm } = useToast();
   const [subBatches, setSubBatches] = useState<SubBatch[]>([]);
   const [rolls, setRolls] = useState<Roll[]>([]);
   const [batches, setBatches] = useState<Batch[]>([]);
@@ -275,7 +277,7 @@ const SubBatchView = () => {
   // Save new category
   const handleSaveCategory = async () => {
     if (!newCategoryName.trim()) {
-      alert("Please enter a category name");
+      showToast("warning", "Please enter a category name");
       return;
     }
 
@@ -285,7 +287,7 @@ const SubBatchView = () => {
     );
 
     if (categoryExists) {
-      alert("Category already exists");
+      showToast("warning", "Category already exists");
       return;
     }
 
@@ -300,20 +302,20 @@ const SubBatchView = () => {
 
       // Clear the input
       setNewCategoryName("");
-      alert("Category saved successfully!");
+      showToast("success", "Category saved successfully!");
     } catch (err: unknown) {
       // Type guard for Axios error
       if (axios.isAxiosError(err)) {
         const axiosError = err;
         if (axiosError.response?.status === 409 || axiosError.response?.data?.message?.includes("already exists")) {
-          alert("Category already exists");
+          showToast("warning", "Category already exists");
         } else {
-          alert("Failed to save category. Please try again.");
+          showToast("error", "Failed to save category. Please try again.");
         }
       } else {
         // Generic fallback for unknown errors
         console.error("Unknown error:", err);
-        alert("An unexpected error occurred. Please try again.");
+        showToast("error", "An unexpected error occurred. Please try again.");
       }
     } finally {
       setIsSavingCategory(false);
@@ -352,14 +354,14 @@ const SubBatchView = () => {
   // Send to production function
   const handleSendToProduction = async () => {
     if (!selectedSubBatch) {
-      alert("No sub-batch selected");
+      showToast("warning", "No sub-batch selected");
       return;
     }
 
     // Validate workflow
     const validWorkflow = departmentWorkflow.filter(step => step.current && step.departmentId);
     if (validWorkflow.length === 0) {
-      alert("Please select at least one department for the workflow");
+      showToast("warning", "Please select at least one department for the workflow");
       return;
     }
 
@@ -378,27 +380,27 @@ const SubBatchView = () => {
 
       if (response.data.success) {
         const workflow = response.data.workflow;
-        alert(`Sub-batch sent to production successfully!\nWorkflow ID: ${workflow.id}\nSteps: ${workflow.steps.length} departments\nCurrent Step: ${workflow.current_step_index + 1}`);
-        
+        showToast("success", `Sub-batch sent to production! Workflow ID: ${workflow.id}, Steps: ${workflow.steps.length} departments`);
+
         console.log("Workflow created:", workflow);
         console.log("Department workflow steps:", workflow.steps);
-        
+
         setIsSendModalOpen(false);
         setSelectedSubBatch(null);
         setDepartmentWorkflow([]);
-        
+
         // Optionally refresh the sub-batches list
         await fetchSubBatches();
       } else {
-        alert("Failed to send sub-batch to production");
+        showToast("error", "Failed to send sub-batch to production");
       }
     } catch (error) {
       console.error("Error sending sub-batch to production:", error);
       if (axios.isAxiosError(error)) {
         const errorMessage = error.response?.data?.message || error.message || "Unknown error occurred";
-        alert(`Failed to send sub-batch to production: ${errorMessage}`);
+        showToast("error", `Failed to send sub-batch to production: ${errorMessage}`);
       } else {
-        alert("Failed to send sub-batch to production. Please try again.");
+        showToast("error", "Failed to send sub-batch to production. Please try again.");
       }
     } finally {
       setIsSending(false);
@@ -460,7 +462,7 @@ const SubBatchView = () => {
       fetchSubBatches();
     } catch (error) {
       console.error("Error saving subbatch:", error);
-      alert("Failed to save subbatch. Check console for details.");
+      showToast("error", "Failed to save subbatch. Check console for details.");
     } finally {
       setSaveLoading(false);
     }
@@ -468,7 +470,13 @@ const SubBatchView = () => {
 
   // Delete
   const handleDelete = async (id: number) => {
-    const confirmed = window.confirm("Are you sure you want to delete this subbatch?");
+    const confirmed = await showConfirm({
+      title: "Delete Sub-Batch",
+      message: "Are you sure you want to delete this subbatch? This action cannot be undone.",
+      confirmText: "Delete",
+      cancelText: "Cancel",
+      type: "danger",
+    });
     if (!confirmed) return;
 
     setDeletingId(id);
@@ -476,7 +484,7 @@ const SubBatchView = () => {
 
     try {
       await axios.delete(`${API}/sub-batches/${id}`);
-      alert("Subbatch deleted successfully!");
+      showToast("success", "Subbatch deleted successfully!");
       await fetchSubBatches();
     } catch (error) {
       console.error("Error deleting subbatch:", error);
@@ -493,9 +501,9 @@ const SubBatchView = () => {
           error.message ||
           "Unknown error occurred";
 
-        alert(`Failed to delete subbatch: ${errorMessage}`);
+        showToast("error", `Failed to delete subbatch: ${errorMessage}`);
       } else {
-        alert("Failed to delete subbatch. Please try again.");
+        showToast("error", "Failed to delete subbatch. Please try again.");
       }
     } finally {
       setDeletingId(null);
@@ -615,7 +623,7 @@ const SubBatchView = () => {
   // Bulk delete handlers
   const handleBulkDelete = async () => {
     if (selectedRows.size === 0) {
-      alert("Please select at least one sub-batch to delete");
+      showToast("warning", "Please select at least one sub-batch to delete");
       return;
     }
 
@@ -642,14 +650,14 @@ const SubBatchView = () => {
       setShowDeleteWarning(true);
     } catch (error) {
       console.error("Error checking dependencies:", error);
-      alert("Failed to check sub-batch deletion eligibility. Please try again.");
+      showToast("error", "Failed to check sub-batch deletion eligibility. Please try again.");
     }
   };
 
   const handleContinueDelete = () => {
     // Only proceed if there are DRAFT sub-batches to delete
     if (draftSubBatches.length === 0) {
-      alert("No sub-batches can be deleted. Only DRAFT sub-batches can be deleted.");
+      showToast("warning", "No sub-batches can be deleted. Only DRAFT sub-batches can be deleted.");
       return;
     }
 
@@ -659,7 +667,7 @@ const SubBatchView = () => {
 
   const confirmBulkDelete = async () => {
     if (deleteConfirmText.toLowerCase() !== "delete") {
-      alert('Please type "delete" to confirm');
+      showToast("warning", 'Please type "delete" to confirm');
       return;
     }
 
@@ -678,10 +686,10 @@ const SubBatchView = () => {
 
       let message = `Successfully deleted ${draftIds.length} sub-batch(es)`;
       if (blockedCount > 0) {
-        message += `\n\n${blockedCount} sub-batch(es) were not deleted (not in DRAFT status)`;
+        message += `. ${blockedCount} sub-batch(es) were not deleted (not in DRAFT status)`;
       }
 
-      alert(message);
+      showToast("success", message);
 
       // Clear selections and states
       setSelectedRows(new Set());
@@ -696,7 +704,7 @@ const SubBatchView = () => {
       await fetchSubBatches();
     } catch (error) {
       console.error("Error deleting sub-batches:", error);
-      alert("Failed to delete some sub-batches. Please check console for details.");
+      showToast("error", "Failed to delete some sub-batches. Please check console for details.");
     } finally {
       setIsDeleting(false);
     }
@@ -713,7 +721,7 @@ const SubBatchView = () => {
   };
 
   return (
-    <div className="pr-8 bg-gray-50 min-h-screen">
+    <div className="pr-8 bg-white min-h-screen">
       {/* Main Layout: Filter Sidebar + Content */}
       <div className="flex min-h-screen">
         {/* Filters Sidebar */}
@@ -835,7 +843,7 @@ const SubBatchView = () => {
         {/* Main Content Area */}
         <div className="flex-1 pl-6 min-h-screen">
           {/* Header */}
-          <div className="flex items-center justify-between mb-6 pt-6">
+          <div className="flex items-center justify-between mb-4 pt-6">
             <div className="flex items-start gap-3">
               <button
                 onClick={() => setFilterSidebarOpen(!filterSidebarOpen)}
@@ -845,8 +853,8 @@ const SubBatchView = () => {
                 <Filter className="w-5 h-5 text-gray-600" />
               </button>
               <div>
-                <h2 className="text-2xl font-bold text-gray-800">Sub Batch View</h2>
-                <p className="text-gray-600 text-sm">Manage sub batches and track progress</p>
+                <h2 className="text-xl font-semibold text-gray-900">Sub Batch View</h2>
+                <p className="text-gray-500 text-sm">Manage sub batches and track progress</p>
               </div>
             </div>
             <button
@@ -900,8 +908,8 @@ const SubBatchView = () => {
         </div>
       </div>
 
-          {/* Table Container */}
-          <div className="bg-white rounded-lg shadow overflow-x-auto">
+          {/* Table Container - Databricks style: clean, borderless */}
+          <div className="bg-white overflow-x-auto">
             {loading ? (
               <Loader loading={true} message="Loading Sub Batches..." />
             ) : filteredSubBatches.length === 0 ? (
@@ -922,24 +930,24 @@ const SubBatchView = () => {
         ) : (
           <table className="w-full min-w-full">
             <thead>
-              <tr className="border-b border-gray-200">
+              <tr className="border-b border-gray-100 bg-gray-50/50">
                 <th className="px-4 py-3 text-left w-12">
                   <input
                     type="checkbox"
                     checked={selectedRows.size === filteredSubBatches.length}
                     onChange={toggleAllRows}
-                    className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                    className="w-4 h-4 rounded border-gray-300 text-[#2272B4] focus:ring-[#2272B4]"
                   />
                 </th>
-                <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">ID</th>
-                <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Name</th>
-                <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Parent Roll</th>
-                <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Parent Batch</th>
-                <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Status</th>
-                <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Pieces</th>
-                <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Start Date</th>
-                <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Due Date</th>
-                <th className="px-4 py-3 text-right text-sm font-medium text-gray-500">Actions</th>
+                <th className="px-4 py-3 text-left text-sm font-normal text-gray-500">ID</th>
+                <th className="px-4 py-3 text-left text-sm font-normal text-gray-500">Name</th>
+                <th className="px-4 py-3 text-left text-sm font-normal text-gray-500">Parent Roll</th>
+                <th className="px-4 py-3 text-left text-sm font-normal text-gray-500">Parent Batch</th>
+                <th className="px-4 py-3 text-left text-sm font-normal text-gray-500">Status</th>
+                <th className="px-4 py-3 text-left text-sm font-normal text-gray-500">Pieces</th>
+                <th className="px-4 py-3 text-left text-sm font-normal text-gray-500">Start Date</th>
+                <th className="px-4 py-3 text-left text-sm font-normal text-gray-500">Due Date</th>
+                <th className="px-4 py-3 text-right text-sm font-normal text-gray-500">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
@@ -948,25 +956,25 @@ const SubBatchView = () => {
                   key={sb.id}
                   className={`transition-colors ${selectedRows.has(sb.id) ? 'bg-blue-50' : 'hover:bg-gray-50'}`}
                 >
-                  <td className="px-4 py-3.5">
+                  <td className="px-4 py-3">
                     <input
                       type="checkbox"
                       checked={selectedRows.has(sb.id)}
                       onChange={() => toggleRowSelection(sb.id)}
-                      className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                      className="w-4 h-4 rounded border-gray-300 text-[#2272B4] focus:ring-[#2272B4]"
                     />
                   </td>
-                  <td className="px-4 py-3.5 text-sm text-gray-500">SB{String(sb.id).padStart(3, '0')}</td>
-                  <td className="px-4 py-3.5">
-                    <span className="text-sm font-medium text-blue-600 hover:text-blue-700 hover:underline cursor-pointer">{sb.name}</span>
+                  <td className="px-4 py-3 text-sm text-gray-500">SB{String(sb.id).padStart(3, '0')}</td>
+                  <td className="px-4 py-3">
+                    <span className="text-sm font-normal text-[#2272B4] hover:underline cursor-pointer">{sb.name}</span>
                   </td>
-                  <td className="px-4 py-3.5 text-sm text-gray-600">{getRollName(sb.roll_id)}</td>
-                  <td className="px-4 py-3.5 text-sm text-gray-600">{getBatchName(sb.batch_id)}</td>
-                  <td className="px-4 py-3.5 text-sm">{getStatusBadge(sb.status)}</td>
-                  <td className="px-4 py-3.5 text-sm text-gray-600">{sb.estimated_pieces}</td>
-                  <td className="px-4 py-3.5 text-sm text-gray-600">{formatDate(sb.start_date)}</td>
-                  <td className="px-4 py-3.5 text-sm text-gray-600">{formatDate(sb.due_date)}</td>
-                  <td className="px-4 py-3.5 text-right">
+                  <td className="px-4 py-3 text-sm text-gray-600">{getRollName(sb.roll_id)}</td>
+                  <td className="px-4 py-3 text-sm text-gray-600">{getBatchName(sb.batch_id)}</td>
+                  <td className="px-4 py-3 text-sm">{getStatusBadge(sb.status)}</td>
+                  <td className="px-4 py-3 text-sm text-gray-600">{sb.estimated_pieces}</td>
+                  <td className="px-4 py-3 text-sm text-gray-600">{formatDate(sb.start_date)}</td>
+                  <td className="px-4 py-3 text-sm text-gray-600">{formatDate(sb.due_date)}</td>
+                  <td className="px-4 py-3 text-right">
                     <div className="flex items-center justify-end gap-1">
                       <button
                         onClick={() => handlePreview(sb.id)}
@@ -1902,8 +1910,15 @@ const SubBatchView = () => {
                         Cancel
                       </button>
                       <button
-                        onClick={() => {
-                          if (window.confirm("Are you sure you want to save this sub batch?")) {
+                        onClick={async () => {
+                          const confirmed = await showConfirm({
+                            title: editingSubBatch ? "Update Sub Batch" : "Save Sub Batch",
+                            message: `Are you sure you want to ${editingSubBatch ? 'update' : 'save'} this sub batch?`,
+                            confirmText: editingSubBatch ? "Update" : "Save",
+                            cancelText: "Cancel",
+                            type: "info",
+                          });
+                          if (confirmed) {
                             handleSaveSubBatch();
                           }
                         }}
