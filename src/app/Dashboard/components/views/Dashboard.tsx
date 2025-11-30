@@ -238,7 +238,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onViewChange }) => {
   ];
 
   return (
-    <div className="p-6 bg-[#f9fafb] min-h-full">
+    <div className="p-6 bg-[#ffffff] min-h-full">
       {/* Header */}
       <div className="mb-6">
         <h1 className="text-2xl font-semibold text-gray-900 mb-1">Dashboard Overview</h1>

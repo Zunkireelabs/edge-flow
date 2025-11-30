@@ -31,10 +31,12 @@ const navItems: NavigationItem[] = [
 ];
 
 const RightContent: React.FC<RightContentProps> = ({ activeView, onViewChange }) => (
-  <div className="flex flex-col flex-1 h-full">
+  <div className="flex flex-col flex-1 h-full bg-[#f7f7f7] pl-2">
     <Header activeView={activeView} navigationItems={navItems} />
-    <main className="flex-1 overflow-auto">
-      <ContentRouter activeView={activeView} onViewChange={onViewChange} />
+    <main className="flex-1 overflow-hidden">
+      <div className="bg-[#ffffff] rounded-l-xl h-full border border-gray-200 overflow-auto">
+        <ContentRouter activeView={activeView} onViewChange={onViewChange} />
+      </div>
     </main>
   </div>
 );

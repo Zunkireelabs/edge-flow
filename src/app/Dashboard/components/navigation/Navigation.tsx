@@ -35,7 +35,7 @@ const Navigation: React.FC<NavigationProps> = ({ activeView, onViewChange, items
   };
 
   return (
-    <div className="w-60 bg-white flex flex-col h-full border-r border-gray-200">
+    <div className="w-60 bg-[#f7f7f7] flex flex-col h-full">
       {/* Header with Logo */}
       <div className="px-5 py-4 border-b border-gray-100 h-[60px] flex items-center">
         <div className="flex items-center gap-2.5">

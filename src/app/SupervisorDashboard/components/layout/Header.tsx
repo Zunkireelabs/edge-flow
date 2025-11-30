@@ -61,7 +61,7 @@ const Header: React.FC<HeaderProps> = ({ activeView }) => {
   }, []);
 
   return (
-    <header className="bg-white px-6 py-3 relative border-b border-gray-200 h-[60px] flex items-center justify-between gap-4 w-full">
+    <header className="bg-[#f7f7f7] px-6 py-3 relative h-[60px] flex items-center justify-between gap-4 w-full">
       {/* Left Section - Department Badge */}
       <div className="flex items-center gap-3">
         {departmentName && (

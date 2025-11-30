@@ -176,20 +176,23 @@ const Header: React.FC<HeaderProps> = ({ activeView }) => {
   };
 
   return (
-    <header className="bg-white px-6 py-3 relative border-b border-gray-200 h-[60px] flex items-center justify-between gap-4 w-full">
-        {/* Search Bar - Center (only show on non-dashboard views) */}
-        {activeView !== "dashboard" && (
-          <div className="relative flex-1 max-w-2xl">
-          <div className="flex items-center bg-gray-50 rounded-lg px-4 py-2.5 border border-gray-200 focus-within:border-blue-400 focus-within:ring-2 focus-within:ring-blue-100 transition-all">
-            <Search className="w-5 h-5 text-gray-400 mr-3" />
+    <header className="bg-[#f7f7f7] px-6 py-3 relative h-[60px] flex items-center gap-4 w-full">
+        {/* Spacer for centering */}
+        <div className="flex-1"></div>
+
+        {/* Search Bar - Center */}
+        <div className="relative w-[500px]">
+          <div className="flex items-center bg-white rounded-xl px-4 py-2 border border-gray-300 focus-within:border-blue-400 focus-within:ring-2 focus-within:ring-blue-100 transition-all">
+            <Search className="w-4 h-4 text-gray-500 mr-3" />
             <input
               type="text"
-              placeholder="Search rolls, batches, vendors, workers... (⌘K)"
+              placeholder="Search data, batches, workers, and more..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               onFocus={() => searchResults.length > 0 && setShowResults(true)}
-              className="bg-transparent w-full text-sm outline-none text-gray-700 placeholder-gray-400"
+              className="bg-transparent w-full text-sm outline-none text-gray-700 placeholder-gray-500"
             />
+            <span className="text-xs text-gray-500 ml-2 whitespace-nowrap">CTRL + K</span>
             {isSearching && (
               <div className="ml-2 text-xs text-gray-500">Searching...</div>
             )}
@@ -237,10 +240,9 @@ const Header: React.FC<HeaderProps> = ({ activeView }) => {
             </div>
           )}
           </div>
-        )}
 
-        {/* Spacer for Dashboard view to push user info to right */}
-        {activeView === "dashboard" && <div className="flex-1"></div>}
+        {/* Spacer for centering */}
+        <div className="flex-1"></div>
 
         {/* Right Section - Notifications & User Profile */}
         <div className="flex items-center gap-4">

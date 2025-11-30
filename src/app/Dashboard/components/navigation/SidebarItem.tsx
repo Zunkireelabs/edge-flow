@@ -25,7 +25,7 @@ const SidebarItem: React.FC<SidebarItemProps> = ({
     className={`w-full flex items-center justify-between px-3 py-2 rounded-md transition-colors group ${
       active
         ? "bg-blue-50 text-blue-600"
-        : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+        : "text-gray-600 hover:bg-blue-50 hover:text-gray-900"
     }`}
   >
     {/* Icon + Label */}
