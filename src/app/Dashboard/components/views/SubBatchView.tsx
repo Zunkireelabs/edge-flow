@@ -2,9 +2,9 @@
 
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import axios from "axios";
-import { Plus, Edit2, Trash2, X, FileX, Layers, Package, Volleyball, PackageMinus, ClockAlert, Clock, MoreVertical, Eye, Filter, ChevronLeft } from "lucide-react";
+import { Plus, Edit2, Trash2, X, FileX, Layers, Package, Volleyball, PackageMinus, ClockAlert, Clock, MoreVertical, Eye, ChevronDown, ChevronUp, SlidersHorizontal, ChevronLeft, ChevronRight, ArrowUpDown, Search, Check } from "lucide-react";
 import Loader from "@/app/Components/Loader";
 import NepaliDatePicker from "@/app/Components/NepaliDatePicker";
 import { useToast } from "@/app/Components/ToastContext";
@@ -71,6 +71,154 @@ interface WorkflowStep {
   departmentId?: number;
 }
 
+// Filter Dropdown Option Interface
+interface FilterOption {
+  value: string;
+  label: string;
+  description?: string;
+}
+
+// Custom Filter Dropdown Component
+const FilterDropdown = ({
+  label,
+  options,
+  value,
+  onChange,
+  searchable = true,
+  icon,
+}: {
+  label: string;
+  options: FilterOption[];
+  value: string;
+  onChange: (value: string) => void;
+  searchable?: boolean;
+  icon?: React.ReactNode;
+}) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const dropdownRef = useRef<HTMLDivElement>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+
+  // Get selected option label
+  const selectedOption = options.find(opt => opt.value === value);
+  const displayLabel = selectedOption?.label || label;
+
+  // Filter options based on search
+  const filteredOptions = options.filter(opt =>
+    opt.label.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (opt.description && opt.description.toLowerCase().includes(searchQuery.toLowerCase()))
+  );
+
+  // Handle click outside to close
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+        setSearchQuery("");
+      }
+    };
+
+    if (isOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+      // Focus search input when dropdown opens
+      setTimeout(() => searchInputRef.current?.focus(), 100);
+    }
+
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [isOpen]);
+
+  // Handle option select
+  const handleSelect = (optionValue: string) => {
+    onChange(optionValue);
+    setIsOpen(false);
+    setSearchQuery("");
+  };
+
+  // Check if filter is active (not default "all" value)
+  const isActive = value !== "all";
+
+  return (
+    <div className="relative" ref={dropdownRef}>
+      {/* Trigger Button */}
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className={`flex items-center gap-2 px-3 py-2 text-sm border rounded-md transition-all duration-200 ${
+          isActive
+            ? "border-[#2272B4] bg-blue-50 text-[#2272B4]"
+            : "border-gray-300 bg-white text-gray-700 hover:border-gray-400"
+        }`}
+      >
+        {icon && <span className="flex-shrink-0">{icon}</span>}
+        <span className="max-w-[150px] truncate">{displayLabel}</span>
+        <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`} />
+      </button>
+
+      {/* Dropdown Panel */}
+      {isOpen && (
+        <div className="absolute top-full left-0 mt-2 w-72 bg-white rounded-lg shadow-lg border border-gray-200 z-50 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
+          {/* Arrow pointer */}
+          <div className="absolute -top-2 left-4 w-4 h-4 bg-white border-l border-t border-gray-200 transform rotate-45" />
+
+          {/* Search Input */}
+          {searchable && (
+            <div className="p-3 border-b border-gray-100">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <input
+                  ref={searchInputRef}
+                  type="text"
+                  placeholder="Search..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full pl-9 pr-3 py-2 text-sm border border-gray-200 rounded-full focus:outline-none focus:ring-2 focus:ring-[#2272B4] focus:border-transparent"
+                />
+              </div>
+            </div>
+          )}
+
+          {/* Options List */}
+          <div className="max-h-64 overflow-y-auto">
+            {filteredOptions.length === 0 ? (
+              <div className="px-4 py-3 text-sm text-gray-500 text-center">No options found</div>
+            ) : (
+              filteredOptions.map((option) => (
+                <button
+                  key={option.value}
+                  onClick={() => handleSelect(option.value)}
+                  className={`w-full px-4 py-3 text-left hover:bg-gray-50 transition-colors flex items-start gap-3 ${
+                    value === option.value ? "bg-blue-50" : ""
+                  }`}
+                >
+                  {/* Selection indicator */}
+                  <div className={`mt-0.5 w-4 h-4 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${
+                    value === option.value
+                      ? "border-[#2272B4] bg-[#2272B4]"
+                      : "border-gray-300"
+                  }`}>
+                    {value === option.value && (
+                      <Check className="w-2.5 h-2.5 text-white" />
+                    )}
+                  </div>
+
+                  {/* Option content */}
+                  <div className="flex-1 min-w-0">
+                    <div className={`text-sm font-medium ${value === option.value ? "text-[#2272B4]" : "text-gray-900"}`}>
+                      {option.label}
+                    </div>
+                    {option.description && (
+                      <div className="text-xs text-gray-500 mt-0.5">{option.description}</div>
+                    )}
+                  </div>
+                </button>
+              ))
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
 const SubBatchView = () => {
   const { showToast, showConfirm } = useToast();
   const [subBatches, setSubBatches] = useState<SubBatch[]>([]);
@@ -91,11 +239,19 @@ const SubBatchView = () => {
   const [, setSaveLoading] = useState(false);
   const [deletingId, setDeletingId] = useState<number | null>(null);
 
-  // Filter states
-  const [filterSidebarOpen, setFilterSidebarOpen] = useState(true);
-  const [selectedView, setSelectedView] = useState("all");
-  const [selectedStatuses, setSelectedStatuses] = useState<string[]>([]);
+  // Filter states (HubSpot-style horizontal filters)
+  const [selectedStatus, setSelectedStatus] = useState<string>("all");
+  const [selectedBatchFilter, setSelectedBatchFilter] = useState<string>("all");
+  const [selectedRollFilter, setSelectedRollFilter] = useState<string>("all");
   const [selectedRows, setSelectedRows] = useState<Set<number>>(new Set());
+
+  // Sorting states
+  const [sortColumn, setSortColumn] = useState<string>("id");
+  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc");
+
+  // Pagination states
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(25);
 
   // Bulk delete states
   const [showDeleteWarning, setShowDeleteWarning] = useState(false);
@@ -128,23 +284,75 @@ const SubBatchView = () => {
 
   const [openMenuId, setOpenMenuId] = useState<number | null>(null);
 
-  // Filter sub batches based on selected filters
-  const filteredSubBatches = subBatches.filter(sb => {
-    // Apply saved view filters
-    if (selectedView === "in-production" && sb.status !== "IN_PRODUCTION") return false;
-    if (selectedView === "completed" && sb.status !== "COMPLETED") return false;
+  // Filter, sort, and paginate sub batches using useMemo
+  const { filteredSubBatches, paginatedSubBatches, totalPages, totalFiltered } = useMemo(() => {
+    // Step 1: Filter
+    let filtered = subBatches.filter(sb => {
+      // Status filter
+      if (selectedStatus !== "all" && sb.status !== selectedStatus) return false;
+      // Batch filter
+      if (selectedBatchFilter !== "all" && sb.batch_id !== Number(selectedBatchFilter)) return false;
+      // Roll filter
+      if (selectedRollFilter !== "all" && sb.roll_id !== Number(selectedRollFilter)) return false;
+      return true;
+    });
 
-    // Apply status filters
-    if (selectedStatuses.length > 0 && !selectedStatuses.includes(sb.status || "DRAFT")) return false;
+    // Step 2: Sort
+    filtered = [...filtered].sort((a, b) => {
+      let aVal: any = a[sortColumn as keyof SubBatch];
+      let bVal: any = b[sortColumn as keyof SubBatch];
 
-    return true;
-  });
+      // Handle null/undefined
+      if (aVal == null) aVal = "";
+      if (bVal == null) bVal = "";
+
+      // Handle dates
+      if (sortColumn === "start_date" || sortColumn === "due_date") {
+        aVal = aVal ? new Date(aVal).getTime() : 0;
+        bVal = bVal ? new Date(bVal).getTime() : 0;
+      }
+
+      // Handle strings
+      if (typeof aVal === "string" && typeof bVal === "string") {
+        return sortDirection === "asc"
+          ? aVal.localeCompare(bVal)
+          : bVal.localeCompare(aVal);
+      }
+
+      // Handle numbers
+      return sortDirection === "asc" ? aVal - bVal : bVal - aVal;
+    });
+
+    // Step 3: Paginate
+    const totalFiltered = filtered.length;
+    const totalPages = Math.ceil(totalFiltered / itemsPerPage);
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const paginated = filtered.slice(startIndex, startIndex + itemsPerPage);
+
+    return { filteredSubBatches: filtered, paginatedSubBatches: paginated, totalPages, totalFiltered };
+  }, [subBatches, selectedStatus, selectedBatchFilter, selectedRollFilter, sortColumn, sortDirection, currentPage, itemsPerPage]);
+
+  // Handle sort column click
+  const handleSort = (column: string) => {
+    if (sortColumn === column) {
+      setSortDirection(sortDirection === "asc" ? "desc" : "asc");
+    } else {
+      setSortColumn(column);
+      setSortDirection("asc");
+    }
+    setCurrentPage(1); // Reset to first page on sort change
+  };
 
   // Clear all filters
   const clearAllFilters = () => {
-    setSelectedView("all");
-    setSelectedStatuses([]);
+    setSelectedStatus("all");
+    setSelectedBatchFilter("all");
+    setSelectedRollFilter("all");
+    setCurrentPage(1);
   };
+
+  // Check if any filters are active
+  const hasActiveFilters = selectedStatus !== "all" || selectedBatchFilter !== "all" || selectedRollFilter !== "all";
 
   // Toggle row selection
   const toggleRowSelection = (id: number) => {
@@ -159,12 +367,12 @@ const SubBatchView = () => {
     });
   };
 
-  // Toggle all rows
+  // Toggle all rows (only on current page)
   const toggleAllRows = () => {
-    if (selectedRows.size === filteredSubBatches.length) {
+    if (selectedRows.size === paginatedSubBatches.length && paginatedSubBatches.every(sb => selectedRows.has(sb.id))) {
       setSelectedRows(new Set());
     } else {
-      setSelectedRows(new Set(filteredSubBatches.map(sb => sb.id)));
+      setSelectedRows(new Set(paginatedSubBatches.map(sb => sb.id)));
     }
   };
 
@@ -721,198 +929,140 @@ const SubBatchView = () => {
   };
 
   return (
-    <div className="pr-8 bg-white min-h-screen">
-      {/* Main Layout: Filter Sidebar + Content */}
-      <div className="flex min-h-screen">
-        {/* Filters Sidebar */}
-        <div
-          className={`bg-white shadow flex-shrink-0 border-r border-gray-200 min-h-screen overflow-y-auto transition-all duration-300 ease-in-out ${
-            filterSidebarOpen ? 'w-72 opacity-100' : 'w-0 opacity-0'
-          }`}
-          style={{
-            scrollbarWidth: 'thin',
-            scrollbarColor: '#d1d5db #f3f4f6',
-            fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif'
-          }}
-        >
-            {/* Filters Header */}
-            <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
-              <h3 className="text-base font-semibold text-gray-900">Filters</h3>
-              <button
-                onClick={() => setFilterSidebarOpen(false)}
-                className="p-1 hover:bg-gray-100 rounded transition-colors"
-                title="Collapse filters"
-              >
-                <ChevronLeft className="w-4 h-4 text-gray-500" />
-              </button>
-            </div>
-
-            <div className="px-3">
-              {/* Saved Views */}
-              <div className="py-3 border-b border-gray-100">
-                <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2 px-1">Saved Views</h4>
-                <div className="space-y-0.5">
-                  <button
-                    onClick={() => setSelectedView("all")}
-                    className={`w-full flex items-center justify-between text-left py-2 px-3 rounded-sm transition-all ${
-                      selectedView === "all"
-                        ? "bg-blue-50 border-l-2 border-blue-600"
-                        : "hover:bg-gray-50 border-l-2 border-transparent"
-                    }`}
-                  >
-                    <span className={`text-sm ${selectedView === "all" ? "font-medium text-gray-900" : "text-gray-600"}`}>
-                      All Sub Batches
-                    </span>
-                    <span className={`text-sm ${selectedView === "all" ? "font-medium text-gray-900" : "text-gray-400"}`}>
-                      {subBatches.length}
-                    </span>
-                  </button>
-                  <button
-                    onClick={() => setSelectedView("in-production")}
-                    className={`w-full flex items-center justify-between text-left py-2 px-3 rounded-sm transition-all ${
-                      selectedView === "in-production"
-                        ? "bg-blue-50 border-l-2 border-blue-600"
-                        : "hover:bg-gray-50 border-l-2 border-transparent"
-                    }`}
-                  >
-                    <span className={`text-sm ${selectedView === "in-production" ? "font-medium text-gray-900" : "text-gray-600"}`}>
-                      In Production
-                    </span>
-                    <span className={`text-sm ${selectedView === "in-production" ? "font-medium text-gray-900" : "text-gray-400"}`}>
-                      {subBatches.filter(sb => sb.status === "IN_PRODUCTION").length}
-                    </span>
-                  </button>
-                  <button
-                    onClick={() => setSelectedView("completed")}
-                    className={`w-full flex items-center justify-between text-left py-2 px-3 rounded-sm transition-all ${
-                      selectedView === "completed"
-                        ? "bg-blue-50 border-l-2 border-blue-600"
-                        : "hover:bg-gray-50 border-l-2 border-transparent"
-                    }`}
-                  >
-                    <span className={`text-sm ${selectedView === "completed" ? "font-medium text-gray-900" : "text-gray-600"}`}>
-                      Completed
-                    </span>
-                    <span className={`text-sm ${selectedView === "completed" ? "font-medium text-gray-900" : "text-gray-400"}`}>
-                      {subBatches.filter(sb => sb.status === "COMPLETED").length}
-                    </span>
-                  </button>
-                </div>
-              </div>
-
-              {/* Status Filter */}
-              <div className="py-3 border-b border-gray-100">
-                <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2 px-1">Status</h4>
-                <div className="space-y-1">
-                  {["DRAFT", "IN_PRODUCTION", "COMPLETED", "CANCELLED"].map(status => (
-                    <label key={status} className="flex items-center gap-2.5 cursor-pointer group py-1.5 px-1 rounded-sm hover:bg-gray-50 transition-colors">
-                      <input
-                        type="checkbox"
-                        checked={selectedStatuses.includes(status)}
-                        onChange={(e) => {
-                          if (e.target.checked) {
-                            setSelectedStatuses([...selectedStatuses, status]);
-                          } else {
-                            setSelectedStatuses(selectedStatuses.filter(s => s !== status));
-                          }
-                        }}
-                        className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-1 focus:ring-blue-500 focus:ring-offset-0 cursor-pointer"
-                      />
-                      <span className="text-sm text-gray-600 capitalize group-hover:text-gray-900">
-                        {status.toLowerCase().replace('_', ' ')}
-                      </span>
-                    </label>
-                  ))}
-                </div>
-              </div>
-
-              {/* Clear Filters */}
-              {(selectedStatuses.length > 0 || selectedView !== "all") && (
-                <div className="py-3">
-                  <button
-                    onClick={clearAllFilters}
-                    className="w-full px-3 py-1.5 text-sm text-red-600 hover:bg-red-50 rounded-sm transition-colors font-medium"
-                  >
-                    Clear All Filters
-                  </button>
-                </div>
-              )}
-            </div>
-          </div>
-
-        {/* Main Content Area */}
-        <div className="flex-1 pl-6 min-h-screen">
-          {/* Header */}
-          <div className="flex items-center justify-between mb-4 pt-6">
-            <div className="flex items-start gap-3">
-              <button
-                onClick={() => setFilterSidebarOpen(!filterSidebarOpen)}
-                className="p-2 hover:bg-gray-100 rounded-lg transition-colors mt-0.5"
-                title={filterSidebarOpen ? "Hide filters" : "Show filters"}
-              >
-                <Filter className="w-5 h-5 text-gray-600" />
-              </button>
-              <div>
-                <h2 className="text-xl font-semibold text-gray-900">Sub Batch View</h2>
-                <p className="text-gray-500 text-sm">Manage sub batches and track progress</p>
-              </div>
-            </div>
-            <button
-              onClick={() => {
-                setEditingSubBatch(null);
-                setFormData({
-                  name: "",
-                  roll_id: "",
-                  batch_id: "",
-                  estimatedPieces: "",
-                  expectedItems: "",
-                  startDate: "",
-                  dueDate: "",
-                  attachmentName: "",
-                  quantity: "",
-                });
-                setCustomCategories([]);
-                setSizesList([]);
-                setIsPreview(false);
-                setIsModalOpen(true);
-              }}
-              className="flex items-center gap-2 bg-[#2272B4] text-white px-5 py-2.5 rounded font-semibold shadow-md hover:bg-[#0E538B] hover:shadow-lg transition-all duration-200 hover:scale-105"
-            >
-              <Plus className="w-4 h-4 " />
-              Add Sub Batch
-            </button>
-          </div>
-
-          {/* Status Legend */}
-          <div className="mb-4 p-4 bg-white rounded-lg shadow-sm border border-gray-200">
-        <div className="flex items-center gap-6">
-          <span className="text-sm font-semibold text-gray-700">Status Legend:</span>
-          <div className="flex items-center gap-2">
-            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-200 text-gray-800">
-              Draft
-            </span>
-            <span className="text-xs text-gray-600">- Not yet sent to production</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
-              In Production
-            </span>
-            <span className="text-xs text-gray-600">- Currently in departments</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-              Completed
-            </span>
-            <span className="text-xs text-gray-600">- All departments finished</span>
-          </div>
+    <div className="p-8 bg-white min-h-screen">
+      {/* Header */}
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">Sub Batch View</h2>
+          <p className="text-gray-500 text-sm">Manage sub batches and track progress</p>
         </div>
+        <button
+          onClick={() => {
+            setEditingSubBatch(null);
+            setFormData({
+              name: "",
+              roll_id: "",
+              batch_id: "",
+              estimatedPieces: "",
+              expectedItems: "",
+              startDate: "",
+              dueDate: "",
+              attachmentName: "",
+              quantity: "",
+            });
+            setCustomCategories([]);
+            setSizesList([]);
+            setIsPreview(false);
+            setIsModalOpen(true);
+          }}
+          className="flex items-center gap-2 bg-[#2272B4] text-white px-5 py-2.5 rounded font-semibold shadow-md hover:bg-[#0E538B] hover:shadow-lg transition-all duration-200 hover:scale-105"
+        >
+          <Plus className="w-4 h-4" />
+          Add Sub Batch
+        </button>
       </div>
 
-          {/* Table Container - Databricks style: clean, borderless */}
-          <div className="bg-white overflow-x-auto">
-            {loading ? (
-              <Loader loading={true} message="Loading Sub Batches..." />
-            ) : filteredSubBatches.length === 0 ? (
+      {/* HubSpot-style Horizontal Filter Bar */}
+      <div className="mb-4 flex items-center gap-3 flex-wrap">
+        {/* Status Filter Dropdown */}
+        <FilterDropdown
+          label="All Status"
+          value={selectedStatus}
+          onChange={(val) => { setSelectedStatus(val); setCurrentPage(1); }}
+          options={[
+            { value: "all", label: "All Status", description: "Show all sub-batches" },
+            { value: "DRAFT", label: "Draft", description: "Not yet sent to production" },
+            { value: "IN_PRODUCTION", label: "In Production", description: "Currently in departments" },
+            { value: "COMPLETED", label: "Completed", description: "All departments finished" },
+            { value: "CANCELLED", label: "Cancelled", description: "Production was cancelled" },
+          ]}
+        />
+
+        {/* Batch Filter Dropdown */}
+        <FilterDropdown
+          label="All Batches"
+          value={selectedBatchFilter}
+          onChange={(val) => { setSelectedBatchFilter(val); setCurrentPage(1); }}
+          options={[
+            { value: "all", label: "All Batches", description: "Show sub-batches from all batches" },
+            ...batches.map(batch => ({
+              value: String(batch.id),
+              label: batch.name,
+              description: `${batch.quantity || 0} ${batch.unit || 'pcs'} • ${batch.color || 'No color'}`
+            }))
+          ]}
+        />
+
+        {/* Roll Filter Dropdown */}
+        <FilterDropdown
+          label="All Rolls"
+          value={selectedRollFilter}
+          onChange={(val) => { setSelectedRollFilter(val); setCurrentPage(1); }}
+          options={[
+            { value: "all", label: "All Rolls", description: "Show sub-batches from all rolls" },
+            ...rolls.map(roll => ({
+              value: String(roll.id),
+              label: roll.name,
+              description: `Roll ID: R${String(roll.id).padStart(3, '0')}`
+            }))
+          ]}
+        />
+
+        {/* Sort Dropdown */}
+        <FilterDropdown
+          label="Sort"
+          value={`${sortColumn}-${sortDirection}`}
+          onChange={(val) => {
+            const [col, dir] = val.split('-');
+            setSortColumn(col);
+            setSortDirection(dir as "asc" | "desc");
+            setCurrentPage(1);
+          }}
+          searchable={false}
+          icon={<ArrowUpDown className="w-4 h-4" />}
+          options={[
+            { value: "id-desc", label: "Newest first", description: "Most recently created" },
+            { value: "id-asc", label: "Oldest first", description: "First created sub-batches" },
+            { value: "name-asc", label: "Name A-Z", description: "Alphabetical order" },
+            { value: "name-desc", label: "Name Z-A", description: "Reverse alphabetical" },
+            { value: "status-asc", label: "Status A-Z", description: "By status alphabetically" },
+            { value: "status-desc", label: "Status Z-A", description: "Status reverse order" },
+            { value: "estimated_pieces-desc", label: "Pieces (High to Low)", description: "Largest quantities first" },
+            { value: "estimated_pieces-asc", label: "Pieces (Low to High)", description: "Smallest quantities first" },
+            { value: "start_date-desc", label: "Start Date (Latest)", description: "Most recent start dates" },
+            { value: "start_date-asc", label: "Start Date (Earliest)", description: "Oldest start dates first" },
+            { value: "due_date-desc", label: "Due Date (Latest)", description: "Farthest deadlines first" },
+            { value: "due_date-asc", label: "Due Date (Earliest)", description: "Soonest deadlines first" },
+          ]}
+        />
+
+        {/* Advanced Filters Link */}
+        <button className="flex items-center gap-1.5 text-sm text-gray-600 hover:text-[#2272B4] transition-colors">
+          <SlidersHorizontal className="w-4 h-4" />
+          Advanced filters
+        </button>
+
+        {/* Clear Filters */}
+        {hasActiveFilters && (
+          <button
+            onClick={clearAllFilters}
+            className="text-sm text-red-600 hover:text-red-700 font-medium transition-colors"
+          >
+            Clear all
+          </button>
+        )}
+
+        {/* Results Count */}
+        <span className="text-sm text-gray-500 ml-auto">
+          {totalFiltered} {totalFiltered === 1 ? "result" : "results"}
+        </span>
+      </div>
+
+      {/* Table Container - HubSpot style */}
+      <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
+        {loading ? (
+          <Loader loading={true} message="Loading Sub Batches..." />
+        ) : totalFiltered === 0 ? (
           <div className="flex flex-col items-center justify-center py-12 px-4">
             <div className="rounded-[10px] p-6 m-4 flex flex-col items-center">
               <div className="bg-gray-100 mb-4 w-20 aspect-square rounded-full flex items-center justify-center">
@@ -920,130 +1070,270 @@ const SubBatchView = () => {
               </div>
               <h3 className="text-black mb-2 font-bold">No sub batches found</h3>
               <p className="text-gray-500 font-medium">
-                Get started by creating your first sub batch.
+                {hasActiveFilters ? "Try adjusting your filters or " : "Get started by "}creating your first sub batch.
               </p>
-              <p className="text-gray-500 mb-2 font-medium">
-                Click the Add Sub Batch button to begin tracking your production.
-              </p>
+              {hasActiveFilters && (
+                <button
+                  onClick={clearAllFilters}
+                  className="mt-3 text-sm text-[#2272B4] hover:underline font-medium"
+                >
+                  Clear all filters
+                </button>
+              )}
             </div>
           </div>
         ) : (
-          <table className="w-full min-w-full">
-            <thead>
-              <tr className="border-b border-gray-100 bg-gray-50/50">
-                <th className="px-4 py-3 text-left w-12">
-                  <input
-                    type="checkbox"
-                    checked={selectedRows.size === filteredSubBatches.length}
-                    onChange={toggleAllRows}
-                    className="w-4 h-4 rounded border-gray-300 text-[#2272B4] focus:ring-[#2272B4]"
-                  />
-                </th>
-                <th className="px-4 py-3 text-left text-sm font-normal text-gray-500">ID</th>
-                <th className="px-4 py-3 text-left text-sm font-normal text-gray-500">Name</th>
-                <th className="px-4 py-3 text-left text-sm font-normal text-gray-500">Parent Roll</th>
-                <th className="px-4 py-3 text-left text-sm font-normal text-gray-500">Parent Batch</th>
-                <th className="px-4 py-3 text-left text-sm font-normal text-gray-500">Status</th>
-                <th className="px-4 py-3 text-left text-sm font-normal text-gray-500">Pieces</th>
-                <th className="px-4 py-3 text-left text-sm font-normal text-gray-500">Start Date</th>
-                <th className="px-4 py-3 text-left text-sm font-normal text-gray-500">Due Date</th>
-                <th className="px-4 py-3 text-right text-sm font-normal text-gray-500">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100">
-              {filteredSubBatches.map((sb) => (
-                <tr
-                  key={sb.id}
-                  className={`transition-colors ${selectedRows.has(sb.id) ? 'bg-blue-50' : 'hover:bg-gray-50'}`}
-                >
-                  <td className="px-4 py-3">
-                    <input
-                      type="checkbox"
-                      checked={selectedRows.has(sb.id)}
-                      onChange={() => toggleRowSelection(sb.id)}
-                      className="w-4 h-4 rounded border-gray-300 text-[#2272B4] focus:ring-[#2272B4]"
-                    />
-                  </td>
-                  <td className="px-4 py-3 text-sm text-gray-500">SB{String(sb.id).padStart(3, '0')}</td>
-                  <td className="px-4 py-3">
-                    <span className="text-sm font-normal text-[#2272B4] hover:underline cursor-pointer">{sb.name}</span>
-                  </td>
-                  <td className="px-4 py-3 text-sm text-gray-600">{getRollName(sb.roll_id)}</td>
-                  <td className="px-4 py-3 text-sm text-gray-600">{getBatchName(sb.batch_id)}</td>
-                  <td className="px-4 py-3 text-sm">{getStatusBadge(sb.status)}</td>
-                  <td className="px-4 py-3 text-sm text-gray-600">{sb.estimated_pieces}</td>
-                  <td className="px-4 py-3 text-sm text-gray-600">{formatDate(sb.start_date)}</td>
-                  <td className="px-4 py-3 text-sm text-gray-600">{formatDate(sb.due_date)}</td>
-                  <td className="px-4 py-3 text-right">
-                    <div className="flex items-center justify-end gap-1">
-                      <button
-                        onClick={() => handlePreview(sb.id)}
-                        className="p-1.5 rounded hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors"
-                        title="Preview"
-                      >
-                        <Eye size={16} />
-                      </button>
-                      <button
-                        onClick={() => handleEdit(sb)}
-                        className="p-1.5 rounded hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors"
-                        title="Edit"
-                      >
-                        <Edit2 size={16} />
-                      </button>
-                      <button
-                        onClick={() => handleDelete(sb.id)}
-                        disabled={deletingId === sb.id}
-                        className="p-1.5 rounded hover:bg-gray-100 text-gray-400 hover:text-red-500 transition-colors disabled:opacity-50"
-                        title="Delete"
-                      >
-                        <Trash2 size={16} />
-                      </button>
-                      <button
-                        onClick={() => handleSend(sb)}
-                        className="p-1.5 rounded hover:bg-gray-100 text-gray-400 hover:text-green-600 transition-colors"
-                        title="Send to Production"
-                      >
-                        <Package size={16} />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-          </div>
+          <>
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-full">
+                <thead>
+                  <tr className="border-b border-gray-200 bg-gray-50">
+                    <th className="px-4 py-3 text-left w-12">
+                      <input
+                        type="checkbox"
+                        checked={paginatedSubBatches.length > 0 && paginatedSubBatches.every(sb => selectedRows.has(sb.id))}
+                        onChange={toggleAllRows}
+                        className="w-4 h-4 rounded border-gray-300 text-[#2272B4] focus:ring-[#2272B4]"
+                      />
+                    </th>
+                    {/* Sortable Headers */}
+                    <th
+                      className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors"
+                      onClick={() => handleSort("id")}
+                    >
+                      <div className="flex items-center gap-1">
+                        ID
+                        {sortColumn === "id" && (
+                          sortDirection === "asc" ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />
+                        )}
+                      </div>
+                    </th>
+                    <th
+                      className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors"
+                      onClick={() => handleSort("name")}
+                    >
+                      <div className="flex items-center gap-1">
+                        Name
+                        {sortColumn === "name" && (
+                          sortDirection === "asc" ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />
+                        )}
+                      </div>
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Parent Roll
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Parent Batch
+                    </th>
+                    <th
+                      className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors"
+                      onClick={() => handleSort("status")}
+                    >
+                      <div className="flex items-center gap-1">
+                        Status
+                        {sortColumn === "status" && (
+                          sortDirection === "asc" ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />
+                        )}
+                      </div>
+                    </th>
+                    <th
+                      className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors"
+                      onClick={() => handleSort("estimated_pieces")}
+                    >
+                      <div className="flex items-center gap-1">
+                        Pieces
+                        {sortColumn === "estimated_pieces" && (
+                          sortDirection === "asc" ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />
+                        )}
+                      </div>
+                    </th>
+                    <th
+                      className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors"
+                      onClick={() => handleSort("start_date")}
+                    >
+                      <div className="flex items-center gap-1">
+                        Start Date
+                        {sortColumn === "start_date" && (
+                          sortDirection === "asc" ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />
+                        )}
+                      </div>
+                    </th>
+                    <th
+                      className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors"
+                      onClick={() => handleSort("due_date")}
+                    >
+                      <div className="flex items-center gap-1">
+                        Due Date
+                        {sortColumn === "due_date" && (
+                          sortDirection === "asc" ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />
+                        )}
+                      </div>
+                    </th>
+                    <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Actions
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-200">
+                  {paginatedSubBatches.map((sb) => (
+                    <tr
+                      key={sb.id}
+                      className={`transition-colors ${selectedRows.has(sb.id) ? 'bg-blue-50' : 'hover:bg-gray-50'}`}
+                    >
+                      <td className="px-4 py-3">
+                        <input
+                          type="checkbox"
+                          checked={selectedRows.has(sb.id)}
+                          onChange={() => toggleRowSelection(sb.id)}
+                          className="w-4 h-4 rounded border-gray-300 text-[#2272B4] focus:ring-[#2272B4]"
+                        />
+                      </td>
+                      <td className="px-4 py-3 text-sm text-gray-500">SB{String(sb.id).padStart(3, '0')}</td>
+                      <td className="px-4 py-3">
+                        <span className="text-sm font-medium text-[#2272B4] hover:underline cursor-pointer">{sb.name}</span>
+                      </td>
+                      <td className="px-4 py-3 text-sm text-gray-600">{getRollName(sb.roll_id)}</td>
+                      <td className="px-4 py-3 text-sm text-gray-600">{getBatchName(sb.batch_id)}</td>
+                      <td className="px-4 py-3 text-sm">{getStatusBadge(sb.status)}</td>
+                      <td className="px-4 py-3 text-sm text-gray-600">{sb.estimated_pieces}</td>
+                      <td className="px-4 py-3 text-sm text-gray-600">{formatDate(sb.start_date)}</td>
+                      <td className="px-4 py-3 text-sm text-gray-600">{formatDate(sb.due_date)}</td>
+                      <td className="px-4 py-3 text-right">
+                        <div className="flex items-center justify-end gap-1">
+                          <button
+                            onClick={() => handlePreview(sb.id)}
+                            className="p-1.5 rounded hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors"
+                            title="Preview"
+                          >
+                            <Eye size={16} />
+                          </button>
+                          <button
+                            onClick={() => handleEdit(sb)}
+                            className="p-1.5 rounded hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors"
+                            title="Edit"
+                          >
+                            <Edit2 size={16} />
+                          </button>
+                          <button
+                            onClick={() => handleDelete(sb.id)}
+                            disabled={deletingId === sb.id}
+                            className="p-1.5 rounded hover:bg-gray-100 text-gray-400 hover:text-red-500 transition-colors disabled:opacity-50"
+                            title="Delete"
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                          <button
+                            onClick={() => handleSend(sb)}
+                            className="p-1.5 rounded hover:bg-gray-100 text-gray-400 hover:text-green-600 transition-colors"
+                            title="Send to Production"
+                          >
+                            <Package size={16} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
 
-          {/* Floating Action Bar */}
-          {selectedRows.size > 0 && (
-            <div className="fixed bottom-8 left-1/2 transform -translate-x-1/2 bg-white shadow-2xl rounded-full px-6 py-4 flex items-center gap-6 border border-gray-200 z-40">
+            {/* Pagination - HubSpot style */}
+            <div className="px-4 py-3 border-t border-gray-200 flex items-center justify-between bg-white">
               <div className="flex items-center gap-2">
-                <div className="w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center text-sm font-bold">
-                  {selectedRows.size}
-                </div>
-                <span className="text-sm font-medium text-gray-700">
-                  {selectedRows.size === 1 ? "sub-batch selected" : "sub-batches selected"}
+                <span className="text-sm text-gray-700">
+                  Showing {((currentPage - 1) * itemsPerPage) + 1} to {Math.min(currentPage * itemsPerPage, totalFiltered)} of {totalFiltered}
                 </span>
               </div>
-              <div className="w-px h-6 bg-gray-300"></div>
-              <button
-                onClick={handleBulkDelete}
-                className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-full hover:bg-red-700 transition-colors font-medium"
-              >
-                <Trash2 size={16} />
-                Delete Selected
-              </button>
-              <button
-                onClick={() => setSelectedRows(new Set())}
-                className="flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-full hover:bg-gray-200 transition-colors font-medium"
-              >
-                <X size={16} />
-                Clear
-              </button>
+              <div className="flex items-center gap-4">
+                {/* Items per page selector */}
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-gray-600">per page</span>
+                  <select
+                    value={itemsPerPage}
+                    onChange={(e) => { setItemsPerPage(Number(e.target.value)); setCurrentPage(1); }}
+                    className="border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-[#2272B4]"
+                  >
+                    <option value={10}>10</option>
+                    <option value={25}>25</option>
+                    <option value={50}>50</option>
+                    <option value={100}>100</option>
+                  </select>
+                </div>
+
+                {/* Page navigation */}
+                <div className="flex items-center gap-1">
+                  <button
+                    onClick={() => setCurrentPage(1)}
+                    disabled={currentPage === 1}
+                    className="p-1.5 rounded hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed text-gray-600"
+                    title="First page"
+                  >
+                    <ChevronLeft className="w-4 h-4" />
+                    <ChevronLeft className="w-4 h-4 -ml-3" />
+                  </button>
+                  <button
+                    onClick={() => setCurrentPage(currentPage - 1)}
+                    disabled={currentPage === 1}
+                    className="p-1.5 rounded hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed text-gray-600"
+                    title="Previous page"
+                  >
+                    <ChevronLeft className="w-4 h-4" />
+                  </button>
+                  <span className="px-3 py-1 text-sm text-gray-700">
+                    Page {currentPage} of {totalPages || 1}
+                  </span>
+                  <button
+                    onClick={() => setCurrentPage(currentPage + 1)}
+                    disabled={currentPage >= totalPages}
+                    className="p-1.5 rounded hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed text-gray-600"
+                    title="Next page"
+                  >
+                    <ChevronRight className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={() => setCurrentPage(totalPages)}
+                    disabled={currentPage >= totalPages}
+                    className="p-1.5 rounded hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed text-gray-600"
+                    title="Last page"
+                  >
+                    <ChevronRight className="w-4 h-4" />
+                    <ChevronRight className="w-4 h-4 -ml-3" />
+                  </button>
+                </div>
+              </div>
             </div>
-          )}
-        </div>
+          </>
+        )}
       </div>
+
+      {/* Floating Action Bar */}
+      {selectedRows.size > 0 && (
+        <div className="fixed bottom-8 left-1/2 transform -translate-x-1/2 bg-white shadow-2xl rounded-full px-6 py-4 flex items-center gap-6 border border-gray-200 z-40">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center text-sm font-bold">
+              {selectedRows.size}
+            </div>
+            <span className="text-sm font-medium text-gray-700">
+              {selectedRows.size === 1 ? "sub-batch selected" : "sub-batches selected"}
+            </span>
+          </div>
+          <div className="w-px h-6 bg-gray-300"></div>
+          <button
+            onClick={handleBulkDelete}
+            className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-full hover:bg-red-700 transition-colors font-medium"
+          >
+            <Trash2 size={16} />
+            Delete Selected
+          </button>
+          <button
+            onClick={() => setSelectedRows(new Set())}
+            className="flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-full hover:bg-gray-200 transition-colors font-medium"
+          >
+            <X size={16} />
+            Clear
+          </button>
+        </div>
+      )}
 
       {/* 3-Tier Warning Modal */}
       {showDeleteWarning && (

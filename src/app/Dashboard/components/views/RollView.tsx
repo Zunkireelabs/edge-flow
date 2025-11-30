@@ -1,26 +1,150 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import {
   Plus,
-  FileText,
   X,
   Trash2,
   Edit2,
-  Truck,
   Package,
-  BrickWall,
-  Scale,
-  Palette,
-  Shell,
-  MoreVertical,
   Eye,
   ChevronLeft,
   ChevronRight,
-  Filter,
+  ChevronDown,
+  ChevronUp,
+  SlidersHorizontal,
+  ArrowUpDown,
+  Search,
+  Check,
 } from "lucide-react";
 import Loader from "@/app/Components/Loader";
 import { useToast } from "@/app/Components/ToastContext";
+
+// Filter Dropdown Option Interface
+interface FilterOption {
+  value: string;
+  label: string;
+  description?: string;
+}
+
+// Custom Filter Dropdown Component
+const FilterDropdown = ({
+  label,
+  options,
+  value,
+  onChange,
+  searchable = true,
+  icon,
+}: {
+  label: string;
+  options: FilterOption[];
+  value: string;
+  onChange: (value: string) => void;
+  searchable?: boolean;
+  icon?: React.ReactNode;
+}) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const dropdownRef = useRef<HTMLDivElement>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+
+  const selectedOption = options.find(opt => opt.value === value);
+  const displayLabel = selectedOption?.label || label;
+
+  const filteredOptions = options.filter(opt =>
+    opt.label.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (opt.description && opt.description.toLowerCase().includes(searchQuery.toLowerCase()))
+  );
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+        setSearchQuery("");
+      }
+    };
+    if (isOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+      setTimeout(() => searchInputRef.current?.focus(), 100);
+    }
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [isOpen]);
+
+  const handleSelect = (optionValue: string) => {
+    onChange(optionValue);
+    setIsOpen(false);
+    setSearchQuery("");
+  };
+
+  const isActive = value !== "all";
+
+  return (
+    <div className="relative" ref={dropdownRef}>
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className={`flex items-center gap-2 px-3 py-2 text-sm border rounded-md transition-all duration-200 ${
+          isActive
+            ? "border-[#2272B4] bg-blue-50 text-[#2272B4]"
+            : "border-gray-300 bg-white text-gray-700 hover:border-gray-400"
+        }`}
+      >
+        {icon && <span className="flex-shrink-0">{icon}</span>}
+        <span className="max-w-[150px] truncate">{displayLabel}</span>
+        <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`} />
+      </button>
+
+      {isOpen && (
+        <div className="absolute top-full left-0 mt-2 w-72 bg-white rounded-lg shadow-lg border border-gray-200 z-50 overflow-hidden">
+          <div className="absolute -top-2 left-4 w-4 h-4 bg-white border-l border-t border-gray-200 transform rotate-45" />
+          {searchable && (
+            <div className="p-3 border-b border-gray-100">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <input
+                  ref={searchInputRef}
+                  type="text"
+                  placeholder="Search..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full pl-9 pr-3 py-2 text-sm border border-gray-200 rounded-full focus:outline-none focus:ring-2 focus:ring-[#2272B4] focus:border-transparent"
+                />
+              </div>
+            </div>
+          )}
+          <div className="max-h-64 overflow-y-auto">
+            {filteredOptions.length === 0 ? (
+              <div className="px-4 py-3 text-sm text-gray-500 text-center">No options found</div>
+            ) : (
+              filteredOptions.map((option) => (
+                <button
+                  key={option.value}
+                  onClick={() => handleSelect(option.value)}
+                  className={`w-full px-4 py-3 text-left hover:bg-gray-50 transition-colors flex items-start gap-3 ${
+                    value === option.value ? "bg-blue-50" : ""
+                  }`}
+                >
+                  <div className={`mt-0.5 w-4 h-4 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${
+                    value === option.value ? "border-[#2272B4] bg-[#2272B4]" : "border-gray-300"
+                  }`}>
+                    {value === option.value && <Check className="w-2.5 h-2.5 text-white" />}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className={`text-sm font-medium ${value === option.value ? "text-[#2272B4]" : "text-gray-900"}`}>
+                      {option.label}
+                    </div>
+                    {option.description && (
+                      <div className="text-xs text-gray-500 mt-0.5">{option.description}</div>
+                    )}
+                  </div>
+                </button>
+              ))
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
 
 interface Vendor {
   id: number | string;
@@ -57,11 +181,19 @@ const RollView = () => {
   const [vendors, setVendors] = useState<Vendor[]>([]);
   const [saveLoading, setSaveLoading] = useState(false);
   const [selectedRows, setSelectedRows] = useState<Set<number | string>>(new Set());
-  const [filterSidebarOpen, setFilterSidebarOpen] = useState(true);
-  const [selectedView, setSelectedView] = useState("all");
-  const [selectedUnits, setSelectedUnits] = useState<string[]>([]);
-  const [selectedColors, setSelectedColors] = useState<string[]>([]);
-  const [selectedVendors, setSelectedVendors] = useState<string[]>([]);
+
+  // HubSpot-style filter states
+  const [selectedUnit, setSelectedUnit] = useState<string>("all");
+  const [selectedColor, setSelectedColor] = useState<string>("all");
+  const [selectedVendorFilter, setSelectedVendorFilter] = useState<string>("all");
+
+  // Sorting states
+  const [sortColumn, setSortColumn] = useState<string>("id");
+  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc");
+
+  // Pagination states
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(25);
 
   const [formData, setFormData] = useState({
     id: "",
@@ -73,30 +205,6 @@ const RollView = () => {
   });
 
   const [openMenuId, setOpenMenuId] = useState<number | string | null>(null);
-
-  // Helper function to get vendor initials
-  const getVendorInitials = (name: string) => {
-    if (!name) return "?";
-    const words = name.split(" ");
-    if (words.length >= 2) {
-      return (words[0][0] + words[1][0]).toUpperCase();
-    }
-    return name.substring(0, 2).toUpperCase();
-  };
-
-  // Helper function to get avatar color
-  const getAvatarColor = (name: string) => {
-    const colors = [
-      "bg-blue-500",
-      "bg-purple-500",
-      "bg-green-500",
-      "bg-orange-500",
-      "bg-pink-500",
-      "bg-indigo-500",
-    ];
-    const index = name.charCodeAt(0) % colors.length;
-    return colors[index];
-  };
 
   // Toggle row selection
   const toggleRowSelection = (id: number | string) => {
@@ -111,45 +219,73 @@ const RollView = () => {
     });
   };
 
-  // Toggle all rows
+  // Get unique values for filters
+  const uniqueUnits = Array.from(new Set(rolls.map(r => r.unit).filter(Boolean)));
+  const uniqueColors = Array.from(new Set(rolls.map(r => r.color).filter(Boolean)));
+
+  // Filter, sort, and paginate rolls using useMemo
+  const { paginatedRolls, totalPages, totalFiltered } = useMemo(() => {
+    // Step 1: Filter
+    let filtered = rolls.filter(roll => {
+      if (selectedUnit !== "all" && roll.unit !== selectedUnit) return false;
+      if (selectedColor !== "all" && roll.color !== selectedColor) return false;
+      if (selectedVendorFilter !== "all" && roll.vendor?.id.toString() !== selectedVendorFilter) return false;
+      return true;
+    });
+
+    // Step 2: Sort
+    filtered = [...filtered].sort((a, b) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      let aVal: any = a[sortColumn as keyof Roll];
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      let bVal: any = b[sortColumn as keyof Roll];
+      if (aVal == null) aVal = "";
+      if (bVal == null) bVal = "";
+      if (typeof aVal === "string" && typeof bVal === "string") {
+        return sortDirection === "asc" ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
+      }
+      return sortDirection === "asc" ? aVal - bVal : bVal - aVal;
+    });
+
+    // Step 3: Paginate
+    const totalFiltered = filtered.length;
+    const totalPages = Math.ceil(totalFiltered / itemsPerPage);
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const paginated = filtered.slice(startIndex, startIndex + itemsPerPage);
+
+    return { paginatedRolls: paginated, totalPages, totalFiltered };
+  }, [rolls, selectedUnit, selectedColor, selectedVendorFilter, sortColumn, sortDirection, currentPage, itemsPerPage]);
+
+  // Handle sort column click
+  const handleSort = (column: string) => {
+    if (sortColumn === column) {
+      setSortDirection(sortDirection === "asc" ? "desc" : "asc");
+    } else {
+      setSortColumn(column);
+      setSortDirection("asc");
+    }
+    setCurrentPage(1);
+  };
+
+  // Toggle all rows (only on current page)
   const toggleAllRows = () => {
-    if (selectedRows.size === rolls.length) {
+    if (paginatedRolls.length > 0 && paginatedRolls.every(r => selectedRows.has(r.id))) {
       setSelectedRows(new Set());
     } else {
-      setSelectedRows(new Set(rolls.map(r => r.id)));
+      setSelectedRows(new Set(paginatedRolls.map(r => r.id)));
     }
   };
 
-  // Filter rolls based on selected filters
-  const filteredRolls = rolls.filter(roll => {
-    // Apply saved view filters
-    if (selectedView === "high-quantity" && roll.quantity <= 500) return false;
-    if (selectedView === "low-stock" && roll.quantity >= 100) return false;
-
-    // Apply unit filters
-    if (selectedUnits.length > 0 && !selectedUnits.includes(roll.unit)) return false;
-
-    // Apply color filters
-    if (selectedColors.length > 0 && !selectedColors.includes(roll.color)) return false;
-
-    // Apply vendor filters
-    if (selectedVendors.length > 0 && roll.vendor && !selectedVendors.includes(roll.vendor.id.toString())) return false;
-
-    return true;
-  });
-
-  // Get unique values for filters
-  const uniqueUnits = Array.from(new Set(rolls.map(r => r.unit)));
-  const uniqueColors = Array.from(new Set(rolls.map(r => r.color).filter(Boolean)));
-  const uniqueVendors = Array.from(new Set(rolls.map(r => r.vendor).filter(Boolean)));
-
   // Clear all filters
   const clearAllFilters = () => {
-    setSelectedView("all");
-    setSelectedUnits([]);
-    setSelectedColors([]);
-    setSelectedVendors([]);
+    setSelectedUnit("all");
+    setSelectedColor("all");
+    setSelectedVendorFilter("all");
+    setCurrentPage(1);
   };
+
+  // Check if any filters are active
+  const hasActiveFilters = selectedUnit !== "all" || selectedColor !== "all" || selectedVendorFilter !== "all";
 
   // Reset form data
   const resetFormData = () => {
@@ -367,300 +503,214 @@ const RollView = () => {
   };
 
   return (
-    <div className="pr-8 bg-white min-h-screen">
-      {/* Main Layout: Filter Sidebar + Content */}
-      <div className="flex min-h-screen">
-        {/* Filters Sidebar */}
-        <div
-          className={`bg-white shadow flex-shrink-0 border-r border-gray-200 min-h-screen overflow-y-auto transition-all duration-300 ease-in-out ${
-            filterSidebarOpen ? 'w-72 opacity-100' : 'w-0 opacity-0'
-          }`}
-          style={{
-            scrollbarWidth: 'thin',
-            scrollbarColor: '#d1d5db #f3f4f6',
-            fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif'
+    <div className="p-8 bg-white min-h-screen">
+      {/* Header */}
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">Roll View</h2>
+          <p className="text-gray-500 text-sm">Manage production rolls and track progress</p>
+        </div>
+        <button
+          className="flex items-center gap-2 bg-[#2272B4] text-white px-5 py-2.5 rounded font-semibold shadow-md hover:bg-[#0E538B] hover:shadow-lg transition-all duration-200 hover:scale-105"
+          onClick={() => {
+            resetFormData();
+            setIsDrawerOpen(true);
+            setOpenMenuId(null);
+            setIsPreview(false);
           }}
         >
-            {/* Filters Header */}
-            <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
-              <h3 className="text-base font-semibold text-gray-900">Filters</h3>
-              <button
-                onClick={() => setFilterSidebarOpen(false)}
-                className="p-1 hover:bg-gray-100 rounded transition-colors"
-                title="Collapse filters"
-              >
-                <ChevronLeft className="w-4 h-4 text-gray-500" />
-              </button>
-            </div>
+          <Plus size={18} /> Add Roll
+        </button>
+      </div>
 
-            <div className="px-3">
-              {/* Saved Views */}
-              <div className="py-3 border-b border-gray-100">
-                <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2 px-1">Saved Views</h4>
-                <div className="space-y-0.5">
-                  <button
-                    onClick={() => setSelectedView("all")}
-                    className={`w-full flex items-center justify-between text-left py-2 px-3 rounded-sm transition-all ${
-                      selectedView === "all"
-                        ? "bg-blue-50 border-l-2 border-blue-600"
-                        : "hover:bg-gray-50 border-l-2 border-transparent"
-                    }`}
-                  >
-                    <span className={`text-sm ${selectedView === "all" ? "font-medium text-gray-900" : "text-gray-600"}`}>
-                      All Rolls
-                    </span>
-                    <span className={`text-sm ${selectedView === "all" ? "font-medium text-gray-900" : "text-gray-400"}`}>
-                      {rolls.length}
-                    </span>
-                  </button>
-                  <button
-                    onClick={() => setSelectedView("high-quantity")}
-                    className={`w-full flex items-center justify-between text-left py-2 px-3 rounded-sm transition-all ${
-                      selectedView === "high-quantity"
-                        ? "bg-blue-50 border-l-2 border-blue-600"
-                        : "hover:bg-gray-50 border-l-2 border-transparent"
-                    }`}
-                  >
-                    <span className={`text-sm ${selectedView === "high-quantity" ? "font-medium text-gray-900" : "text-gray-600"}`}>
-                      High Quantity
-                    </span>
-                    <span className={`text-sm ${selectedView === "high-quantity" ? "font-medium text-gray-900" : "text-gray-400"}`}>
-                      {rolls.filter(r => r.quantity > 500).length}
-                    </span>
-                  </button>
-                  <button
-                    onClick={() => setSelectedView("low-stock")}
-                    className={`w-full flex items-center justify-between text-left py-2 px-3 rounded-sm transition-all ${
-                      selectedView === "low-stock"
-                        ? "bg-blue-50 border-l-2 border-blue-600"
-                        : "hover:bg-gray-50 border-l-2 border-transparent"
-                    }`}
-                  >
-                    <span className={`text-sm ${selectedView === "low-stock" ? "font-medium text-gray-900" : "text-gray-600"}`}>
-                      Low Stock
-                    </span>
-                    <span className={`text-sm ${selectedView === "low-stock" ? "font-medium text-gray-900" : "text-gray-400"}`}>
-                      {rolls.filter(r => r.quantity < 100).length}
-                    </span>
-                  </button>
-                </div>
-              </div>
+      {/* HubSpot-style Horizontal Filter Bar */}
+      <div className="mb-4 flex items-center gap-3 flex-wrap">
+        {/* Unit Filter */}
+        <FilterDropdown
+          label="All Units"
+          value={selectedUnit}
+          onChange={(val) => { setSelectedUnit(val); setCurrentPage(1); }}
+          options={[
+            { value: "all", label: "All Units", description: "Show rolls with any unit" },
+            ...uniqueUnits.map(unit => ({
+              value: unit,
+              label: unit,
+              description: `Filter by ${unit}`
+            }))
+          ]}
+        />
 
-              {/* Unit Filter */}
-              <div className="py-3 border-b border-gray-100">
-                <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2 px-1">Unit</h4>
-                <div className="space-y-1">
-                  {uniqueUnits.map(unit => (
-                    <label key={unit} className="flex items-center gap-2.5 cursor-pointer group py-1.5 px-1 rounded-sm hover:bg-gray-50 transition-colors">
-                      <input
-                        type="checkbox"
-                        checked={selectedUnits.includes(unit)}
-                        onChange={(e) => {
-                          if (e.target.checked) {
-                            setSelectedUnits([...selectedUnits, unit]);
-                          } else {
-                            setSelectedUnits(selectedUnits.filter(u => u !== unit));
-                          }
-                        }}
-                        className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-1 focus:ring-blue-500 focus:ring-offset-0 cursor-pointer"
-                      />
-                      <span className="text-sm text-gray-600 group-hover:text-gray-900">{unit}</span>
-                    </label>
-                  ))}
-                </div>
-              </div>
+        {/* Color Filter */}
+        <FilterDropdown
+          label="All Colors"
+          value={selectedColor}
+          onChange={(val) => { setSelectedColor(val); setCurrentPage(1); }}
+          options={[
+            { value: "all", label: "All Colors", description: "Show rolls with any color" },
+            ...uniqueColors.map(color => ({
+              value: color,
+              label: color,
+              description: `Filter by ${color} color`
+            }))
+          ]}
+        />
 
-              {/* Color Filter */}
-              <div className="py-3 border-b border-gray-100">
-                <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2 px-1">Color</h4>
-                <div className="space-y-1">
-                  {uniqueColors.map(color => (
-                    <label key={color} className="flex items-center gap-2.5 cursor-pointer group py-1.5 px-1 rounded-sm hover:bg-gray-50 transition-colors">
-                      <input
-                        type="checkbox"
-                        checked={selectedColors.includes(color)}
-                        onChange={(e) => {
-                          if (e.target.checked) {
-                            setSelectedColors([...selectedColors, color]);
-                          } else {
-                            setSelectedColors(selectedColors.filter(c => c !== color));
-                          }
-                        }}
-                        className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-1 focus:ring-blue-500 focus:ring-offset-0 cursor-pointer"
-                      />
-                      <span className="text-sm text-gray-600 capitalize group-hover:text-gray-900">{color}</span>
-                    </label>
-                  ))}
-                </div>
-              </div>
+        {/* Vendor Filter */}
+        <FilterDropdown
+          label="All Vendors"
+          value={selectedVendorFilter}
+          onChange={(val) => { setSelectedVendorFilter(val); setCurrentPage(1); }}
+          options={[
+            { value: "all", label: "All Vendors", description: "Show rolls from all vendors" },
+            ...vendors.map(vendor => ({
+              value: String(vendor.id),
+              label: vendor.name,
+              description: vendor.address || "No address"
+            }))
+          ]}
+        />
 
-              {/* Vendor Filter */}
-              <div className="py-3 border-b border-gray-100">
-                <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2 px-1">Vendor</h4>
-                <div className="space-y-1">
-                  {uniqueVendors.map(vendor => vendor && (
-                    <label key={vendor.id} className="flex items-center gap-2.5 cursor-pointer group py-1.5 px-1 rounded-sm hover:bg-gray-50 transition-colors">
-                      <input
-                        type="checkbox"
-                        checked={selectedVendors.includes(vendor.id.toString())}
-                        onChange={(e) => {
-                          const vendorId = vendor.id.toString();
-                          if (e.target.checked) {
-                            setSelectedVendors([...selectedVendors, vendorId]);
-                          } else {
-                            setSelectedVendors(selectedVendors.filter(v => v !== vendorId));
-                          }
-                        }}
-                        className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-1 focus:ring-blue-500 focus:ring-offset-0 cursor-pointer"
-                      />
-                      <span className="text-sm text-gray-600 group-hover:text-gray-900">{vendor.name}</span>
-                    </label>
-                  ))}
-                </div>
-              </div>
+        {/* Sort Dropdown */}
+        <FilterDropdown
+          label="Sort"
+          value={`${sortColumn}-${sortDirection}`}
+          onChange={(val) => {
+            const [col, dir] = val.split('-');
+            setSortColumn(col);
+            setSortDirection(dir as "asc" | "desc");
+            setCurrentPage(1);
+          }}
+          searchable={false}
+          icon={<ArrowUpDown className="w-4 h-4" />}
+          options={[
+            { value: "id-desc", label: "Newest first", description: "Most recently created" },
+            { value: "id-asc", label: "Oldest first", description: "First created rolls" },
+            { value: "name-asc", label: "Name A-Z", description: "Alphabetical order" },
+            { value: "name-desc", label: "Name Z-A", description: "Reverse alphabetical" },
+            { value: "quantity-desc", label: "Quantity (High to Low)", description: "Largest quantities first" },
+            { value: "quantity-asc", label: "Quantity (Low to High)", description: "Smallest quantities first" },
+          ]}
+        />
 
-              {/* Clear Filters */}
-              {(selectedUnits.length > 0 || selectedColors.length > 0 || selectedVendors.length > 0 || selectedView !== "all") && (
-                <div className="py-4">
-                  <button
-                    onClick={clearAllFilters}
-                    className="w-full px-4 py-2 text-sm text-red-600 hover:bg-red-50 rounded-lg transition-colors font-medium"
-                  >
-                    Clear All Filters
-                  </button>
-                </div>
-              )}
-            </div>
-          </div>
+        {/* Advanced Filters Link */}
+        <button className="flex items-center gap-1.5 text-sm text-gray-600 hover:text-[#2272B4] transition-colors">
+          <SlidersHorizontal className="w-4 h-4" />
+          Advanced filters
+        </button>
 
-        {/* Main Content Area */}
-        <div className="flex-1 pl-6 min-h-screen">
-          {/* Header */}
-          <div className="flex items-center justify-between mb-4 pt-6">
-            <div className="flex items-start gap-3">
-              <button
-                onClick={() => setFilterSidebarOpen(!filterSidebarOpen)}
-                className="p-2 hover:bg-gray-100 rounded-lg transition-colors mt-0.5"
-                title={filterSidebarOpen ? "Hide filters" : "Show filters"}
-              >
-                <Filter className="w-5 h-5 text-gray-600" />
-              </button>
-              <div>
-                <h2 className="text-xl font-semibold text-gray-900">Roll View</h2>
-                <p className="text-gray-500 text-sm">
-                  Manage production rolls and track progress
-                </p>
-              </div>
-            </div>
-            <button
-              className="flex items-center gap-2 bg-[#2272B4] text-white px-5 py-2.5 rounded font-semibold shadow-md hover:bg-[#0E538B] hover:shadow-lg transition-all duration-200 hover:scale-105"
-              onClick={() => {
-                resetFormData();
-                setIsDrawerOpen(true);
-                setOpenMenuId(null);
-                setIsPreview(false);
-              }}
-            >
-              <Plus size={18} /> Add Roll
-            </button>
-          </div>
+        {/* Clear Filters */}
+        {hasActiveFilters && (
+          <button
+            onClick={clearAllFilters}
+            className="text-sm text-red-600 hover:text-red-700 font-medium transition-colors"
+          >
+            Clear all
+          </button>
+        )}
 
-          {/* Table Container - Databricks style: clean, borderless */}
-          <div className="bg-white overflow-x-auto">
+        {/* Results Count */}
+        <span className="text-sm text-gray-500 ml-auto">
+          {totalFiltered} {totalFiltered === 1 ? "result" : "results"}
+        </span>
+      </div>
+
+      {/* Table Container */}
+      <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
         {loading ? (
-          <div className="p-6">
-            <Loader loading={true} message="Loading Rolls.." />
-          </div>
-
-        ) : filteredRolls.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-12 px-6">
-            <FileText size={48} className="text-gray-300 mb-4" />
+          <Loader loading={true} message="Loading Rolls..." />
+        ) : totalFiltered === 0 ? (
+          <div className="flex flex-col items-center justify-center py-12">
+            <Package size={48} className="text-gray-300 mb-4" />
             <p className="text-black mb-2 font-medium">No rolls found</p>
             <p className="text-gray-500 mb-2 font-medium">
-              Get started by creating your first roll. Click the Add Roll button to begin tracking your production.
+              {hasActiveFilters ? "Try adjusting your filters or " : "Get started by "}creating your first roll.
             </p>
+            {hasActiveFilters && (
+              <button onClick={clearAllFilters} className="mt-3 text-sm text-[#2272B4] hover:underline font-medium">
+                Clear all filters
+              </button>
+            )}
           </div>
         ) : (
-          <table className="w-full min-w-full">
-            <thead>
-              <tr className="border-b border-gray-100 bg-gray-50/50">
-                <th className="px-4 py-3 text-left w-12">
-                  <input
-                    type="checkbox"
-                    checked={selectedRows.size === filteredRolls.length && filteredRolls.length > 0}
-                    onChange={toggleAllRows}
-                    className="w-4 h-4 rounded border-gray-300 text-[#2272B4] focus:ring-[#2272B4]"
-                  />
-                </th>
-                <th className="px-4 py-3 text-left text-sm font-normal text-gray-500">ID</th>
-                <th className="px-4 py-3 text-left text-sm font-normal text-gray-500">Name</th>
-                <th className="px-4 py-3 text-left text-sm font-normal text-gray-500">Quantity</th>
-                <th className="px-4 py-3 text-left text-sm font-normal text-gray-500">Unit</th>
-                <th className="px-4 py-3 text-left text-sm font-normal text-gray-500">Color</th>
-                <th className="px-4 py-3 text-left text-sm font-normal text-gray-500">Vendor</th>
-                <th className="px-4 py-3 text-right text-sm font-normal text-gray-500">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100">
-              {filteredRolls.map((roll, index) => (
-                <tr
-                  key={roll.id}
-                  className={`transition-colors ${
-                    selectedRows.has(roll.id)
-                      ? 'bg-blue-50'
-                      : 'hover:bg-gray-50'
-                  }`}
-                >
-                  <td className="px-4 py-3">
-                    <input
-                      type="checkbox"
-                      checked={selectedRows.has(roll.id)}
-                      onChange={() => toggleRowSelection(roll.id)}
-                      className="w-4 h-4 rounded border-gray-300 text-[#2272B4] focus:ring-[#2272B4]"
-                    />
-                  </td>
-                  <td className="px-4 py-3 text-sm text-gray-500">R{String(roll.id).padStart(3, '0')}</td>
-                  <td className="px-4 py-3">
-                    <span className="text-sm font-normal text-[#2272B4] hover:underline cursor-pointer">{roll.name}</span>
-                  </td>
-                  <td className="px-4 py-3 text-sm text-gray-600">{roll.quantity}</td>
-                  <td className="px-4 py-3 text-sm text-gray-600">{roll.unit}</td>
-                  <td className="px-4 py-3 text-sm text-gray-600">{roll.color}</td>
-                  <td className="px-4 py-3 text-sm text-gray-600">
-                    {roll.vendor ? roll.vendor.name : <span className="text-gray-400">—</span>}
-                  </td>
-                  <td className="px-4 py-3 text-right">
-                    <div className="flex items-center justify-end gap-1">
-                      <button
-                        onClick={() => handlePreview(roll)}
-                        className="p-1.5 rounded hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors"
-                        title="Preview"
-                      >
-                        <Eye size={16} />
-                      </button>
-                      <button
-                        onClick={() => handleEdit(roll)}
-                        className="p-1.5 rounded hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors"
-                        title="Edit"
-                      >
-                        <Edit2 size={16} />
-                      </button>
-                      <button
-                        onClick={() => handleDelete(roll.id)}
-                        className="p-1.5 rounded hover:bg-gray-100 text-gray-400 hover:text-red-500 transition-colors"
-                        title="Delete"
-                      >
-                        <Trash2 size={16} />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <>
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-full">
+                <thead>
+                  <tr className="border-b border-gray-200 bg-gray-50">
+                    <th className="px-4 py-3 text-left w-12">
+                      <input
+                        type="checkbox"
+                        checked={paginatedRolls.length > 0 && paginatedRolls.every(r => selectedRows.has(r.id))}
+                        onChange={toggleAllRows}
+                        className="w-4 h-4 rounded border-gray-300 text-[#2272B4] focus:ring-[#2272B4]"
+                      />
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100" onClick={() => handleSort("id")}>
+                      <div className="flex items-center gap-1">ID {sortColumn === "id" && (sortDirection === "asc" ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)}</div>
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100" onClick={() => handleSort("name")}>
+                      <div className="flex items-center gap-1">Name {sortColumn === "name" && (sortDirection === "asc" ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)}</div>
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100" onClick={() => handleSort("quantity")}>
+                      <div className="flex items-center gap-1">Quantity {sortColumn === "quantity" && (sortDirection === "asc" ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)}</div>
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Unit</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Color</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Vendor</th>
+                    <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-200">
+                  {paginatedRolls.map((roll) => (
+                    <tr key={roll.id} className={`transition-colors ${selectedRows.has(roll.id) ? 'bg-blue-50' : 'hover:bg-gray-50'}`}>
+                      <td className="px-4 py-3">
+                        <input type="checkbox" checked={selectedRows.has(roll.id)} onChange={() => toggleRowSelection(roll.id)} className="w-4 h-4 rounded border-gray-300 text-[#2272B4] focus:ring-[#2272B4]" />
+                      </td>
+                      <td className="px-4 py-3 text-sm text-gray-500">R{String(roll.id).padStart(3, '0')}</td>
+                      <td className="px-4 py-3"><span className="text-sm font-medium text-[#2272B4] hover:underline cursor-pointer">{roll.name}</span></td>
+                      <td className="px-4 py-3 text-sm text-gray-600">{roll.quantity}</td>
+                      <td className="px-4 py-3 text-sm text-gray-600">{roll.unit}</td>
+                      <td className="px-4 py-3 text-sm text-gray-600">{roll.color}</td>
+                      <td className="px-4 py-3 text-sm text-gray-600">{roll.vendor ? roll.vendor.name : <span className="text-gray-400">—</span>}</td>
+                      <td className="px-4 py-3 text-right">
+                        <div className="flex items-center justify-end gap-1">
+                          <button onClick={() => handlePreview(roll)} className="p-1.5 rounded hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors" title="Preview"><Eye size={16} /></button>
+                          <button onClick={() => handleEdit(roll)} className="p-1.5 rounded hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors" title="Edit"><Edit2 size={16} /></button>
+                          <button onClick={() => handleDelete(roll.id)} className="p-1.5 rounded hover:bg-gray-100 text-gray-400 hover:text-red-500 transition-colors" title="Delete"><Trash2 size={16} /></button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Pagination */}
+            <div className="px-4 py-3 border-t border-gray-200 flex items-center justify-between bg-white">
+              <span className="text-sm text-gray-700">
+                Showing {((currentPage - 1) * itemsPerPage) + 1} to {Math.min(currentPage * itemsPerPage, totalFiltered)} of {totalFiltered}
+              </span>
+              <div className="flex items-center gap-4">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-gray-600">per page</span>
+                  <select value={itemsPerPage} onChange={(e) => { setItemsPerPage(Number(e.target.value)); setCurrentPage(1); }} className="border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-[#2272B4]">
+                    <option value={10}>10</option>
+                    <option value={25}>25</option>
+                    <option value={50}>50</option>
+                    <option value={100}>100</option>
+                  </select>
+                </div>
+                <div className="flex items-center gap-1">
+                  <button onClick={() => setCurrentPage(1)} disabled={currentPage === 1} className="p-1.5 rounded hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed text-gray-600"><ChevronLeft className="w-4 h-4" /><ChevronLeft className="w-4 h-4 -ml-3" /></button>
+                  <button onClick={() => setCurrentPage(currentPage - 1)} disabled={currentPage === 1} className="p-1.5 rounded hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed text-gray-600"><ChevronLeft className="w-4 h-4" /></button>
+                  <span className="px-3 py-1 text-sm text-gray-700">Page {currentPage} of {totalPages || 1}</span>
+                  <button onClick={() => setCurrentPage(currentPage + 1)} disabled={currentPage >= totalPages} className="p-1.5 rounded hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed text-gray-600"><ChevronRight className="w-4 h-4" /></button>
+                  <button onClick={() => setCurrentPage(totalPages)} disabled={currentPage >= totalPages} className="p-1.5 rounded hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed text-gray-600"><ChevronRight className="w-4 h-4" /><ChevronRight className="w-4 h-4 -ml-3" /></button>
+                </div>
+              </div>
+            </div>
+          </>
         )}
-          </div>
-        </div>
       </div>
 
       {/* Drawer */}
