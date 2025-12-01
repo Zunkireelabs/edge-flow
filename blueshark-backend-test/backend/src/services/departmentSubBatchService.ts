@@ -56,6 +56,7 @@ export const getAllDepartmentSubBatchHistory = async () => {
 };
 
 // Get sub-batch history: departments where work was completed
+// OPTIMIZED: Fixed N+1 query issue - now fetches all worker logs in single query
 export const getSubBatchHistory = async (subBatchId: number) => {
   // Get the planned workflow for this sub-batch
   const workflow = await prisma.sub_batch_workflows.findUnique({
@@ -96,68 +97,81 @@ export const getSubBatchHistory = async (subBatchId: number) => {
     ],
   });
 
-  // For each department, fetch worker logs
-  const departmentDetails = await Promise.all(
-    completedDepartments.map(async (deptEntry) => {
-      const workerLogs = await prisma.worker_logs.findMany({
-        where: {
-          sub_batch_id: subBatchId,
-          department_id: deptEntry.department_id,
-        },
+  // OPTIMIZATION: Fetch ALL worker logs for this sub-batch in a single query
+  // instead of N separate queries (one per department)
+  const allWorkerLogs = await prisma.worker_logs.findMany({
+    where: {
+      sub_batch_id: subBatchId,
+    },
+    include: {
+      worker: true,
+      rejected_entry: {
         include: {
-          worker: true,
-          rejected_entry: {
-            include: {
-              sent_to_department: true,
-            },
-          },
-          altered_entry: {
-            include: {
-              sent_to_department: true,
-            },
-          },
+          sent_to_department: true,
         },
-        orderBy: {
-          work_date: 'asc',
+      },
+      altered_entry: {
+        include: {
+          sent_to_department: true,
         },
-      });
+      },
+    },
+    orderBy: {
+      work_date: 'asc',
+    },
+  });
 
-      return {
-        department_entry_id: deptEntry.id,
-        department_id: deptEntry.department_id,
-        department_name: deptEntry.department?.name,
-        sent_to_department_id: deptEntry.sent_to_department_id,
-        sent_to_department_name: deptEntry.sent_to_department?.name,
-        arrival_date: deptEntry.createdAt,
-        quantity_remaining: deptEntry.quantity_remaining,
-        remarks: deptEntry.remarks,
-        worker_logs: workerLogs.map((log) => ({
-          id: log.id,
-          worker_id: log.worker_id,
-          worker_name: log.worker_name || log.worker?.name,
-          work_date: log.work_date,
-          size_category: log.size_category,
-          particulars: log.particulars,
-          quantity_received: log.quantity_received,
-          quantity_worked: log.quantity_worked,
-          unit_price: log.unit_price,
-          activity_type: log.activity_type,
-          rejected: log.rejected_entry?.map((r) => ({
-            quantity: r.quantity,
-            reason: r.reason,
-            sent_to_department_id: r.sent_to_department_id,
-            sent_to_department_name: r.sent_to_department?.name,
-          })),
-          altered: log.altered_entry?.map((a) => ({
-            quantity: a.quantity,
-            reason: a.reason,
-            sent_to_department_id: a.sent_to_department_id,
-            sent_to_department_name: a.sent_to_department?.name,
-          })),
+  // Group worker logs by department_id for efficient lookup
+  const workerLogsByDepartment = new Map<number, typeof allWorkerLogs>();
+  for (const log of allWorkerLogs) {
+    if (log.department_id) {
+      const existing = workerLogsByDepartment.get(log.department_id) || [];
+      existing.push(log);
+      workerLogsByDepartment.set(log.department_id, existing);
+    }
+  }
+
+  // Map department entries with their pre-fetched worker logs
+  const departmentDetails = completedDepartments.map((deptEntry) => {
+    const workerLogs = deptEntry.department_id
+      ? workerLogsByDepartment.get(deptEntry.department_id) || []
+      : [];
+
+    return {
+      department_entry_id: deptEntry.id,
+      department_id: deptEntry.department_id,
+      department_name: deptEntry.department?.name,
+      sent_to_department_id: deptEntry.sent_to_department_id,
+      sent_to_department_name: deptEntry.sent_to_department?.name,
+      arrival_date: deptEntry.createdAt,
+      quantity_remaining: deptEntry.quantity_remaining,
+      remarks: deptEntry.remarks,
+      worker_logs: workerLogs.map((log) => ({
+        id: log.id,
+        worker_id: log.worker_id,
+        worker_name: log.worker_name || log.worker?.name,
+        work_date: log.work_date,
+        size_category: log.size_category,
+        particulars: log.particulars,
+        quantity_received: log.quantity_received,
+        quantity_worked: log.quantity_worked,
+        unit_price: log.unit_price,
+        activity_type: log.activity_type,
+        rejected: log.rejected_entry?.map((r) => ({
+          quantity: r.quantity,
+          reason: r.reason,
+          sent_to_department_id: r.sent_to_department_id,
+          sent_to_department_name: r.sent_to_department?.name,
         })),
-      };
-    })
-  );
+        altered: log.altered_entry?.map((a) => ({
+          quantity: a.quantity,
+          reason: a.reason,
+          sent_to_department_id: a.sent_to_department_id,
+          sent_to_department_name: a.sent_to_department?.name,
+        })),
+      })),
+    };
+  });
 
   return {
     department_flow: departmentFlow,

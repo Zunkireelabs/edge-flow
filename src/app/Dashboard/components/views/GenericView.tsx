@@ -1,22 +1,151 @@
 "use client";
 
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback, useMemo, useRef } from "react";
 import axios from "axios";
 import {
   Plus,
   X,
   Edit2,
   Trash2,
-  MoreVertical,
   Building2,
-  MapPin,
-  Phone,
-  FileText,
   Eye,
-  CircleUser,
-  NotebookTabs,
+  ChevronDown,
+  ChevronUp,
+  SlidersHorizontal,
+  ChevronLeft,
+  ChevronRight,
+  ArrowUpDown,
+  Search,
+  Check,
 } from "lucide-react";
 import Loader from "@/app/Components/Loader";
+import { useToast } from "@/app/Components/ToastContext";
+
+// Filter Dropdown Option Interface
+interface FilterOption {
+  value: string;
+  label: string;
+  description?: string;
+}
+
+// Custom Filter Dropdown Component
+const FilterDropdown = ({
+  label,
+  options,
+  value,
+  onChange,
+  searchable = true,
+  icon,
+}: {
+  label: string;
+  options: FilterOption[];
+  value: string;
+  onChange: (value: string) => void;
+  searchable?: boolean;
+  icon?: React.ReactNode;
+}) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const dropdownRef = useRef<HTMLDivElement>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+
+  const selectedOption = options.find(opt => opt.value === value);
+  const displayLabel = selectedOption?.label || label;
+
+  const filteredOptions = options.filter(opt =>
+    opt.label.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (opt.description && opt.description.toLowerCase().includes(searchQuery.toLowerCase()))
+  );
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+        setSearchQuery("");
+      }
+    };
+    if (isOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+      setTimeout(() => searchInputRef.current?.focus(), 100);
+    }
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [isOpen]);
+
+  const handleSelect = (optionValue: string) => {
+    onChange(optionValue);
+    setIsOpen(false);
+    setSearchQuery("");
+  };
+
+  const isActive = value !== "all";
+
+  return (
+    <div className="relative" ref={dropdownRef}>
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className={`flex items-center gap-2 px-3 py-2 text-sm border rounded-md transition-all duration-200 ${
+          isActive
+            ? "border-[#2272B4] bg-blue-50 text-[#2272B4]"
+            : "border-gray-300 bg-white text-gray-700 hover:border-gray-400"
+        }`}
+      >
+        {icon && <span className="flex-shrink-0">{icon}</span>}
+        <span className="max-w-[150px] truncate">{displayLabel}</span>
+        <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`} />
+      </button>
+
+      {isOpen && (
+        <div className="absolute top-full left-0 mt-2 w-72 bg-white rounded-lg shadow-lg border border-gray-200 z-50 overflow-hidden">
+          <div className="absolute -top-2 left-4 w-4 h-4 bg-white border-l border-t border-gray-200 transform rotate-45" />
+          {searchable && (
+            <div className="p-3 border-b border-gray-100">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <input
+                  ref={searchInputRef}
+                  type="text"
+                  placeholder="Search..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full pl-9 pr-3 py-2 text-sm border border-gray-200 rounded-full focus:outline-none focus:ring-2 focus:ring-[#2272B4] focus:border-transparent"
+                />
+              </div>
+            </div>
+          )}
+          <div className="max-h-64 overflow-y-auto">
+            {filteredOptions.length === 0 ? (
+              <div className="px-4 py-3 text-sm text-gray-500 text-center">No options found</div>
+            ) : (
+              filteredOptions.map((option) => (
+                <button
+                  key={option.value}
+                  onClick={() => handleSelect(option.value)}
+                  className={`w-full px-4 py-3 text-left hover:bg-gray-50 transition-colors flex items-start gap-3 ${
+                    value === option.value ? "bg-blue-50" : ""
+                  }`}
+                >
+                  <div className={`mt-0.5 w-4 h-4 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${
+                    value === option.value ? "border-[#2272B4] bg-[#2272B4]" : "border-gray-300"
+                  }`}>
+                    {value === option.value && <Check className="w-2.5 h-2.5 text-white" />}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className={`text-sm font-medium ${value === option.value ? "text-[#2272B4]" : "text-gray-900"}`}>
+                      {option.label}
+                    </div>
+                    {option.description && (
+                      <div className="text-xs text-gray-500 mt-0.5">{option.description}</div>
+                    )}
+                  </div>
+                </button>
+              ))
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
 
 type Vendor = {
   id: number;
@@ -28,6 +157,7 @@ type Vendor = {
 };
 
 const VendorView = () => {
+  const { showToast, showConfirm } = useToast();
   const [vendors, setVendors] = useState<Vendor[]>([]);
   const [loading, setLoading] = useState(true);
   const [saveLoading, setSaveLoading] = useState(false);
@@ -35,7 +165,14 @@ const VendorView = () => {
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [editingVendor, setEditingVendor] = useState<Vendor | null>(null);
   const [isPreview, setIsPreview] = useState(false);
-  const [openMenuId, setOpenMenuId] = useState<number | null>(null);
+
+  // Sorting states
+  const [sortColumn, setSortColumn] = useState<string>("id");
+  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc");
+
+  // Pagination states
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(25);
 
   const [formData, setFormData] = useState({
     name: "",
@@ -47,6 +184,45 @@ const VendorView = () => {
 
   const API = process.env.NEXT_PUBLIC_API_VENDOR;
   if (!API) throw new Error("NEXT_PUBLIC_API_VENDOR not defined");
+
+  // Filter, sort, and paginate vendors using useMemo
+  const { paginatedVendors, totalPages, totalFiltered } = useMemo(() => {
+    // Step 1: Filter (no filters for now, but structure is ready)
+    let filtered = [...vendors];
+
+    // Step 2: Sort
+    filtered = filtered.sort((a, b) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      let aVal: any = a[sortColumn as keyof Vendor];
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      let bVal: any = b[sortColumn as keyof Vendor];
+      if (aVal == null) aVal = "";
+      if (bVal == null) bVal = "";
+      if (typeof aVal === "string" && typeof bVal === "string") {
+        return sortDirection === "asc" ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
+      }
+      return sortDirection === "asc" ? aVal - bVal : bVal - aVal;
+    });
+
+    // Step 3: Paginate
+    const totalFiltered = filtered.length;
+    const totalPages = Math.ceil(totalFiltered / itemsPerPage);
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const paginated = filtered.slice(startIndex, startIndex + itemsPerPage);
+
+    return { paginatedVendors: paginated, totalPages, totalFiltered };
+  }, [vendors, sortColumn, sortDirection, currentPage, itemsPerPage]);
+
+  // Handle sort column click
+  const handleSort = (column: string) => {
+    if (sortColumn === column) {
+      setSortDirection(sortDirection === "asc" ? "desc" : "asc");
+    } else {
+      setSortColumn(column);
+      setSortDirection("asc");
+    }
+    setCurrentPage(1);
+  };
 
   // Reset form
   const resetForm = () => {
@@ -67,11 +243,11 @@ const VendorView = () => {
       setVendors(res.data);
     } catch (err) {
       console.error("Failed to fetch vendors:", err);
-      alert("Failed to fetch vendors.");
+      showToast("error", "Failed to fetch vendors.");
     } finally {
       setLoading(false);
     }
-  }, [API]);
+  }, [API, showToast]);
 
   useEffect(() => {
     fetchVendors();
@@ -90,16 +266,16 @@ const VendorView = () => {
       setSaveLoading(true);
 
       if (!formData.name.trim()) {
-        alert("Vendor name is required");
+        showToast("warning", "Vendor name is required");
         return;
       }
 
       if (editingVendor) {
         await axios.put(`${API}/${editingVendor.id}`, formData);
-        alert("Vendor updated successfully!");
+        showToast("success", "Vendor updated successfully!");
       } else {
         await axios.post(API, formData);
-        alert("Vendor created successfully!");
+        showToast("success", "Vendor created successfully!");
       }
 
       setIsDrawerOpen(false);
@@ -109,7 +285,7 @@ const VendorView = () => {
       await fetchVendors();
     } catch (err) {
       console.error("Save error:", err);
-      alert("Error saving vendor.");
+      showToast("error", "Error saving vendor.");
     } finally {
       setSaveLoading(false);
     }
@@ -117,15 +293,23 @@ const VendorView = () => {
 
   // Delete Vendor
   const handleDelete = async (id: number) => {
-    if (!confirm("Are you sure you want to delete this vendor?")) return;
+    const confirmed = await showConfirm({
+      title: "Delete Vendor",
+      message: "Are you sure you want to delete this vendor? This action cannot be undone.",
+      confirmText: "Delete",
+      cancelText: "Cancel",
+      type: "danger",
+    });
+
+    if (!confirmed) return;
 
     try {
       await axios.delete(`${API}/${id}`);
       await fetchVendors();
-      alert("Vendor deleted successfully!");
+      showToast("success", "Vendor deleted successfully!");
     } catch (err) {
       console.error("Delete error:", err);
-      alert("Failed to delete vendor.");
+      showToast("error", "Failed to delete vendor.");
     }
   };
 
@@ -140,7 +324,6 @@ const VendorView = () => {
       comment: vendor.comment || "",
     });
     setIsDrawerOpen(true);
-    setOpenMenuId(null);
     setIsPreview(false);
   };
 
@@ -154,7 +337,6 @@ const VendorView = () => {
       comment: vendor.comment || "",
     });
     setIsDrawerOpen(true);
-    setOpenMenuId(null);
     setIsPreview(true);
   };
 
@@ -162,102 +344,160 @@ const VendorView = () => {
     setIsDrawerOpen(false);
     setEditingVendor(null);
     setIsPreview(false);
-    setOpenMenuId(null);
     resetForm();
   };
 
   return (
-    <div className="p-8 bg-gray-50 min-h-full">
+    <div className="p-8 bg-white min-h-screen">
       {/* Header */}
-      <div className="flex justify-between items-center mb-6">
+      <div className="flex items-center justify-between mb-6">
         <div>
-          <h2 className="text-2xl font-bold">Vendors</h2>
-          <p className="text-gray-500 text-l">Manage all vendors</p>
+          <h2 className="text-xl font-semibold text-gray-900">Vendors</h2>
+          <p className="text-gray-500 text-sm">Manage all vendors</p>
         </div>
         <button
-          className="flex items-center gap-2 bg-blue-600 text-white px-5 py-2.5 rounded-xl font-semibold shadow-md hover:bg-blue-700 hover:shadow-lg transition-all duration-200 hover:scale-105"
+          className="flex items-center gap-2 bg-[#2272B4] text-white px-5 py-2.5 rounded font-semibold shadow-md hover:bg-[#0E538B] hover:shadow-lg transition-all duration-200 hover:scale-105"
           onClick={() => {
             resetForm();
             setIsDrawerOpen(true);
             setEditingVendor(null);
             setIsPreview(false);
-            setOpenMenuId(null);
           }}
         >
-          <Plus className="w-4 h-4" /> Add Vendor
+          <Plus size={18} /> Add Vendor
         </button>
       </div>
 
-      {/* Table */}
-      <div className="bg-white rounded-lg shadow border-gray-200 p-6 flex flex-col gap-4 mb-8">
+      {/* HubSpot-style Horizontal Filter Bar */}
+      <div className="mb-4 flex items-center gap-3 flex-wrap">
+        {/* Sort Dropdown */}
+        <FilterDropdown
+          label="Sort"
+          value={`${sortColumn}-${sortDirection}`}
+          onChange={(val) => {
+            const [col, dir] = val.split('-');
+            setSortColumn(col);
+            setSortDirection(dir as "asc" | "desc");
+            setCurrentPage(1);
+          }}
+          searchable={false}
+          icon={<ArrowUpDown className="w-4 h-4" />}
+          options={[
+            { value: "id-desc", label: "Newest first", description: "Most recently created" },
+            { value: "id-asc", label: "Oldest first", description: "First created vendors" },
+            { value: "name-asc", label: "Name A-Z", description: "Alphabetical order" },
+            { value: "name-desc", label: "Name Z-A", description: "Reverse alphabetical" },
+          ]}
+        />
+
+        {/* Advanced Filters Link */}
+        <button className="flex items-center gap-1.5 text-sm text-gray-600 hover:text-[#2272B4] transition-colors">
+          <SlidersHorizontal className="w-4 h-4" />
+          Advanced filters
+        </button>
+
+        {/* Results Count */}
+        <span className="text-sm text-gray-500 ml-auto">
+          {totalFiltered} {totalFiltered === 1 ? "result" : "results"}
+        </span>
+      </div>
+
+      {/* Table Container */}
+      <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
         {loading ? (
           <Loader loading={true} message="Loading Vendors..." />
-        ) : vendors.length === 0 ? (
+        ) : totalFiltered === 0 ? (
           <div className="flex flex-col items-center justify-center py-12">
             <Building2 size={48} className="text-gray-300 mb-4" />
             <p className="text-black mb-2 font-medium">No vendors found</p>
             <p className="text-gray-500 mb-2 font-medium">
-              Add your first vendor to get started.
+              Get started by creating your first vendor.
             </p>
           </div>
         ) : (
-          <table className="w-full table-auto border-collapse">
-            <thead>
-              <tr className="bg-gray-200">
-                <th className="p-2 text-left">S.N.</th>
-                <th className="p-2 text-left">ID</th>
-                <th className="p-2 text-left">Name</th>
-                <th className="p-2 text-left">VAT/PAN</th>
-                <th className="p-2 text-left">Address</th>
-                <th className="p-2 text-left">Phone</th>
-                <th className="p-2 text-left">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {vendors.map((vendor, index) => (
-                <tr key={vendor.id} className="border-b border-gray-200">
-                  <td className="p-2 bg-gray-50">{index + 1}</td>
-                  <td className="p-2 bg-gray-50">VE{vendor.id}</td>
-                  <td className="p-2 bg-gray-50">{vendor.name}</td>
-                  <td className="p-2 bg-gray-50">{vendor.vat_pan || "-"}</td>
-                  <td className="p-2 bg-gray-50">{vendor.address || "-"}</td>
-                  <td className="p-2 bg-gray-50">{vendor.phone || "-"}</td>
-                  <td className="p-2 flex justify-center relative">
-                    <button
-                      className="p-1 rounded hover:bg-gray-100"
-                      onClick={() =>
-                        setOpenMenuId(openMenuId === vendor.id ? null : vendor.id)
-                      }
-                    >
-                      <MoreVertical size={20} />
-                    </button>
-                    {openMenuId === vendor.id && (
-                      <div className="absolute right-0 top-full mt-2 w-32 bg-white rounded shadow-lg z-50">
-                        <button
-                          className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2"
-                          onClick={() => handlePreview(vendor)}
-                        >
-                          <Eye size={14} /> Preview
-                        </button>
-                        <button
-                          className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2"
-                          onClick={() => handleEdit(vendor)}
-                        >
-                          <Edit2 size={14} /> Edit
-                        </button>
-                        <button
-                          className="w-full text-left px-4 py-2 hover:bg-gray-100 text-red-500 flex items-center gap-2"
-                          onClick={() => handleDelete(vendor.id)}
-                        >
-                          <Trash2 size={14} /> Delete
-                        </button>
-                      </div>
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <>
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-full">
+                <thead>
+                  <tr className="border-b border-gray-200 bg-gray-50">
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100" onClick={() => handleSort("id")}>
+                      <div className="flex items-center gap-1">ID {sortColumn === "id" && (sortDirection === "asc" ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)}</div>
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100" onClick={() => handleSort("name")}>
+                      <div className="flex items-center gap-1">Name {sortColumn === "name" && (sortDirection === "asc" ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)}</div>
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">VAT/PAN</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Address</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Phone</th>
+                    <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-200">
+                  {paginatedVendors.map((vendor) => (
+                    <tr key={vendor.id} className="hover:bg-gray-50 transition-colors">
+                      <td className="px-4 py-3 text-sm text-gray-500">V{String(vendor.id).padStart(3, '0')}</td>
+                      <td className="px-4 py-3">
+                        <span className="text-sm font-medium text-[#2272B4] hover:underline cursor-pointer">{vendor.name}</span>
+                      </td>
+                      <td className="px-4 py-3 text-sm text-gray-600">{vendor.vat_pan || <span className="text-gray-400">—</span>}</td>
+                      <td className="px-4 py-3 text-sm text-gray-600">{vendor.address || <span className="text-gray-400">—</span>}</td>
+                      <td className="px-4 py-3 text-sm text-gray-600">{vendor.phone || <span className="text-gray-400">—</span>}</td>
+                      <td className="px-4 py-3 text-right">
+                        <div className="flex items-center justify-end gap-1">
+                          <button
+                            onClick={() => handlePreview(vendor)}
+                            className="p-1.5 rounded hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors"
+                            title="Preview"
+                          >
+                            <Eye size={16} />
+                          </button>
+                          <button
+                            onClick={() => handleEdit(vendor)}
+                            className="p-1.5 rounded hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors"
+                            title="Edit"
+                          >
+                            <Edit2 size={16} />
+                          </button>
+                          <button
+                            onClick={() => handleDelete(vendor.id)}
+                            className="p-1.5 rounded hover:bg-gray-100 text-gray-400 hover:text-red-500 transition-colors"
+                            title="Delete"
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Pagination */}
+            <div className="px-4 py-3 border-t border-gray-200 flex items-center justify-between bg-white">
+              <span className="text-sm text-gray-700">
+                Showing {((currentPage - 1) * itemsPerPage) + 1} to {Math.min(currentPage * itemsPerPage, totalFiltered)} of {totalFiltered}
+              </span>
+              <div className="flex items-center gap-4">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-gray-600">per page</span>
+                  <select value={itemsPerPage} onChange={(e) => { setItemsPerPage(Number(e.target.value)); setCurrentPage(1); }} className="border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-[#2272B4]">
+                    <option value={10}>10</option>
+                    <option value={25}>25</option>
+                    <option value={50}>50</option>
+                    <option value={100}>100</option>
+                  </select>
+                </div>
+                <div className="flex items-center gap-1">
+                  <button onClick={() => setCurrentPage(1)} disabled={currentPage === 1} className="p-1.5 rounded hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed text-gray-600"><ChevronLeft className="w-4 h-4" /><ChevronLeft className="w-4 h-4 -ml-3" /></button>
+                  <button onClick={() => setCurrentPage(currentPage - 1)} disabled={currentPage === 1} className="p-1.5 rounded hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed text-gray-600"><ChevronLeft className="w-4 h-4" /></button>
+                  <span className="px-3 py-1 text-sm text-gray-700">Page {currentPage} of {totalPages || 1}</span>
+                  <button onClick={() => setCurrentPage(currentPage + 1)} disabled={currentPage >= totalPages} className="p-1.5 rounded hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed text-gray-600"><ChevronRight className="w-4 h-4" /></button>
+                  <button onClick={() => setCurrentPage(totalPages)} disabled={currentPage >= totalPages} className="p-1.5 rounded hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed text-gray-600"><ChevronRight className="w-4 h-4" /><ChevronRight className="w-4 h-4 -ml-3" /></button>
+                </div>
+              </div>
+            </div>
+          </>
         )}
       </div>
 
@@ -277,90 +517,99 @@ const VendorView = () => {
               <X size={20} />
             </button>
 
-            <h3 className="text-lg font-semibold mb-3 flex gap-2">
-              <Building2 size={20} className="text-black" />
-              {isPreview
-                ? "Vendor Preview"
-                : editingVendor
-                ? "Edit Vendor"
-                : "Add New Vendor"}
-            </h3>
+            {/* Header */}
+            <div className="border-b border-gray-200 pb-3 mb-4">
+              <h3 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+                <Building2 size={20} className="text-blue-600" />
+                {isPreview
+                  ? "Vendor Details"
+                  : editingVendor
+                  ? "Edit Vendor"
+                  : "Add New Vendor"}
+              </h3>
+            </div>
 
-            <div className="space-y-3">
+            <div className="space-y-4">
               {/* Vendor Name */}
-              <div className="flex items-center gap-2">
-                <CircleUser size={20} className="text-black" />
-                <p className="text-black font-semibold">Name *</p>
+              <div>
+                <label className="block text-sm font-semibold text-gray-900 mb-1.5">
+                  Name <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  name="name"
+                  placeholder="Enter vendor name"
+                  value={formData.name}
+                  onChange={handleChange}
+                  readOnly={isPreview}
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                  required
+                />
               </div>
-              <input
-                type="text"
-                name="name"
-                placeholder="Vendor Name"
-                value={formData.name}
-                onChange={handleChange}
-                readOnly={isPreview}
-                className="w-full border border-gray-300 rounded-[10px] px-3 py-2"
-                required
-              />
 
               {/* VAT/PAN */}
-              <div className="flex items-center gap-2">
-                <NotebookTabs size={20} className="text-black" />
-                <p className="text-black font-semibold">VAT/PAN</p>
+              <div>
+                <label className="block text-sm font-semibold text-gray-900 mb-1.5">
+                  VAT/PAN
+                </label>
+                <input
+                  type="text"
+                  name="vat_pan"
+                  placeholder="Enter VAT/PAN number"
+                  value={formData.vat_pan}
+                  onChange={handleChange}
+                  readOnly={isPreview}
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                />
               </div>
-              <input
-                type="text"
-                name="vat_pan"
-                placeholder="VAT/PAN"
-                value={formData.vat_pan}
-                onChange={handleChange}
-                readOnly={isPreview}
-                className="w-full border border-gray-300 rounded-[10px] px-3 py-2"
-              />
 
               {/* Address */}
-              <div className="flex items-center gap-2">
-                <MapPin size={20} className="text-black" />
-                <p className="text-black font-semibold">Address</p>
+              <div>
+                <label className="block text-sm font-semibold text-gray-900 mb-1.5">
+                  Address
+                </label>
+                <input
+                  type="text"
+                  name="address"
+                  placeholder="Enter address"
+                  value={formData.address}
+                  onChange={handleChange}
+                  readOnly={isPreview}
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                />
               </div>
-              <input
-                type="text"
-                name="address"
-                placeholder="Address"
-                value={formData.address}
-                onChange={handleChange}
-                readOnly={isPreview}
-                className="w-full border border-gray-300 rounded-[10px] px-3 py-2"
-              />
 
               {/* Phone */}
-              <div className="flex items-center gap-2">
-                <Phone size={20} className="text-black" />
-                <p className="text-black font-semibold">Phone</p>
+              <div>
+                <label className="block text-sm font-semibold text-gray-900 mb-1.5">
+                  Phone
+                </label>
+                <input
+                  type="text"
+                  name="phone"
+                  placeholder="Enter phone number"
+                  value={formData.phone}
+                  onChange={handleChange}
+                  readOnly={isPreview}
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                />
               </div>
-              <input
-                type="text"
-                name="phone"
-                placeholder="Phone"
-                value={formData.phone}
-                onChange={handleChange}
-                readOnly={isPreview}
-                className="w-full border border-gray-300 rounded-[10px] px-3 py-2"
-              />
 
               {/* Comment */}
-              <div className="flex items-center gap-2">
-                <FileText size={20} className="text-black" />
-                <p className="text-black font-semibold">Comment</p>
+              <div>
+                <label className="block text-sm font-semibold text-gray-900 mb-1.5">
+                  Comment
+                </label>
+                <textarea
+                  name="comment"
+                  placeholder="Optional comments"
+                  value={formData.comment}
+                  onChange={handleChange}
+                  readOnly={isPreview}
+                  rows={3}
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm resize-none"
+                />
               </div>
-              <textarea
-                name="comment"
-                placeholder="Optional comments"
-                value={formData.comment}
-                onChange={handleChange}
-                readOnly={isPreview}
-                className="w-full border border-gray-300 rounded-[10px] px-3 py-2"
-              />
             </div>
 
             <div className="flex justify-end gap-3 mt-4 pt-4 border-t border-gray-200 sticky bottom-0 bg-white">
@@ -373,7 +622,7 @@ const VendorView = () => {
               </button>
               {!isPreview && (
                 <button
-                  className="px-6 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 font-medium transition-colors shadow-sm"
+                  className="px-6 py-2 rounded bg-[#2272B4] text-white hover:bg-[#0E538B] disabled:opacity-50 font-medium transition-colors shadow-sm"
                   onClick={handleSaveVendor}
                   disabled={saveLoading}
                 >

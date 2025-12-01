@@ -8,19 +8,17 @@ interface StatCardProps {
   title: string;
   value: number | string;
   icon: React.ReactNode;
-  bgColor: string;
-  iconBgColor: string;
 }
 
-const StatCard = ({ title, value, icon, bgColor, iconBgColor }: StatCardProps) => {
+const StatCard = ({ title, value, icon }: StatCardProps) => {
   return (
-    <div className={`${bgColor} rounded-xl shadow-lg p-6 transition-all duration-300 hover:shadow-xl hover:scale-105 cursor-pointer border border-gray-100`}>
+    <div className="bg-white rounded-lg p-5 border border-gray-200 hover:border-gray-300 transition-colors">
       <div className="flex items-center justify-between">
         <div className="flex-1">
-          <p className="text-sm font-medium text-gray-600 mb-2">{title}</p>
-          <p className="text-3xl font-bold text-gray-900">{value}</p>
+          <p className="text-sm font-medium text-gray-500 mb-1">{title}</p>
+          <p className="text-2xl font-semibold text-gray-900">{value}</p>
         </div>
-        <div className={`${iconBgColor} p-4 rounded-lg`}>
+        <div className="text-gray-400">
           {icon}
         </div>
       </div>
@@ -185,30 +183,22 @@ const Dashboard: React.FC<DashboardProps> = ({ onViewChange }) => {
     {
       title: "Total Batches",
       value: loading ? "..." : statsData.batches,
-      icon: <Package className="w-7 h-7 text-blue-600" />,
-      bgColor: "bg-gradient-to-br from-blue-50 to-white",
-      iconBgColor: "bg-blue-100"
+      icon: <Package className="w-6 h-6" />,
     },
     {
       title: "Active Rolls",
       value: loading ? "..." : statsData.rolls,
-      icon: <FileText className="w-7 h-7 text-green-600" />,
-      bgColor: "bg-gradient-to-br from-green-50 to-white",
-      iconBgColor: "bg-green-100"
+      icon: <FileText className="w-6 h-6" />,
     },
     {
       title: "Departments",
       value: loading ? "..." : statsData.departments,
-      icon: <Building2 className="w-7 h-7 text-orange-600" />,
-      bgColor: "bg-gradient-to-br from-orange-50 to-white",
-      iconBgColor: "bg-orange-100"
+      icon: <Building2 className="w-6 h-6" />,
     },
     {
       title: "Workers",
       value: loading ? "..." : statsData.workers,
-      icon: <Users className="w-7 h-7 text-purple-600" />,
-      bgColor: "bg-gradient-to-br from-purple-50 to-white",
-      iconBgColor: "bg-purple-100"
+      icon: <Users className="w-6 h-6" />,
     }
   ];
 
@@ -216,93 +206,91 @@ const Dashboard: React.FC<DashboardProps> = ({ onViewChange }) => {
     {
       title: "Create Sub-Batch",
       description: "Add new sub-batch",
-      icon: <Plus className="w-8 h-8 text-white" />,
-      bgColor: "bg-gradient-to-br from-blue-500 to-blue-600",
-      hoverColor: "hover:from-blue-600 hover:to-blue-700",
+      icon: <Plus className="w-6 h-6" />,
+      gradient: "from-emerald-50 to-teal-100",
+      iconColor: "text-emerald-600",
       view: "subbatchview"
     },
     {
       title: "Create Worker",
       description: "Add new worker",
-      icon: <UserPlus className="w-8 h-8 text-white" />,
-      bgColor: "bg-gradient-to-br from-red-500 to-red-600",
-      hoverColor: "hover:from-red-600 hover:to-red-700",
+      icon: <UserPlus className="w-6 h-6" />,
+      gradient: "from-blue-50 to-indigo-100",
+      iconColor: "text-blue-600",
       view: "workers"
     },
     {
       title: "Create Department",
       description: "Add new department",
-      icon: <Building2 className="w-8 h-8 text-white" />,
-      bgColor: "bg-gradient-to-br from-orange-500 to-orange-600",
-      hoverColor: "hover:from-orange-600 hover:to-orange-700",
+      icon: <Building2 className="w-6 h-6" />,
+      gradient: "from-violet-50 to-purple-100",
+      iconColor: "text-violet-600",
       view: "departments"
     },
     {
       title: "View Production",
       description: "Monitor production",
-      icon: <FileText className="w-8 h-8 text-white" />,
-      bgColor: "bg-gradient-to-br from-green-500 to-green-600",
-      hoverColor: "hover:from-green-600 hover:to-green-700",
+      icon: <FileText className="w-6 h-6" />,
+      gradient: "from-amber-50 to-orange-100",
+      iconColor: "text-amber-600",
       view: "productionview"
     }
   ];
 
   return (
-    <div className="p-8 bg-gradient-to-br from-gray-50 to-gray-100 min-h-full">
+    <div className="p-6 bg-[#ffffff] min-h-full">
       {/* Header */}
-      <div className="mb-8">
-        <h2 className="text-3xl font-bold text-gray-900 mb-2">Dashboard Overview</h2>
-        <p className="text-gray-600">Welcome back! Here's what's happening with your production today.</p>
+      <div className="mb-6">
+        <h1 className="text-2xl font-semibold text-gray-900 mb-1">Dashboard Overview</h1>
+        <p className="text-sm text-gray-500">Welcome back! Here&apos;s what&apos;s happening with your production today.</p>
       </div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         {stats.map((stat, index) => (
           <StatCard
             key={index}
             title={stat.title}
             value={stat.value}
             icon={stat.icon}
-            bgColor={stat.bgColor}
-            iconBgColor={stat.iconBgColor}
           />
         ))}
       </div>
 
       {/* Two Column Layout - Recent Activity & Quick Actions */}
-      <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
         {/* Recent Activity - 60% (3/5 columns) */}
         <div className="lg:col-span-3">
-          <div className="bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden">
+          <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
             {/* Header */}
-            <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
-              <h3 className="text-lg font-bold text-gray-900">Recent Activity</h3>
-              <div className="flex items-center gap-2">
-                <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
-                <span className="text-sm text-green-600 font-medium">Live</span>
+            <div className="px-5 py-3 border-b border-gray-100 flex items-center justify-between">
+              <h3 className="text-base font-semibold text-gray-900">Recent Activity</h3>
+              <div className="flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse"></span>
+                <span className="text-xs text-emerald-600 font-medium">Live</span>
               </div>
             </div>
 
             {/* Activity List */}
-            <div className="divide-y divide-gray-100 max-h-96 overflow-y-auto">
+            <div className="divide-y divide-gray-100 max-h-80 overflow-y-auto">
               {recentActivities.map((activity) => (
-                <div key={activity.id} className="px-6 py-4 hover:bg-gray-50 transition-colors cursor-pointer">
-                  <div className="flex gap-4">
+                <div key={activity.id} className="px-5 py-3 hover:bg-gray-50 transition-colors">
+                  <div className="flex gap-3">
                     {/* Icon */}
-                    <div className={`${activity.iconBg} p-2.5 rounded-lg h-fit`}>
+                    <div className="text-gray-400 mt-0.5">
                       {activity.icon}
                     </div>
 
                     {/* Content */}
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-start justify-between gap-2 mb-1">
-                        <h4 className="font-semibold text-gray-900 text-sm">{activity.title}</h4>
-                        <span className={`text-xs font-medium px-2 py-1 rounded-full whitespace-nowrap ${activity.statusColor} bg-opacity-10`}>
+                      <div className="flex items-start justify-between gap-2 mb-0.5">
+                        <h4 className="font-medium text-gray-900 text-sm">{activity.title}</h4>
+                        <span className={`text-xs font-medium ${activity.statusColor}`}>
                           {activity.status}
                         </span>
                       </div>
-                      <p className="text-sm text-gray-600 mb-2 line-clamp-2">{activity.description}</p>
-                      <div className="flex items-center gap-2 text-xs text-gray-500">
+                      <p className="text-sm text-gray-500 mb-1 line-clamp-1">{activity.description}</p>
+                      <div className="flex items-center gap-1.5 text-xs text-gray-400">
                         <span>by {activity.user}</span>
                         <span>•</span>
                         <span>{activity.time}</span>
@@ -314,7 +302,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onViewChange }) => {
             </div>
 
             {/* View All Link */}
-            <div className="px-6 py-3 border-t border-gray-200 bg-gray-50">
+            <div className="px-5 py-2.5 border-t border-gray-100">
               <button className="text-sm text-blue-600 font-medium hover:text-blue-700 transition-colors">
                 View All
               </button>
@@ -324,36 +312,28 @@ const Dashboard: React.FC<DashboardProps> = ({ onViewChange }) => {
 
         {/* Quick Actions - 40% (2/5 columns) */}
         <div className="lg:col-span-2">
-          <div className="bg-white rounded-xl shadow-lg border border-gray-100 p-6">
+          <div className="bg-white rounded-lg border border-gray-200 p-5">
             {/* Header */}
-            <div className="flex items-center justify-between mb-6">
-              <h3 className="text-lg font-bold text-gray-900">Quick Actions</h3>
-              <Zap className="w-5 h-5 text-gray-400" />
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-base font-semibold text-gray-900">Quick Actions</h3>
+              <Zap className="w-4 h-4 text-gray-400" />
             </div>
 
             {/* Actions Grid */}
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-3">
               {quickActions.map((action, index) => (
                 <button
                   key={index}
                   onClick={() => onViewChange && onViewChange(action.view)}
-                  className={`${action.bgColor} ${action.hoverColor} rounded-xl p-5 text-white shadow-md transition-all duration-300 hover:shadow-xl hover:scale-105 cursor-pointer text-left`}
+                  className={`bg-gradient-to-br ${action.gradient} rounded-lg p-4 text-left border border-gray-100 hover:border-gray-200 transition-all hover:shadow-sm`}
                 >
-                  <div className="mb-3">
+                  <div className={`mb-2 ${action.iconColor}`}>
                     {action.icon}
                   </div>
-                  <h4 className="font-bold text-base mb-1">{action.title}</h4>
-                  <p className="text-xs text-white text-opacity-90">{action.description}</p>
+                  <h4 className="font-medium text-sm text-gray-900 mb-0.5">{action.title}</h4>
+                  <p className="text-xs text-gray-500">{action.description}</p>
                 </button>
               ))}
-            </div>
-
-            {/* Keyboard Shortcuts Info */}
-            <div className="mt-6 pt-6 border-t border-gray-200">
-              <div className="flex items-center justify-between">
-                <p className="text-xs text-gray-500">Keyboard shortcuts enabled</p>
-                <button className="text-xs text-blue-600 font-medium hover:text-blue-700">View All</button>
-              </div>
             </div>
           </div>
         </div>

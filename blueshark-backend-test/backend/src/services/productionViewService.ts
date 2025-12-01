@@ -42,6 +42,9 @@ export const getProductionViewData = async () => {
         department: true,
         assigned_worker: true,
         parent_card: true, // ✅ Include parent card to show remaining from main card
+        // ✅ Include altered and rejected entries FROM this department_sub_batch
+        altered_source: true,  // sub_batch_altered where source_department_sub_batch_id = this.id
+        rejected_source: true, // sub_batch_rejected where source_department_sub_batch_id = this.id
       },
       orderBy: {
         createdAt: 'desc'
@@ -68,28 +71,38 @@ export const getProductionViewData = async () => {
       // Find all sub-batches currently in this department
       const subBatchesInDept = departmentSubBatches
         .filter(dsb => dsb.department_id === dept.id && dsb.sub_batch !== null)
-        .map(dsb => ({
-          id: dsb.sub_batch!.id,
-          name: dsb.sub_batch!.name,
-          start_date: dsb.sub_batch!.start_date,
-          due_date: dsb.sub_batch!.due_date,
-          estimated_pieces: dsb.sub_batch!.estimated_pieces,
-          expected_items: dsb.sub_batch!.expected_items,
-          status: dsb.sub_batch!.status,
-          batch_name: dsb.sub_batch!.batch?.name || null,
-          batch_id: dsb.sub_batch!.batch_id,
-          department_stage: dsb.stage, // NEW_ARRIVAL, IN_PROGRESS, COMPLETED
-          quantity_remaining: dsb.quantity_remaining,
-          assigned_worker_id: dsb.assigned_worker_id,
-          assigned_worker_name: dsb.assigned_worker?.name || null,
-          size_details: dsb.sub_batch!.size_details,
-          attachments: dsb.sub_batch!.attachments,
-          createdAt: dsb.createdAt,
-          remarks: dsb.remarks,
-          // ✅ Parent card data for showing "Remaining from Main Card"
-          parent_card_id: dsb.parent_card?.id || null,
-          parent_card_quantity_remaining: dsb.parent_card?.quantity_remaining || null,
-        }));
+        .map(dsb => {
+          // ✅ Calculate total altered and rejected from this department_sub_batch
+          const totalAltered = (dsb as any).altered_source?.reduce((sum: number, a: any) => sum + (a.quantity || 0), 0) || 0;
+          const totalRejected = (dsb as any).rejected_source?.reduce((sum: number, r: any) => sum + (r.quantity || 0), 0) || 0;
+
+          return {
+            id: dsb.sub_batch!.id,
+            name: dsb.sub_batch!.name,
+            start_date: dsb.sub_batch!.start_date,
+            due_date: dsb.sub_batch!.due_date,
+            estimated_pieces: dsb.sub_batch!.estimated_pieces,
+            expected_items: dsb.sub_batch!.expected_items,
+            status: dsb.sub_batch!.status,
+            batch_name: dsb.sub_batch!.batch?.name || null,
+            batch_id: dsb.sub_batch!.batch_id,
+            department_stage: dsb.stage, // NEW_ARRIVAL, IN_PROGRESS, COMPLETED
+            quantity_remaining: dsb.quantity_remaining,
+            quantity_received: dsb.quantity_received, // ✅ Include received for calculations
+            assigned_worker_id: dsb.assigned_worker_id,
+            assigned_worker_name: dsb.assigned_worker?.name || null,
+            size_details: dsb.sub_batch!.size_details,
+            attachments: dsb.sub_batch!.attachments,
+            createdAt: dsb.createdAt,
+            remarks: dsb.remarks,
+            // ✅ Parent card data for showing "Remaining from Main Card"
+            parent_card_id: dsb.parent_card?.id || null,
+            parent_card_quantity_remaining: dsb.parent_card?.quantity_remaining || null,
+            // ✅ NEW: Altered and Rejected totals for Kanban card display
+            total_altered: totalAltered,
+            total_rejected: totalRejected,
+          };
+        });
 
       return {
         department_id: dept.id,

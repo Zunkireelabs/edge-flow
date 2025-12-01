@@ -77,15 +77,22 @@ export const createWorkerLog = async (data: WorkerLogInput) => {
 
       // ✅ FIXED: ALWAYS update existing record, NEVER split for normal assignments
       // Multiple workers can work on same record
+      // Note: Use direct set for quantity_assigned if null (increment on null doesn't work)
+      const currentAssigned = activeDeptSubBatch.quantity_assigned ?? 0;
+
+      // ✅ Auto-update stage to IN_PROGRESS when first worker is assigned
+      // A sub-batch with workers assigned IS "In Progress" by definition
+      const shouldUpdateStage = activeDeptSubBatch.stage === DepartmentStage.NEW_ARRIVAL;
+
       await tx.department_sub_batches.update({
         where: { id: activeDeptSubBatch.id },
         data: {
-          quantity_assigned: {
-            increment: data.quantity_worked,  // ✅ Add to existing assignments
-          },
+          quantity_assigned: currentAssigned + data.quantity_worked,  // ✅ Add to existing (handles null)
           quantity_remaining: {
             decrement: data.quantity_worked,  // ✅ Reduce available work
           },
+          // ✅ Auto-update stage from NEW_ARRIVAL to IN_PROGRESS on first assignment
+          ...(shouldUpdateStage && { stage: DepartmentStage.IN_PROGRESS }),
           // ✅ Don't update assigned_worker_id - multiple workers can be assigned
           remarks: "Assigned",
         },
@@ -411,21 +418,29 @@ export const deleteWorkerLog = async (id: number) => {
       console.log(`Department Sub-Batch ID: ${workerLog.department_sub_batch_id}`);
       console.log(`Quantity to restore: ${workerLog.quantity_worked}`);
 
-      // ✅ FIXED: Simply reverse the quantity changes on the existing record
-      await tx.department_sub_batches.update({
+      // Fetch current values to safely handle nulls
+      const deptSubBatch = await tx.department_sub_batches.findUnique({
         where: { id: workerLog.department_sub_batch_id },
-        data: {
-          quantity_assigned: {
-            decrement: workerLog.quantity_worked,  // ✅ Reduce assigned amount
-          },
-          quantity_remaining: {
-            increment: workerLog.quantity_worked,  // ✅ Restore available work
-          },
-          // ✅ Don't change assigned_worker_id (other workers may still be assigned)
-        },
       });
 
-      console.log(`✓ Restored ${workerLog.quantity_worked} pieces to department_sub_batch ${workerLog.department_sub_batch_id}`);
+      if (deptSubBatch) {
+        const currentAssigned = deptSubBatch.quantity_assigned ?? 0;
+        const newAssigned = Math.max(0, currentAssigned - workerLog.quantity_worked);
+
+        // ✅ FIXED: Simply reverse the quantity changes on the existing record
+        await tx.department_sub_batches.update({
+          where: { id: workerLog.department_sub_batch_id },
+          data: {
+            quantity_assigned: newAssigned,  // ✅ Reduce assigned amount (handles null)
+            quantity_remaining: {
+              increment: workerLog.quantity_worked,  // ✅ Restore available work
+            },
+            // ✅ Don't change assigned_worker_id (other workers may still be assigned)
+          },
+        });
+
+        console.log(`✓ Restored ${workerLog.quantity_worked} pieces to department_sub_batch ${workerLog.department_sub_batch_id}`);
+      }
     }
 
     // 2️⃣ Reverse rejected entries

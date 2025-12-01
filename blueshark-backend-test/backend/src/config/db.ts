@@ -9,8 +9,15 @@ const globalForPrisma = globalThis as unknown as {
   pool: Pool | undefined;
 };
 
-// Create a connection pool
-const pool = globalForPrisma.pool ?? new Pool({ connectionString: process.env.DATABASE_URL });
+// Create a connection pool with optimized settings for Neon serverless
+// Neon free tier auto-suspends after 5 min, so we need generous timeouts
+const pool = globalForPrisma.pool ?? new Pool({
+  connectionString: process.env.DATABASE_URL,
+  // Pool configuration optimized for Neon serverless
+  max: 10,                        // Maximum connections in pool
+  idleTimeoutMillis: 30000,       // Close idle connections after 30 seconds
+  connectionTimeoutMillis: 30000, // Wait up to 30 seconds for connection (handles Neon cold starts)
+});
 const adapter = new PrismaPg(pool);
 
 const prisma =

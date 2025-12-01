@@ -7,6 +7,8 @@ import {
   CheckCircle,
   AlertCircle,
   ChevronDown,
+  RefreshCw,
+  XCircle,
 } from "lucide-react";
 import TaskDetailsModal from "../../depcomponents/TaskDetailsModal";
 import AlteredTaskDetailsModal from "../../depcomponents/altered/AlteredTaskDetailsModal";
@@ -65,6 +67,7 @@ interface RejectionSource {
   reason: string;
   from_department_id: number;
   from_department_name: string;
+  created_at?: string;
 }
 
 interface AlterationSource {
@@ -72,6 +75,22 @@ interface AlterationSource {
   reason: string;
   from_department_id: number;
   from_department_name: string;
+  created_at?: string;
+}
+
+interface WorkerLogRejectedEntry {
+  quantity: number;
+  reason?: string;
+}
+
+interface WorkerLog {
+  id: number;
+  worker_id: number;
+  quantity_worked: number;
+  work_date?: string;
+  worker?: { id: number; name: string };
+  rejected_entry?: WorkerLogRejectedEntry[];
+  altered_entry?: { quantity: number; reason?: string }[];
 }
 
 interface WorkItem {
@@ -92,10 +111,15 @@ interface WorkItem {
   quantity_received?: number | null;
   quantity_assigned?: number | null; // NEW: For "Assigned" cards
   sent_from_department?: number | null;
+  sent_from_department_name?: string | null;
   alter_reason?: string | null;
   reject_reason?: string | null;
   rejection_source?: RejectionSource | null;
   alteration_source?: AlterationSource | null;
+  worker_logs?: WorkerLog[]; // Worker logs with rejection data
+  // ✅ NEW: Totals for Kanban card display
+  total_altered?: number;
+  total_rejected?: number;
 }
 
 interface KanbanData {
@@ -564,20 +588,50 @@ const SupervisorKanban = () => {
                           </div>
                         )}
 
-                        {/* Quantity Display */}
-                        <div className="mb-2">
+                        {/* Quantity Display - Enterprise Style */}
+                        <div className="mb-2 space-y-1">
+                          {/* Remaining */}
                           <div className="flex items-center gap-2 text-sm text-gray-600">
                             <Package size={14} className="text-gray-400" />
                             <span className="text-xs font-medium">
                               Remaining: {(item.quantity_remaining ?? item.sub_batch.estimated_pieces).toLocaleString()} pcs
                             </span>
                           </div>
-                          {/* Show Assigned Quantity for Assigned cards */}
-                          {isAssigned && item.quantity_assigned && (
-                            <div className="flex items-center gap-2 text-sm text-blue-600 mt-1">
-                              <Package size={14} className="text-blue-400" />
+
+                          {/* Processed - calculated from received - remaining - altered - rejected */}
+                          {(() => {
+                            const received = item.quantity_received ?? item.sub_batch.estimated_pieces;
+                            const remaining = item.quantity_remaining ?? item.sub_batch.estimated_pieces;
+                            const altered = item.total_altered ?? 0;
+                            const rejected = item.total_rejected ?? 0;
+                            // Processed = actual good work completed (excludes altered/rejected)
+                            const processed = received - remaining - altered - rejected;
+                            return processed > 0 ? (
+                              <div className="flex items-center gap-2 text-sm text-green-600">
+                                <CheckCircle size={14} className="text-green-500" />
+                                <span className="text-xs font-medium">
+                                  Processed: {processed.toLocaleString()} pcs
+                                </span>
+                              </div>
+                            ) : null;
+                          })()}
+
+                          {/* Altered - Only show if > 0 */}
+                          {(item.total_altered ?? 0) > 0 && (
+                            <div className="flex items-center gap-2 text-sm text-amber-600">
+                              <RefreshCw size={14} className="text-amber-500" />
                               <span className="text-xs font-medium">
-                                Assigned: {item.quantity_assigned.toLocaleString()} pcs
+                                Altered: {item.total_altered?.toLocaleString()} pcs
+                              </span>
+                            </div>
+                          )}
+
+                          {/* Rejected - Only show if > 0 */}
+                          {(item.total_rejected ?? 0) > 0 && (
+                            <div className="flex items-center gap-2 text-sm text-red-600">
+                              <XCircle size={14} className="text-red-500" />
+                              <span className="text-xs font-medium">
+                                Rejected: {item.total_rejected?.toLocaleString()} pcs
                               </span>
                             </div>
                           )}

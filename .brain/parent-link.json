@@ -1,0 +1,30 @@
+{
+  "parent_brain": "C:\\Users\\sadin\\OneDrive\\Desktop\\Simplifycodes\\sadin-stark-brain\\.sadin-stark",
+  "project_id": "blueshark-dev",
+  "project_name": "BlueShark Production Management System",
+  "instance_name": "BlueShark-Stark",
+  "created": "2025-11-29",
+  "last_sync": "2025-11-29",
+  "version": "1.0.0",
+  "status": "active",
+  "tech_stack": [
+    "Next.js 15.5",
+    "React 19",
+    "TypeScript 5",
+    "Tailwind CSS 4",
+    "Express.js",
+    "Prisma",
+    "PostgreSQL (Neon)"
+  ],
+  "team": ["sadin"],
+  "client": "Zunkiree Technologies",
+  "repository": {
+    "github": "github.com/Zunkiree-Technologies/edge-flow"
+  },
+  "deployment": {
+    "frontend": "edge-flow-gamma.vercel.app",
+    "backend": "edge-flow-backend.onrender.com",
+    "database": "Neon PostgreSQL (Singapore)"
+  },
+  "local_path": "C:\\Users\\sadin\\OneDrive\\Desktop\\Simplifycodes\\DevFolder\\blueshark-dev"
+}

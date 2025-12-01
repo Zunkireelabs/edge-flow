@@ -404,7 +404,7 @@ const ProductionView = () => {
                           </svg>
                         </div>
                         <h3 className="text-lg font-semibold text-gray-900 mb-2">No Production Data</h3>
-                        <p className="text-sm text-gray-500">This sub-batch hasn't entered production yet or has no active tasks in any department</p>
+                        <p className="text-sm text-gray-500">This sub-batch has not entered production yet or has no active tasks in any department</p>
                       </div>
                     </div>
                   );

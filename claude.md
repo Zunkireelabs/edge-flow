@@ -1151,3 +1151,450 @@ className="... hover:scale-105 transition-all duration-200 ..."
 **Last Updated**: 2025-11-22
 **Status**: ✅ All UI consistency improvements complete and compiled successfully
 **Next Session**: Ready for new features or bug fixes
+
+---
+
+## Session Date: 2025-11-30
+
+### Overview
+Implemented custom Toast notification and Confirmation Modal system following Databricks design guidelines. Replaced all native browser `alert()` and `confirm()` dialogs with enterprise-grade custom components across all views.
+
+---
+
+## Changes Made Today
+
+### 1. Created Toast Notification System
+**Files Created**:
+- `src/app/Components/ToastContext.tsx` - React Context provider for global toast/confirm state
+- `src/app/Components/Toast.tsx` - Toast notification component with animations
+- `src/app/Components/ConfirmModal.tsx` - Confirmation modal component
+- `src/app/Components/Providers.tsx` - Client-side wrapper for layout
+
+#### ToastContext Features:
+- Global state management via React Context
+- `showToast(type, message)` - Display toast notifications
+- `showConfirm(options)` - Promise-based confirmation dialogs
+- Types: `success`, `error`, `warning`, `info`
+
+**Usage Pattern:**
+```tsx
+const { showToast, showConfirm } = useToast();
+
+// Toast notifications
+showToast("success", "Item saved successfully!");
+showToast("error", "Failed to save. Please try again.");
+showToast("warning", "Name is required");
+showToast("info", "Processing your request...");
+
+// Confirmation dialog
+const confirmed = await showConfirm({
+  title: "Delete Item",
+  message: "Are you sure? This action cannot be undone.",
+  confirmText: "Delete",
+  cancelText: "Cancel",
+  type: "danger",  // or "warning" or "info"
+});
+if (!confirmed) return;
+```
+
+#### Toast Component Features:
+- Slide-in animation from top-right
+- Auto-dismiss after 4 seconds
+- Progress bar showing remaining time
+- Color-coded left border (green/red/amber/blue)
+- Icon per type (CheckCircle, XCircle, AlertTriangle, Info)
+- X button for manual dismissal
+
+#### ConfirmModal Features:
+- Centered modal with blur backdrop
+- Color-coded confirm button (red for danger, amber for warning, blue for info)
+- Warning icon with matching color
+- Promise-based API for async/await usage
+- Keyboard-friendly with proper focus management
+
+---
+
+### 2. Integrated Provider in Layout
+**File**: `src/app/layout.tsx`
+
+Added ToastProvider wrapper via Providers component:
+```tsx
+import Providers from "./Components/Providers";
+
+<body className={`${inter.variable} font-sans antialiased`}>
+  <Providers>{children}</Providers>
+</body>
+```
+
+---
+
+### 3. Updated All View Files to Use Toast/Confirm
+
+**Files Modified** (11 files):
+1. `src/app/Dashboard/components/views/RollView.tsx`
+2. `src/app/Dashboard/components/views/GenericView.tsx` (Vendor)
+3. `src/app/Dashboard/components/views/Worker.tsx`
+4. `src/app/Dashboard/components/views/BatchView.tsx`
+5. `src/app/Dashboard/components/views/SubBatchView.tsx`
+6. `src/app/Dashboard/components/views/DepartmentForm.tsx`
+7. `src/app/Dashboard/components/views/CreateSupervisor.tsx`
+
+#### Changes Per File:
+1. Added import: `import { useToast } from "@/app/Components/ToastContext";`
+2. Added hook: `const { showToast, showConfirm } = useToast();`
+3. Replaced all `alert()` with `showToast()`
+4. Replaced all `confirm()` with `await showConfirm()`
+
+#### Example Transformations:
+
+**Fetch Error:**
+```tsx
+// BEFORE:
+alert("Failed to fetch batches. Please try again.");
+
+// AFTER:
+showToast("error", "Failed to fetch batches. Please try again.");
+```
+
+**Validation Warning:**
+```tsx
+// BEFORE:
+alert("Batch name is required");
+
+// AFTER:
+showToast("warning", "Batch name is required");
+```
+
+**Success Message:**
+```tsx
+// BEFORE:
+alert("Batch created successfully!");
+
+// AFTER:
+showToast("success", "Batch created successfully!");
+```
+
+**Delete Confirmation:**
+```tsx
+// BEFORE:
+if (!confirm("Are you sure you want to delete this batch?")) return;
+
+// AFTER:
+const confirmed = await showConfirm({
+  title: "Delete Batch",
+  message: "Are you sure you want to delete this batch? This action cannot be undone.",
+  confirmText: "Delete",
+  cancelText: "Cancel",
+  type: "danger",
+});
+if (!confirmed) return;
+```
+
+---
+
+### 4. Bug Fix: DepartmentForm.tsx
+Removed undefined `setOpenMenuId` reference that was causing compilation issues.
+
+---
+
+## Files Summary
+
+### New Files Created (4):
+1. `src/app/Components/ToastContext.tsx` - Context provider
+2. `src/app/Components/Toast.tsx` - Toast component
+3. `src/app/Components/ConfirmModal.tsx` - Modal component
+4. `src/app/Components/Providers.tsx` - Layout wrapper
+
+### Files Modified (8):
+1. `src/app/layout.tsx` - Added Providers wrapper
+2. `src/app/Dashboard/components/views/RollView.tsx`
+3. `src/app/Dashboard/components/views/GenericView.tsx`
+4. `src/app/Dashboard/components/views/Worker.tsx`
+5. `src/app/Dashboard/components/views/BatchView.tsx`
+6. `src/app/Dashboard/components/views/SubBatchView.tsx`
+7. `src/app/Dashboard/components/views/DepartmentForm.tsx`
+8. `src/app/Dashboard/components/views/CreateSupervisor.tsx`
+
+---
+
+## Design System Alignment
+
+### Toast Colors (Databricks-inspired):
+- **Success**: Green (`border-l-green-500`, `bg-green-50`)
+- **Error**: Red (`border-l-red-500`, `bg-red-50`)
+- **Warning**: Amber (`border-l-amber-500`, `bg-amber-50`)
+- **Info**: Blue (`border-l-[#2272B4]`, `bg-blue-50`)
+
+### ConfirmModal Colors:
+- **Danger**: Red confirm button (`bg-red-600`)
+- **Warning**: Amber confirm button (`bg-amber-600`)
+- **Info**: Blue confirm button (`bg-[#2272B4]`)
+
+---
+
+## Testing Checklist
+
+### Toast Notifications ✅
+- [x] Success toasts appear with green styling
+- [x] Error toasts appear with red styling
+- [x] Warning toasts appear with amber styling
+- [x] Auto-dismiss after 4 seconds
+- [x] Progress bar animates correctly
+- [x] X button closes toast immediately
+- [x] Multiple toasts stack properly
+
+### Confirmation Modals ✅
+- [x] Modals appear centered with blur backdrop
+- [x] Danger type shows red confirm button
+- [x] Warning type shows amber confirm button
+- [x] Cancel button closes without action
+- [x] Confirm button triggers action
+- [x] Clicking backdrop does NOT close (intentional)
+
+### View Files ✅
+- [x] RollView - All alerts replaced
+- [x] GenericView (Vendor) - All alerts replaced
+- [x] Worker - All alerts replaced
+- [x] BatchView - All alerts replaced (including bulk delete)
+- [x] SubBatchView - All alerts replaced (including category, production, bulk delete)
+- [x] DepartmentForm - All alerts replaced
+- [x] CreateSupervisor - All alerts replaced
+
+---
+
+## Code Quality
+
+- ✅ No TypeScript errors
+- ✅ No ESLint warnings
+- ✅ All files compile successfully
+- ✅ Hot reload working correctly
+- ✅ Promise-based API for async operations
+
+---
+
+## Benefits
+
+1. **Professional UI**: No more browser native dialogs
+2. **Consistent Experience**: Same styling across all views
+3. **Better UX**: Toasts don't block user interaction
+4. **Informative**: Color-coded types make status clear at a glance
+5. **Maintainable**: Single source of truth for toast/confirm styling
+6. **Accessible**: Proper ARIA labels and keyboard support
+
+---
+
+**Last Updated**: 2025-11-30
+**Status**: ✅ Toast/Confirm system implemented across all views
+**Next Session**: HubSpot-style layout implementation
+
+---
+
+## Session Date: 2025-11-30 (Continued)
+
+### Overview
+Implemented HubSpot CRM-style data table layout across all views. Replaced left sidebar filters with horizontal filter dropdowns, added sortable column headers, and implemented pagination. This provides a more professional, enterprise-grade user experience.
+
+---
+
+## Changes Made in This Session
+
+### 1. Created Custom FilterDropdown Component
+**Features:**
+- Custom dropdown popover (not native `<select>`)
+- Search input at top (pill-shaped with search icon)
+- Two-line options: Bold title + gray description
+- Radio-style selection with checkmarks
+- Active state highlighting (BlueShark blue #2272B4)
+- Click outside to close
+- Smooth animations
+
+**Component Interface:**
+```typescript
+interface FilterOption {
+  value: string;
+  label: string;
+  description?: string;
+}
+
+<FilterDropdown
+  label="All Status"
+  value={selectedStatus}
+  onChange={(val) => setSelectedStatus(val)}
+  options={[...]}
+  searchable={true}  // default: true
+  icon={<ArrowUpDown />}  // optional icon
+/>
+```
+
+---
+
+### 2. Replaced Sidebar Filters with Horizontal Filter Bar
+**Before:**
+- Left sidebar with collapsible filters
+- Saved views section
+- Checkbox-based multi-select filters
+- Takes up horizontal space
+
+**After:**
+- Full-width table layout
+- Horizontal filter bar above table
+- Dropdown-based single-select filters
+- Sort dropdown with ArrowUpDown icon
+- "Advanced filters" link (placeholder)
+- "Clear all" button (when filters active)
+- Results count on the right
+
+---
+
+### 3. Added Sortable Column Headers
+- Click column headers to sort
+- ChevronUp/ChevronDown indicators show sort direction
+- Clickable headers have hover:bg-gray-100 effect
+- Sort state syncs with Sort dropdown
+- Resets to page 1 on sort change
+
+---
+
+### 4. Implemented Pagination
+- Shows "Showing X to Y of Z" count
+- Items per page selector (10, 25, 50, 100)
+- Page navigation: First | Prev | Page X of Y | Next | Last
+- Disabled states when at first/last page
+- Resets to page 1 on filter/sort changes
+
+---
+
+## Files Modified
+
+### All 7 View Files Updated:
+1. **SubBatchView.tsx** - Status, Batch, Roll filters + Sort + Pagination
+2. **BatchView.tsx** - Unit, Color, Vendor filters + Sort + Pagination
+3. **RollView.tsx** - Unit, Color, Vendor filters + Sort + Pagination
+4. **GenericView.tsx (Vendor)** - Sort + Pagination
+5. **Worker.tsx** - Wage Type filter + Sort + Pagination
+6. **DepartmentForm.tsx** - Sort + Pagination
+7. **CreateSupervisor.tsx** - Sort + Pagination
+
+---
+
+## Technical Implementation
+
+### New State Variables (per view):
+```typescript
+// Filter states (varies by view)
+const [selectedStatus, setSelectedStatus] = useState<string>("all");
+const [selectedBatchFilter, setSelectedBatchFilter] = useState<string>("all");
+
+// Sorting states
+const [sortColumn, setSortColumn] = useState<string>("id");
+const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc");
+
+// Pagination states
+const [currentPage, setCurrentPage] = useState(1);
+const [itemsPerPage, setItemsPerPage] = useState(25);
+```
+
+### useMemo for Filtering/Sorting/Pagination:
+```typescript
+const { filteredData, paginatedData, totalPages, totalFiltered } = useMemo(() => {
+  // Step 1: Filter
+  let filtered = data.filter(item => {
+    if (selectedFilter !== "all" && item.field !== selectedFilter) return false;
+    return true;
+  });
+
+  // Step 2: Sort
+  filtered = [...filtered].sort((a, b) => {
+    // sorting logic
+  });
+
+  // Step 3: Paginate
+  const totalFiltered = filtered.length;
+  const totalPages = Math.ceil(totalFiltered / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const paginated = filtered.slice(startIndex, startIndex + itemsPerPage);
+
+  return { filteredData: filtered, paginatedData: paginated, totalPages, totalFiltered };
+}, [data, selectedFilter, sortColumn, sortDirection, currentPage, itemsPerPage]);
+```
+
+---
+
+## UI Layout Structure
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│ View Title                                    [+ Add Button]    │
+│ Subtitle description                                            │
+├─────────────────────────────────────────────────────────────────┤
+│ [Filter 1 ▼] [Filter 2 ▼] [↕ Sort ▼] [Advanced] [Clear] X results│
+├─────────────────────────────────────────────────────────────────┤
+│ ┌─────────────────────────────────────────────────────────────┐ │
+│ │ □ │ ID ↓ │ Name │ Field1 │ Field2 │ ... │ Actions │         │ │
+│ ├───┼───────┼──────┼────────┼────────┼─────┼─────────┤         │ │
+│ │ □ │ B001  │ ...  │ ...    │ ...    │ ... │ 👁 ✏ 🗑 │         │ │
+│ │ □ │ B002  │ ...  │ ...    │ ...    │ ... │ 👁 ✏ 🗑 │         │ │
+│ └─────────────────────────────────────────────────────────────┘ │
+│ Showing 1 to 25 of 150        per page [25▼] [◀◀ ◀ Page 1 ▶ ▶▶] │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## Design Decisions
+
+1. **HubSpot Reference**: Used HubSpot CRM as primary design reference
+2. **Databricks Colors**: Maintained BlueShark blue (#2272B4) throughout
+3. **No Search in Sort**: Sort dropdown has `searchable={false}` (fixed options)
+4. **Default Sort**: ID descending (newest first)
+5. **Default Page Size**: 25 items per page
+6. **Table Border**: Added `border border-gray-200 rounded-lg` wrapper
+
+---
+
+## Testing Checklist
+
+### FilterDropdown Component ✅
+- [x] Opens on click
+- [x] Search filters options
+- [x] Two-line options display correctly
+- [x] Radio selection with checkmarks
+- [x] Closes on click outside
+- [x] Active filter shows blue styling
+
+### Sorting ✅
+- [x] Column headers clickable
+- [x] Sort indicators appear
+- [x] Sort dropdown syncs with headers
+- [x] Toggles direction on same column click
+
+### Pagination ✅
+- [x] Page navigation works
+- [x] Items per page selector works
+- [x] First/Last page buttons work
+- [x] Disabled states correct
+- [x] Resets to page 1 on filter change
+
+### All Views ✅
+- [x] SubBatchView compiles and works
+- [x] BatchView compiles and works
+- [x] RollView compiles and works
+- [x] GenericView compiles and works
+- [x] Worker compiles and works
+- [x] DepartmentForm compiles and works
+- [x] CreateSupervisor compiles and works
+
+---
+
+## Code Quality
+
+- ✅ No TypeScript errors
+- ✅ All files compile successfully
+- ✅ Hot reload working correctly
+- ✅ Consistent pattern across all views
+
+---
+
+**Last Updated**: 2025-11-30
+**Status**: ✅ HubSpot-style layout implemented across all views
+**Next Session**: Ready for new features or bug fixes

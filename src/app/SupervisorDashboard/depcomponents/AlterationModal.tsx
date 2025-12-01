@@ -169,9 +169,9 @@ const AlterationModal: React.FC<AlterationModalProps> = ({
       } else {
         alert(`Failed to send for alteration: ${result.message || 'Unknown error'}`);
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error sending for alteration:', error);
-      alert(`Error: ${error.message || 'Failed to send for alteration'}`);
+      alert(`Error: ${error instanceof Error ? error.message : 'Failed to send for alteration'}`);
     } finally {
       setLoading(false);
     }

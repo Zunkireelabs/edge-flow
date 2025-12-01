@@ -1,15 +1,18 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 import React, { useState } from "react";
+import { Check, Loader2 } from "lucide-react";
 
 const AuthPage: React.FC = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    setError("");
 
     try {
       let data: any;
@@ -26,12 +29,10 @@ const AuthPage: React.FC = () => {
 
       if (res.ok) {
         data = await res.json();
-        // Save token & role for future requests (like creating supervisor)
         localStorage.setItem("token", data.token);
-        console.log(data.token)
-        localStorage.setItem("role", data.user.role); // ADMIN
-        localStorage.setItem("departmentId", ""); // admin doesn't need departmentId
-        window.location.href = "/Dashboard"; // redirect admin to full dashboard
+        localStorage.setItem("role", data.user.role);
+        localStorage.setItem("departmentId", "");
+        window.location.href = "/Dashboard";
         return;
       }
 
@@ -47,11 +48,10 @@ const AuthPage: React.FC = () => {
 
       if (res.ok) {
         data = await res.json();
-        // Save token & role for future requests
         localStorage.setItem("token", data.token);
-        localStorage.setItem("role", data.supervisor.role); // SUPERVISOR
+        localStorage.setItem("role", data.supervisor.role);
         localStorage.setItem("departmentId", String(data.supervisor.departmentId));
-        window.location.href = "/SupervisorDashboard"; // redirect supervisor to their department page
+        window.location.href = "/SupervisorDashboard";
         return;
       }
 
@@ -59,79 +59,147 @@ const AuthPage: React.FC = () => {
 
     } catch (err: any) {
       console.error(err);
-      alert(err.message);
+      setError(err.message || "An error occurred. Please try again.");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 bg-gray-50">
-      <div className="max-w-md w-full bg-white rounded-xl shadow-2xl overflow-hidden">
-        <div className="p-8">
-          <div className="text-center mb-10">
-            <h1 className="text-3xl font-bold text-gray-800 mb-2">
-              Login to Your Dashboard
-            </h1>
-            <p className="text-gray-600">Enter your credentials to continue</p>
+    <div className="min-h-screen flex">
+      {/* Left Panel - Dark with features */}
+      <div className="hidden lg:flex lg:w-1/2 bg-[#1b3a4b] flex-col justify-center px-16 py-12">
+        <div className="max-w-lg">
+          {/* Main Heading */}
+          <h1 className="text-[42px] font-semibold text-white leading-tight mb-4">
+            Get started with BlueShark
+          </h1>
+
+          {/* Subtitle */}
+          <p className="text-[20px] text-white/90 mb-10">
+            Streamline production with all your data in one place
+          </p>
+
+          {/* Feature List */}
+          <div className="space-y-5">
+            <div className="flex items-center gap-4">
+              <Check className="w-6 h-6 text-emerald-400 flex-shrink-0" strokeWidth={3} />
+              <span className="text-[17px] text-white/90">
+                Track production progress across all departments
+              </span>
+            </div>
+
+            <div className="flex items-center gap-4">
+              <Check className="w-6 h-6 text-emerald-400 flex-shrink-0" strokeWidth={3} />
+              <span className="text-[17px] text-white/90">
+                Manage workers and assign tasks efficiently
+              </span>
+            </div>
+
+            <div className="flex items-center gap-4">
+              <Check className="w-6 h-6 text-emerald-400 flex-shrink-0" strokeWidth={3} />
+              <span className="text-[17px] text-white/90">
+                Monitor quality control and handle rejections
+              </span>
+            </div>
+
+            <div className="flex items-center gap-4">
+              <Check className="w-6 h-6 text-emerald-400 flex-shrink-0" strokeWidth={3} />
+              <span className="text-[17px] text-white/90">
+                Calculate wages and generate reports instantly
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Right Panel - Light with form */}
+      <div className="w-full lg:w-1/2 bg-[#f5f5f5] flex flex-col items-center justify-center min-h-screen">
+        <div className="w-full max-w-[400px] px-8">
+          {/* Logo */}
+          <div className="flex justify-center mb-8">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-700 rounded-lg flex items-center justify-center">
+                <span className="text-white font-bold text-xl">B</span>
+              </div>
+              <span className="text-2xl font-semibold text-gray-800">BlueShark</span>
+            </div>
           </div>
 
-          <form onSubmit={handleSubmit}>
-            <div className="mb-6">
-              <label
-                htmlFor="email"
-                className="block text-sm font-medium text-gray-700 mb-1"
-              >
-                Email
-              </label>
-              <input
-                id="email"
-                type="email"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
-                placeholder="Enter your email"
-              />
+          {/* Form Card */}
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-8">
+            {/* Form Header */}
+            <div className="text-center mb-8">
+              <h2 className="text-[26px] font-semibold text-gray-900">Log in</h2>
+              <p className="text-gray-500 mt-1 text-[15px]">
+                Access your production dashboard
+              </p>
             </div>
 
-            <div className="mb-6">
-              <div className="flex items-center justify-between mb-1">
-                <label
-                  htmlFor="password"
-                  className="block text-sm font-medium text-gray-700"
+              {/* Error Message */}
+              {error && (
+                <div className="mb-6 p-3 bg-red-50 border border-red-200 rounded-md">
+                  <p className="text-sm text-red-600">{error}</p>
+                </div>
+              )}
+
+              <form onSubmit={handleSubmit} className="space-y-4">
+                {/* Email Field */}
+                <div>
+                  <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
+                    Email
+                  </label>
+                  <input
+                    id="email"
+                    type="email"
+                    required
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="w-full px-4 py-3 rounded-md border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors text-[15px]"
+                    placeholder="you@company.com"
+                  />
+                </div>
+
+                {/* Password Field */}
+                <div>
+                  <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
+                    Password
+                  </label>
+                  <input
+                    id="password"
+                    type="password"
+                    required
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="w-full px-4 py-3 rounded-md border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors text-[15px]"
+                    placeholder="Enter your password"
+                  />
+                </div>
+
+                {/* Submit Button */}
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="w-full bg-[#1a73e8] text-white py-3 px-4 rounded-md hover:bg-[#1557b0] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors font-medium text-[15px] disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2 mt-6"
                 >
-                  Password
-                </label>
-                <a href="#" className="text-sm text-blue-600 hover:text-blue-500">
-                  Forgot Password?
-                </a>
-              </div>
-              <input
-                id="password"
-                type="password"
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
-                placeholder="Enter your password"
-              />
-            </div>
+                  {loading ? (
+                    <>
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                      Signing in...
+                    </>
+                  ) : (
+                    "Continue"
+                  )}
+                </button>
+              </form>
+          </div>
 
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full bg-blue-600 text-white py-3 px-4 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition font-semibold"
-            >
-              {loading ? "Logging in..." : "Login"}
-            </button>
-          </form>
-        </div>
-
-        <div className="bg-gray-50 px-8 py-6 border-t">
-          <p className="text-center text-sm text-gray-500">
-            © 2025 Production Flow. All rights reserved.
-          </p>
+          {/* Footer Links */}
+          <div className="mt-6 text-center">
+            <p className="text-sm text-gray-500">
+              Contact admin for account access
+            </p>
+          </div>
         </div>
       </div>
     </div>

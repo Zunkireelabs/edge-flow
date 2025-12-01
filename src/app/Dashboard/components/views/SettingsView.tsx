@@ -4,7 +4,7 @@ import React from "react";
 
 const SettingsView = () => {
   return (
-    <div className="p-8 bg-gray-50 min-h-full">
+    <div className="p-8 bg-white min-h-full">
       <h2 className="text-2xl font-bold mb-6">Settings</h2>
       <div className="bg-white p-6 rounded-lg shadow">
         <p className="text-gray-700 mb-4">You can configure application settings here.</p>

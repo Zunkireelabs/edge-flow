@@ -35,6 +35,27 @@ h1, h2, h3, h4, h5, h6 {
   letter-spacing: -0.025em;
 }
 
+/* Interactive elements - show pointer cursor */
+button,
+[role="button"],
+a,
+select,
+summary,
+[type="button"],
+[type="submit"],
+[type="reset"],
+label[for],
+.cursor-pointer {
+  cursor: pointer;
+}
+
+/* Disabled elements - show not-allowed cursor */
+button:disabled,
+[disabled],
+.disabled {
+  cursor: not-allowed;
+}
+
 
 @keyframes spin-slow {
   from { transform: rotate(0deg); }

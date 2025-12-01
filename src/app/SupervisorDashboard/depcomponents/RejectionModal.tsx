@@ -107,9 +107,9 @@ const RejectionModal: React.FC<RejectionModalProps> = ({
       } else {
         alert(`Failed to reject items: ${result.message || 'Unknown error'}`);
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error rejecting items:', error);
-      alert(`Error: ${error.message || 'Failed to reject items'}`);
+      alert(`Error: ${error instanceof Error ? error.message : 'Failed to reject items'}`);
     } finally {
       setLoading(false);
     }

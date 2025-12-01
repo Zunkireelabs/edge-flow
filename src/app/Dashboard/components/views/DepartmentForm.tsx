@@ -1,21 +1,152 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import {
   Plus,
-  FileText,
   X,
   Trash2,
   Edit2,
-  MoreVertical,
   Eye,
   Users,
-  User,
-  MessageSquare,
+  ChevronDown,
+  ChevronUp,
+  SlidersHorizontal,
+  ChevronLeft,
+  ChevronRight,
+  ArrowUpDown,
+  Search,
+  Check,
 } from "lucide-react";
 import Loader from "@/app/Components/Loader";
 import NepaliDatePicker from "@/app/Components/NepaliDatePicker";
+import { useToast } from "@/app/Components/ToastContext";
+
+// Filter Dropdown Option Interface
+interface FilterOption {
+  value: string;
+  label: string;
+  description?: string;
+}
+
+// Custom Filter Dropdown Component
+const FilterDropdown = ({
+  label,
+  options,
+  value,
+  onChange,
+  searchable = true,
+  icon,
+}: {
+  label: string;
+  options: FilterOption[];
+  value: string;
+  onChange: (value: string) => void;
+  searchable?: boolean;
+  icon?: React.ReactNode;
+}) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const dropdownRef = useRef<HTMLDivElement>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+
+  const selectedOption = options.find(opt => opt.value === value);
+  const displayLabel = selectedOption?.label || label;
+
+  const filteredOptions = options.filter(opt =>
+    opt.label.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (opt.description && opt.description.toLowerCase().includes(searchQuery.toLowerCase()))
+  );
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+        setSearchQuery("");
+      }
+    };
+    if (isOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+      setTimeout(() => searchInputRef.current?.focus(), 100);
+    }
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [isOpen]);
+
+  const handleSelect = (optionValue: string) => {
+    onChange(optionValue);
+    setIsOpen(false);
+    setSearchQuery("");
+  };
+
+  const isActive = value !== "all";
+
+  return (
+    <div className="relative" ref={dropdownRef}>
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className={`flex items-center gap-2 px-3 py-2 text-sm border rounded-md transition-all duration-200 ${
+          isActive
+            ? "border-[#2272B4] bg-blue-50 text-[#2272B4]"
+            : "border-gray-300 bg-white text-gray-700 hover:border-gray-400"
+        }`}
+      >
+        {icon && <span className="flex-shrink-0">{icon}</span>}
+        <span className="max-w-[150px] truncate">{displayLabel}</span>
+        <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`} />
+      </button>
+
+      {isOpen && (
+        <div className="absolute top-full left-0 mt-2 w-72 bg-white rounded-lg shadow-lg border border-gray-200 z-50 overflow-hidden">
+          <div className="absolute -top-2 left-4 w-4 h-4 bg-white border-l border-t border-gray-200 transform rotate-45" />
+          {searchable && (
+            <div className="p-3 border-b border-gray-100">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <input
+                  ref={searchInputRef}
+                  type="text"
+                  placeholder="Search..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full pl-9 pr-3 py-2 text-sm border border-gray-200 rounded-full focus:outline-none focus:ring-2 focus:ring-[#2272B4] focus:border-transparent"
+                />
+              </div>
+            </div>
+          )}
+          <div className="max-h-64 overflow-y-auto">
+            {filteredOptions.length === 0 ? (
+              <div className="px-4 py-3 text-sm text-gray-500 text-center">No options found</div>
+            ) : (
+              filteredOptions.map((option) => (
+                <button
+                  key={option.value}
+                  onClick={() => handleSelect(option.value)}
+                  className={`w-full px-4 py-3 text-left hover:bg-gray-50 transition-colors flex items-start gap-3 ${
+                    value === option.value ? "bg-blue-50" : ""
+                  }`}
+                >
+                  <div className={`mt-0.5 w-4 h-4 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${
+                    value === option.value ? "border-[#2272B4] bg-[#2272B4]" : "border-gray-300"
+                  }`}>
+                    {value === option.value && <Check className="w-2.5 h-2.5 text-white" />}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className={`text-sm font-medium ${value === option.value ? "text-[#2272B4]" : "text-gray-900"}`}>
+                      {option.label}
+                    </div>
+                    {option.description && (
+                      <div className="text-xs text-gray-500 mt-0.5">{option.description}</div>
+                    )}
+                  </div>
+                </button>
+              ))
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
 
 interface WorkerAssignment {
   id: string | number;
@@ -57,6 +188,7 @@ const GET_WORKERS = process.env.NEXT_PUBLIC_GET_WORKERS;
 const GET_SUPERVISOR = process.env.NEXT_PUBLIC_GET_SUPERVISOR;
 
 const DepartmentForm = () => {
+  const { showToast, showConfirm } = useToast();
   const [departments, setDepartments] = useState<Department[]>([]);
   const [loading, setLoading] = useState(true);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
@@ -65,7 +197,14 @@ const DepartmentForm = () => {
   const [saveLoading, setSaveLoading] = useState(false);
   const [supervisors, setSupervisors] = useState<Supervisor[]>([]);
   const [workers, setWorkers] = useState<Worker[]>([]);
-  const [openMenuId, setOpenMenuId] = useState<number | string | null>(null);
+
+  // Sorting states
+  const [sortColumn, setSortColumn] = useState<string>("id");
+  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc");
+
+  // Pagination states
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(25);
 
   const [formData, setFormData] = useState({
     id: "",
@@ -110,6 +249,54 @@ const DepartmentForm = () => {
     return dept.workers || [];
   };
 
+  // Sort and paginate departments using useMemo
+  const { paginatedDepartments, totalPages, totalFiltered } = useMemo(() => {
+    // Step 1: Sort
+    const sorted = [...departments].sort((a, b) => {
+      let aVal: any = a[sortColumn as keyof Department];
+      let bVal: any = b[sortColumn as keyof Department];
+
+      // Handle supervisor name sorting
+      if (sortColumn === "supervisor") {
+        aVal = getSupervisorName(a.supervisor);
+        bVal = getSupervisorName(b.supervisor);
+      }
+
+      // Handle workers count sorting
+      if (sortColumn === "workers") {
+        aVal = a.workers?.length || 0;
+        bVal = b.workers?.length || 0;
+      }
+
+      if (aVal == null) aVal = "";
+      if (bVal == null) bVal = "";
+
+      if (typeof aVal === "string" && typeof bVal === "string") {
+        return sortDirection === "asc" ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
+      }
+      return sortDirection === "asc" ? aVal - bVal : bVal - aVal;
+    });
+
+    // Step 2: Paginate
+    const totalFiltered = sorted.length;
+    const totalPages = Math.ceil(totalFiltered / itemsPerPage);
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const paginated = sorted.slice(startIndex, startIndex + itemsPerPage);
+
+    return { paginatedDepartments: paginated, totalPages, totalFiltered };
+  }, [departments, sortColumn, sortDirection, currentPage, itemsPerPage]);
+
+  // Handle sort column click
+  const handleSort = (column: string) => {
+    if (sortColumn === column) {
+      setSortDirection(sortDirection === "asc" ? "desc" : "asc");
+    } else {
+      setSortColumn(column);
+      setSortDirection("asc");
+    }
+    setCurrentPage(1);
+  };
+
   // Reset form
   const resetFormData = () => {
     setFormData({
@@ -140,7 +327,7 @@ const DepartmentForm = () => {
       setDepartments(normalizedData);
     } catch (err) {
       console.error("Fetch error:", err);
-      alert("Failed to fetch departments.");
+      showToast("error", "Failed to fetch departments.");
     } finally {
       setLoading(false);
     }
@@ -173,7 +360,7 @@ const DepartmentForm = () => {
       setSupervisors(supervisorsArray);
     } catch (err) {
       console.error("Fetch supervisors error:", err);
-      alert("Failed to fetch supervisors.");
+      showToast("error", "Failed to fetch supervisors.");
     }
   };
 
@@ -187,7 +374,7 @@ const DepartmentForm = () => {
       console.log(data)
     } catch (err) {
       console.error("Fetch workers error:", err);
-      alert("Failed to fetch workers.");
+      showToast("error", "Failed to fetch workers.");
     }
   };
   useEffect(() => {
@@ -203,11 +390,11 @@ const DepartmentForm = () => {
       setSaveLoading(true);
 
       if (!formData.name.trim()) {
-        alert("Department name is required");
+        showToast("warning", "Department name is required");
         return;
       }
       if (!formData.supervisor.trim()) {
-        alert("Supervisor is required");
+        showToast("warning", "Supervisor is required");
         return;
       }
 
@@ -242,10 +429,10 @@ const DepartmentForm = () => {
       if (!response.ok) throw new Error("Failed to save department");
 
       await fetchDepartments();
-      alert(`Department ${editingDept ? "updated" : "created"} successfully`);
+      showToast("success", `Department ${editingDept ? "updated" : "created"} successfully`);
     } catch (err) {
       console.error("Save error:", err);
-      alert("Error saving department.");
+      showToast("error", "Error saving department.");
     } finally {
       setSaveLoading(false);
       resetFormData();
@@ -285,15 +472,24 @@ const DepartmentForm = () => {
 
   // Delete
   const handleDelete = async (id: number | string) => {
-    if (!confirm("Are you sure you want to delete this department?")) return;
+    const confirmed = await showConfirm({
+      title: "Delete Department",
+      message: "Are you sure you want to delete this department? This action cannot be undone.",
+      confirmText: "Delete",
+      cancelText: "Cancel",
+      type: "danger",
+    });
+
+    if (!confirmed) return;
+
     try {
       const res = await fetch(`${DELETE_DEPARTMENTS}/${id}`, { method: "DELETE" });
       if (!res.ok) throw new Error("Failed to delete department");
       await fetchDepartments();
-      alert("Department deleted successfully");
+      showToast("success", "Department deleted successfully");
     } catch (err) {
       console.error("Delete error:", err);
-      alert("Failed to delete department");
+      showToast("error", "Failed to delete department");
     }
   };
 
@@ -301,25 +497,23 @@ const DepartmentForm = () => {
   const closeDrawer = () => {
     setIsDrawerOpen(false);
     setEditingDept(null);
-    setOpenMenuId(null);
     setIsPreview(false);
     resetFormData();
   };
 
   return (
-    <div className="p-8 bg-gray-50 min-h-full">
+    <div className="p-8 bg-white min-h-screen">
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h2 className="text-2xl font-bold">Department Management</h2>
-          <p className="text-gray-500">Manage departments, supervisors, and workers</p>
+          <h2 className="text-2xl font-bold text-gray-900">Departments</h2>
+          <p className="text-gray-600 text-sm mt-1">Manage departments, supervisors, and workers</p>
         </div>
         <button
           className="flex items-center gap-2 bg-blue-600 text-white px-5 py-2.5 rounded-xl font-semibold shadow-md hover:bg-blue-700 hover:shadow-lg transition-all duration-200 hover:scale-105"
           onClick={() => {
             resetFormData();
             setIsDrawerOpen(true);
-            setOpenMenuId(null);
             setIsPreview(false);
           }}
         >
@@ -327,85 +521,145 @@ const DepartmentForm = () => {
         </button>
       </div>
 
-      {/* Table */}
-      <div className="bg-white rounded-lg shadow border-gray-200 p-6 flex flex-col gap-4 mb-8">
+      {/* HubSpot-style horizontal filter bar */}
+      <div className="flex items-center gap-3 mb-4 flex-wrap">
+        {/* Sort Dropdown */}
+        <FilterDropdown
+          label="Sort"
+          value={`${sortColumn}-${sortDirection}`}
+          onChange={(val) => {
+            const [col, dir] = val.split('-');
+            setSortColumn(col);
+            setSortDirection(dir as "asc" | "desc");
+            setCurrentPage(1);
+          }}
+          searchable={false}
+          icon={<ArrowUpDown className="w-4 h-4" />}
+          options={[
+            { value: "id-desc", label: "Newest first", description: "Most recently created" },
+            { value: "id-asc", label: "Oldest first", description: "First created departments" },
+            { value: "name-asc", label: "Name A-Z", description: "Alphabetical order" },
+            { value: "name-desc", label: "Name Z-A", description: "Reverse alphabetical" },
+            { value: "supervisor-asc", label: "Supervisor A-Z", description: "Sort by supervisor name" },
+            { value: "workers-desc", label: "Workers (High to Low)", description: "Most workers first" },
+            { value: "workers-asc", label: "Workers (Low to High)", description: "Fewest workers first" },
+          ]}
+        />
+
+        {/* Advanced Filters Link */}
+        <button className="flex items-center gap-1.5 text-sm text-gray-600 hover:text-[#2272B4] transition-colors">
+          <SlidersHorizontal className="w-4 h-4" />
+          Advanced filters
+        </button>
+
+        {/* Results Count */}
+        <span className="text-sm text-gray-500 ml-auto">
+          {totalFiltered} {totalFiltered === 1 ? "result" : "results"}
+        </span>
+      </div>
+
+      {/* Table Container */}
+      <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
         {loading ? (
-          <Loader loading={true} message="Loading Departments..." />
-        ) : departments.length === 0 ? (
+          <div className="p-6">
+            <Loader loading={true} message="Loading Departments..." />
+          </div>
+        ) : totalFiltered === 0 ? (
           <div className="flex flex-col items-center justify-center py-12">
-            <FileText size={48} className="text-gray-300 mb-4" />
-            <p className="text-black mb-2 font-medium">No Departments found</p>
-            <p className="text-gray-500 mb-2 font-medium">
-              Get started by creating your first Department. Click the Add Department button to begin make your Department.
+            <Users size={48} className="text-gray-300 mb-4" />
+            <p className="text-black mb-2 font-medium">No departments found</p>
+            <p className="text-gray-500 text-sm">
+              Get started by creating your first department.
             </p>
           </div>
         ) : (
-          <table className="w-full table-auto border-collapse">
-            <thead>
-              <tr className="bg-gray-200">
-                <th className="p-2 text-left">S.N.</th>
-                <th className="p-2 text-left">ID</th>
-                <th className="p-2 text-left">Department Name</th>
-                <th className="p-2 text-left">Supervisor</th>
-                <th className="p-2 text-left">Workers Assigned</th>
-                <th className="p-2 text-left">Remarks</th>
-                <th className="p-2 text-left">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {departments.map((dept, index) => (
-                <tr key={dept.id} className="border-b border-gray-200">
-                  <td className="p-2">{index + 1}</td>
-                  <td className="p-2">D00{dept.id}</td>
-                  <td className="p-2">{dept.name}</td>
-                  <td className="p-2">{getSupervisorName(dept.supervisor)}</td>
-                  <td className="p-2">{dept.workers?.length || 0} Workers</td>
-                  <td className="p-2">{dept.remarks || 'N/A'}</td>
-                  <td className="p-2 flex justify-center relative">
-                    <button
-                      className="p-1 rounded hover:bg-gray-100"
-                      onClick={() =>
-                        setOpenMenuId(openMenuId === dept.id ? null : dept.id)
-                      }
-                    >
-                      <MoreVertical size={20} />
-                    </button>
-                    {openMenuId === dept.id && (
-                      <div className="absolute right-0 top-full mt-2 w-32 bg-white rounded shadow-lg z-50">
-                        <button
-                          className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2"
-                          onClick={() => {
-                            setOpenMenuId(null);
-                            handlePreview(dept);
-                          }}
-                        >
-                          <Eye size={14} /> Preview
-                        </button>
-                        <button
-                          className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2"
-                          onClick={() => {
-                            setOpenMenuId(null);
-                            handleEdit(dept);
-                          }}
-                        >
-                          <Edit2 size={14} /> Edit
-                        </button>
-                        <button
-                          className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 text-red-500"
-                          onClick={() => {
-                            setOpenMenuId(null);
-                            handleDelete(dept.id);
-                          }}
-                        >
-                          <Trash2 size={14} /> Delete
-                        </button>
-                      </div>
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <>
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-full">
+                <thead>
+                  <tr className="border-b border-gray-200 bg-gray-50">
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100" onClick={() => handleSort("id")}>
+                      <div className="flex items-center gap-1">ID {sortColumn === "id" && (sortDirection === "asc" ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)}</div>
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100" onClick={() => handleSort("name")}>
+                      <div className="flex items-center gap-1">Department Name {sortColumn === "name" && (sortDirection === "asc" ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)}</div>
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100" onClick={() => handleSort("supervisor")}>
+                      <div className="flex items-center gap-1">Supervisor {sortColumn === "supervisor" && (sortDirection === "asc" ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)}</div>
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100" onClick={() => handleSort("workers")}>
+                      <div className="flex items-center gap-1">Workers {sortColumn === "workers" && (sortDirection === "asc" ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)}</div>
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Remarks</th>
+                    <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-200">
+                  {paginatedDepartments.map((dept) => (
+                    <tr key={dept.id} className="hover:bg-gray-50 transition-colors">
+                      <td className="px-4 py-3 text-sm text-gray-500">D{String(dept.id).padStart(3, '0')}</td>
+                      <td className="px-4 py-3">
+                        <span className="text-sm font-medium text-[#2272B4] hover:underline cursor-pointer">{dept.name}</span>
+                      </td>
+                      <td className="px-4 py-3 text-sm text-gray-600">{getSupervisorName(dept.supervisor)}</td>
+                      <td className="px-4 py-3 text-sm text-gray-600">{dept.workers?.length || 0} workers</td>
+                      <td className="px-4 py-3 text-sm text-gray-600">{dept.remarks || <span className="text-gray-400">—</span>}</td>
+                      <td className="px-4 py-3 text-right">
+                        <div className="flex items-center justify-end gap-1">
+                          <button
+                            onClick={() => handlePreview(dept)}
+                            className="p-1.5 rounded hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors"
+                            title="Preview"
+                          >
+                            <Eye size={16} />
+                          </button>
+                          <button
+                            onClick={() => handleEdit(dept)}
+                            className="p-1.5 rounded hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors"
+                            title="Edit"
+                          >
+                            <Edit2 size={16} />
+                          </button>
+                          <button
+                            onClick={() => handleDelete(dept.id)}
+                            className="p-1.5 rounded hover:bg-gray-100 text-gray-400 hover:text-red-500 transition-colors"
+                            title="Delete"
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Pagination */}
+            <div className="px-4 py-3 border-t border-gray-200 flex items-center justify-between bg-white">
+              <span className="text-sm text-gray-700">
+                Showing {((currentPage - 1) * itemsPerPage) + 1} to {Math.min(currentPage * itemsPerPage, totalFiltered)} of {totalFiltered}
+              </span>
+              <div className="flex items-center gap-4">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-gray-600">per page</span>
+                  <select value={itemsPerPage} onChange={(e) => { setItemsPerPage(Number(e.target.value)); setCurrentPage(1); }} className="border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-[#2272B4]">
+                    <option value={10}>10</option>
+                    <option value={25}>25</option>
+                    <option value={50}>50</option>
+                    <option value={100}>100</option>
+                  </select>
+                </div>
+                <div className="flex items-center gap-1">
+                  <button onClick={() => setCurrentPage(1)} disabled={currentPage === 1} className="p-1.5 rounded hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed text-gray-600"><ChevronLeft className="w-4 h-4" /><ChevronLeft className="w-4 h-4 -ml-3" /></button>
+                  <button onClick={() => setCurrentPage(currentPage - 1)} disabled={currentPage === 1} className="p-1.5 rounded hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed text-gray-600"><ChevronLeft className="w-4 h-4" /></button>
+                  <span className="px-3 py-1 text-sm text-gray-700">Page {currentPage} of {totalPages || 1}</span>
+                  <button onClick={() => setCurrentPage(currentPage + 1)} disabled={currentPage >= totalPages} className="p-1.5 rounded hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed text-gray-600"><ChevronRight className="w-4 h-4" /></button>
+                  <button onClick={() => setCurrentPage(totalPages)} disabled={currentPage >= totalPages} className="p-1.5 rounded hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed text-gray-600"><ChevronRight className="w-4 h-4" /><ChevronRight className="w-4 h-4 -ml-3" /></button>
+                </div>
+              </div>
+            </div>
+          </>
         )}
       </div>
 
@@ -424,37 +678,41 @@ const DepartmentForm = () => {
             >
               <X size={20} />
             </button>
-            <h3 className="text-lg font-semibold mb-3">
-              {isPreview
-                ? "Department Preview"
-                : editingDept
-                  ? "Edit Department"
-                  : "Add New Department"}
-            </h3>
+            {/* Header */}
+            <div className="border-b border-gray-200 pb-3 mb-4">
+              <h3 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+                <Users size={20} className="text-blue-600" />
+                {isPreview
+                  ? "Department Details"
+                  : editingDept
+                    ? "Edit Department"
+                    : "Add New Department"}
+              </h3>
+            </div>
 
-            <div className="space-y-3">
+            <div className="space-y-4">
               {/* Department Name */}
               <div>
-                <label className="flex items-center gap-2 font-semibold">
-                  <Users size={18} /> Department Name
+                <label className="block text-sm font-semibold text-gray-900 mb-1.5">
+                  Department Name <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="text"
                   name="name"
-                  placeholder="Department Name"
+                  placeholder="Enter department name"
                   value={formData.name}
                   onChange={(e) =>
                     setFormData((p) => ({ ...p, name: e.target.value }))
                   }
                   readOnly={isPreview}
-                  className="w-full border border-gray-300 rounded-[10px] px-3 py-2"
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
                 />
               </div>
 
               {/* Supervisor */}
               <div>
-                <label className="flex items-center gap-2 font-semibold">
-                  <User size={18} /> Supervisor
+                <label className="block text-sm font-semibold text-gray-900 mb-1.5">
+                  Supervisor <span className="text-red-500">*</span>
                 </label>
                 <select
                   name="supervisor"
@@ -463,7 +721,7 @@ const DepartmentForm = () => {
                     setFormData((p) => ({ ...p, supervisor: e.target.value }))
                   }
                   disabled={isPreview}
-                  className="w-full border border-gray-300 rounded-[10px] px-3 py-2"
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm bg-white"
                 >
                   <option value="">Select Supervisor</option>
                   {supervisors.map((sup) => (
@@ -476,8 +734,8 @@ const DepartmentForm = () => {
 
               {/* Workers */}
               <div>
-                <label className="flex items-center gap-2 font-semibold">
-                  <Users size={18} /> Assign Workers
+                <label className="block text-sm font-semibold text-gray-900 mb-1.5">
+                  Assign Workers
                 </label>
 
                 {!isPreview && (
@@ -488,13 +746,12 @@ const DepartmentForm = () => {
                           value={w.id}
                           onChange={(e) => {
                             const newWorkers = [...formData.workers];
-                            // Convert the value to number and find worker name
                             const workerId = Number(e.target.value);
                             const workerName = workers.find(worker => worker.id == workerId)?.name || '';
                             newWorkers[index] = { ...newWorkers[index], id: workerId, name: workerName };
                             setFormData((p) => ({ ...p, workers: newWorkers }));
                           }}
-                          className="flex-1 border border-gray-300 rounded-[10px] px-3 py-2"
+                          className="flex-1 border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm bg-white"
                         >
                           <option value="">Select Worker</option>
                           {workers.map((worker) => (
@@ -511,7 +768,7 @@ const DepartmentForm = () => {
                             newWorkers[index].date = value;
                             setFormData((p) => ({ ...p, workers: newWorkers }));
                           }}
-                          className="rounded-[10px]"
+                          className="rounded-lg"
                           placeholder="Select Date"
                         />
 
@@ -522,7 +779,7 @@ const DepartmentForm = () => {
                             newWorkers.splice(index, 1);
                             setFormData((p) => ({ ...p, workers: newWorkers }));
                           }}
-                          className="px-3 py-2 bg-red-500 text-white rounded-[10px]"
+                          className="px-3 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors text-sm font-medium"
                         >
                           -
                         </button>
@@ -537,7 +794,7 @@ const DepartmentForm = () => {
                           workers: [...p.workers, { id: "", date: "", name: "" }],
                         }))
                       }
-                      className="px-3 py-2 bg-blue-500 text-white rounded-[10px]"
+                      className="px-4 py-2 bg-[#2272B4] text-white rounded hover:bg-[#0E538B] transition-colors text-sm font-medium"
                     >
                       + Add Worker
                     </button>
@@ -546,18 +803,19 @@ const DepartmentForm = () => {
 
                 {/* Preview Mode */}
                 {isPreview && (
-                  <ul className="space-y-2">
+                  <ul className="space-y-2 mt-2">
                     {formData.workers.length > 0 ? (
                       formData.workers.map((w, index) => {
                         const workerName = w.name || workers.find((worker) => worker.id == w.id)?.name || "Unknown";
                         return (
-                          <li key={index} className="flex items-center justify-between border border-gray-200 rounded-lg p-2">
-                            <span>{workerName} - <span className="text-gray-500">{w.date}</span></span>
+                          <li key={index} className="flex items-center justify-between border border-gray-200 rounded-lg p-3 bg-gray-50">
+                            <span className="text-sm text-gray-900">{workerName}</span>
+                            <span className="text-xs text-gray-500">{w.date}</span>
                           </li>
                         );
                       })
                     ) : (
-                      <li className="text-gray-500">No workers assigned</li>
+                      <li className="text-sm text-gray-500">No workers assigned</li>
                     )}
                   </ul>
                 )}
@@ -565,18 +823,19 @@ const DepartmentForm = () => {
 
               {/* Remarks */}
               <div>
-                <label className="flex items-center gap-2 font-semibold">
-                  <MessageSquare size={18} /> Remarks
+                <label className="block text-sm font-semibold text-gray-900 mb-1.5">
+                  Remarks
                 </label>
                 <textarea
                   name="remarks"
-                  placeholder="Add remarks"
+                  placeholder="Add remarks (optional)"
                   value={formData.remarks}
                   onChange={(e) =>
                     setFormData((p) => ({ ...p, remarks: e.target.value }))
                   }
                   readOnly={isPreview}
-                  className="w-full border border-gray-300 rounded-[10px] px-3 py-2"
+                  rows={3}
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm resize-none"
                 />
               </div>
             </div>
@@ -591,7 +850,7 @@ const DepartmentForm = () => {
               </button>
               {!isPreview && (
                 <button
-                  className="px-6 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 font-medium transition-colors shadow-sm"
+                  className="px-6 py-2 rounded bg-[#2272B4] text-white hover:bg-[#0E538B] disabled:opacity-50 font-medium transition-colors shadow-sm"
                   onClick={handleSave}
                   disabled={saveLoading}
                 >

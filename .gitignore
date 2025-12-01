@@ -31,3 +31,31 @@ next-env.d.ts
 
 claude.md
 /claude.md
+
+# BlueShark-Stark brain (DO NOT IGNORE - this is shared context)
+# .brain/ is tracked in git for context sharing
+
+# Backend environment (contains secrets)
+blueshark-backend-test/backend/.env
+
+# Temporary files and backups
+temp_ss/
+*.BACKUP
+*_SIMPLIFIED.tsx
+
+# Documentation files are now tracked in docs/ folder
+# Only ignore if in root directory (not in docs/)
+/ADMIN_USER_STORIES.md
+/ALTERATION_CARD_UX_FIXES_SESSION.md
+/CRITICAL_ISSUE_ANALYSIS.md
+/FEATURE_IMPLEMENTATION_LOG.md
+/FUTURE_FEATURE_DAILY_COMPLETION_TRACKING.md
+/MY_ROLE_AND_RESPONSIBILITIES.md
+/PRODUCT_DOCUMENTATION.md
+/PROPOSED_CODE_CHANGES.md
+/QC_CRITICAL_CONCERNS.md
+/QC_SESSION_PROGRESS.md
+/QC_TEST_SCRIPT_PHASE1.md
+/QC_WORKFLOW_VALIDATION_PLAN.md
+/REFACTOR_SUMMARY.md
+/SUPERVISOR_USER_STORIES.md

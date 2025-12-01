@@ -22,21 +22,21 @@ const SidebarItem: React.FC<SidebarItemProps> = ({
 }) => (
   <button
     onClick={onClick}
-    className={`w-full flex items-center justify-between px-4 py-2.5 rounded-lg transition-all duration-200 group ${
+    className={`w-full flex items-center justify-between px-3 py-2 rounded-md transition-colors group ${
       active
-        ? "bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-md"
-        : "text-gray-700 hover:bg-blue-50 hover:text-blue-600"
+        ? "bg-blue-50 text-blue-600"
+        : "text-gray-600 hover:bg-blue-50 hover:text-gray-900"
     }`}
   >
     {/* Icon + Label */}
-    <span className="flex items-center gap-3">
-      <Icon className={`w-5 h-5 transition-transform ${active ? '' : 'group-hover:scale-110'}`} />
-      <span className="font-medium text-sm">{label}</span>
+    <span className="flex items-center gap-2.5">
+      <Icon className="w-[18px] h-[18px]" />
+      <span className={`text-sm ${active ? "font-medium" : "font-normal"}`}>{label}</span>
     </span>
 
     {/* Expand/Collapse Arrow */}
     {hasChildren && (
-      <span className="transition-transform">
+      <span className="text-gray-400">
         {isOpen ? (
           <ChevronDown className="w-4 h-4" />
         ) : (

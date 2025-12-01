@@ -149,6 +149,7 @@ export default function DepartmentWorkloadView() {
           const kanbanData = response.data.data;
 
           // Helper function to transform department_sub_batch to Task format
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           const transformToTask = (dsb: any): Task => {
             const subBatch = dsb.sub_batch;
 
@@ -248,7 +249,7 @@ export default function DepartmentWorkloadView() {
         } else if (column.id === targetColumnId) {
           return {
             ...column,
-            tasks: [...column.tasks, { ...draggedTask, status: targetColumnId as any }]
+            tasks: [...column.tasks, { ...draggedTask, status: targetColumnId as Task['status'] }]
           };
         }
         return column;
@@ -300,7 +301,7 @@ export default function DepartmentWorkloadView() {
   };
 
   return (
-    <div className="flex min-h-screen bg-gray-50">
+    <div className="flex min-h-screen bg-white">
       {/* Filter Sidebar */}
       <div
         className={`bg-white shadow flex-shrink-0 border-r border-gray-200 min-h-screen overflow-y-auto transition-all duration-300 ease-in-out ${
@@ -434,7 +435,7 @@ export default function DepartmentWorkloadView() {
         </div>
 
         {/* Kanban Board */}
-        <div className="p-6 bg-gray-50">
+        <div className="p-6 bg-white">
           {!selectedDepartment ? (
             <div className="flex items-center justify-center h-96 bg-white rounded-lg border-2 border-dashed border-gray-300">
               <div className="text-center">

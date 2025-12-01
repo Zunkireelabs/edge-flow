@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { Calendar, X, CheckCircle, Edit3, XCircle, Clock, ChevronDown, ChevronRight, Inbox, MoreVertical } from 'lucide-react';
+import { Calendar, X, CheckCircle, Edit3, XCircle, Clock, ChevronDown, ChevronRight, Inbox, MoreVertical, History, User, ArrowRight } from 'lucide-react';
 import AddRecordModal from './AddRecordModal';
 import WorkerAssignmentTable from './WorkerAssignmentTable';
 import PreviewModal from './PreviewModal';
@@ -48,6 +48,7 @@ const TaskDetailsModal: React.FC<TaskDetailsModalProps> = ({ isOpen, onClose, ta
     const [mainCardData, setMainCardData] = useState<any>(null);
     const [isAlterationModalOpen, setIsAlterationModalOpen] = useState(false);
     const [isRejectionModalOpen, setIsRejectionModalOpen] = useState(false);
+    const [isHistoryExpanded, setIsHistoryExpanded] = useState(false);
     const [showActionsDropdown, setShowActionsDropdown] = useState(false);
 
     const fetchWorkerLogs = useCallback(async () => {
@@ -1367,6 +1368,165 @@ const TaskDetailsModal: React.FC<TaskDetailsModalProps> = ({ isOpen, onClose, ta
                                 </div>
                             </div>
                         </div>
+                    </div>
+
+                    {/* History Section - Collapsible */}
+                    <div className="px-4 pb-2">
+                        <button
+                            onClick={() => setIsHistoryExpanded(!isHistoryExpanded)}
+                            className="flex items-center gap-2 text-sm text-gray-600 hover:text-gray-800 py-2 w-full"
+                        >
+                            {isHistoryExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+                            <History size={16} />
+                            <span className="font-medium">Activity History</span>
+                            <span className="text-xs text-gray-400 ml-1">
+                                ({(currentDepartmentRecords?.length || 0) + (currentDepartmentRecords?.filter((r: any) => (r.rejectReturn || 0) > 0).length || 0) + (currentDepartmentRecords?.filter((r: any) => (r.alteration || 0) > 0).length || 0) + 1} events)
+                            </span>
+                        </button>
+
+                        {isHistoryExpanded && (
+                            <div className="mt-2 pl-6 border-l-2 border-gray-200 space-y-3 pb-3">
+                                {/* Department Arrival Event */}
+                                <div className="relative">
+                                    <div className="absolute -left-[25px] w-3 h-3 rounded-full bg-blue-500 border-2 border-white"></div>
+                                    <div className="text-sm">
+                                        <div className="flex items-center gap-2">
+                                            <ArrowRight size={14} className="text-blue-500" />
+                                            <span className="font-medium text-gray-800">
+                                                Arrived at {taskData.department?.name || 'Department'}
+                                            </span>
+                                        </div>
+                                        <div className="text-xs text-gray-500 mt-0.5">
+                                            {taskData.createdAt
+                                                ? new Date(taskData.createdAt).toLocaleString('en-US', {
+                                                    dateStyle: 'medium',
+                                                    timeStyle: 'short'
+                                                })
+                                                : 'Date not available'}
+                                            {taskData.sent_from_department_name && (
+                                                <span className="ml-2 text-gray-400">
+                                                    from {taskData.sent_from_department_name}
+                                                </span>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Worker Assignment Events */}
+                                {currentDepartmentRecords && currentDepartmentRecords.length > 0 ? (
+                                    currentDepartmentRecords.map((record: any, index: number) => (
+                                        <div key={record.id || index} className="relative">
+                                            <div className="absolute -left-[25px] w-3 h-3 rounded-full bg-green-500 border-2 border-white"></div>
+                                            <div className="text-sm">
+                                                <div className="flex items-center gap-2">
+                                                    <User size={14} className="text-green-500" />
+                                                    <span className="font-medium text-gray-800">
+                                                        {record.worker || 'Worker'} assigned
+                                                    </span>
+                                                    <span className="text-xs bg-green-100 text-green-700 px-1.5 py-0.5 rounded">
+                                                        {record.qtyWorked || 0} pcs
+                                                    </span>
+                                                </div>
+                                                <div className="text-xs text-gray-500 mt-0.5">
+                                                    {record.date && record.date !== '-' ? record.date : 'Date not available'}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))
+                                ) : (
+                                    <div className="relative">
+                                        <div className="absolute -left-[25px] w-3 h-3 rounded-full bg-gray-300 border-2 border-white"></div>
+                                        <div className="text-sm text-gray-500 italic">
+                                            No workers assigned yet
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Rejection Events */}
+                                {currentDepartmentRecords && currentDepartmentRecords
+                                    .filter((record: any) => (record.rejectReturn || 0) > 0)
+                                    .map((record: any, index: number) => (
+                                        <div key={`reject-${record.id || index}`} className="relative">
+                                            <div className="absolute -left-[25px] w-3 h-3 rounded-full bg-red-500 border-2 border-white"></div>
+                                            <div className="text-sm">
+                                                <div className="flex items-center gap-2">
+                                                    <XCircle size={14} className="text-red-500" />
+                                                    <span className="font-medium text-gray-800">
+                                                        {record.worker || 'Worker'} rejected
+                                                    </span>
+                                                    <span className="text-xs bg-red-100 text-red-700 px-1.5 py-0.5 rounded">
+                                                        {record.rejectReturn} pcs
+                                                    </span>
+                                                </div>
+                                                <div className="text-xs text-gray-500 mt-0.5">
+                                                    {record.date && record.date !== '-' ? record.date : 'Date not available'}
+                                                    {record.rejectionReason && record.rejectionReason !== '-' && (
+                                                        <span className="ml-2 text-red-600">
+                                                            Reason: {record.rejectionReason}
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))
+                                }
+
+                                {/* Alteration Events */}
+                                {currentDepartmentRecords && currentDepartmentRecords
+                                    .filter((record: any) => (record.alteration || 0) > 0)
+                                    .map((record: any, index: number) => (
+                                        <div key={`alter-${record.id || index}`} className="relative">
+                                            <div className="absolute -left-[25px] w-3 h-3 rounded-full bg-yellow-500 border-2 border-white"></div>
+                                            <div className="text-sm">
+                                                <div className="flex items-center gap-2">
+                                                    <Edit3 size={14} className="text-yellow-500" />
+                                                    <span className="font-medium text-gray-800">
+                                                        {record.worker || 'Worker'} sent for alteration
+                                                    </span>
+                                                    <span className="text-xs bg-yellow-100 text-yellow-700 px-1.5 py-0.5 rounded">
+                                                        {record.alteration} pcs
+                                                    </span>
+                                                </div>
+                                                <div className="text-xs text-gray-500 mt-0.5">
+                                                    {record.date && record.date !== '-' ? record.date : 'Date not available'}
+                                                    {record.alterationNote && record.alterationNote !== '-' && (
+                                                        <span className="ml-2 text-yellow-600">
+                                                            Note: {record.alterationNote}
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))
+                                }
+
+                                {/* Current Status Indicator */}
+                                <div className="relative">
+                                    <div className={`absolute -left-[25px] w-3 h-3 rounded-full border-2 border-white ${
+                                        taskData.stage === 'COMPLETED' ? 'bg-purple-500' :
+                                        taskData.stage === 'IN_PROGRESS' ? 'bg-yellow-500' :
+                                        'bg-gray-400'
+                                    }`}></div>
+                                    <div className="text-sm">
+                                        <div className="flex items-center gap-2">
+                                            <Clock size={14} className={
+                                                taskData.stage === 'COMPLETED' ? 'text-purple-500' :
+                                                taskData.stage === 'IN_PROGRESS' ? 'text-yellow-500' :
+                                                'text-gray-400'
+                                            } />
+                                            <span className="font-medium text-gray-800">
+                                                Current Status: {taskData.stage?.replace('_', ' ') || 'Unknown'}
+                                            </span>
+                                        </div>
+                                        <div className="text-xs text-gray-500 mt-0.5">
+                                            {workProgress.remainingWork > 0
+                                                ? `${workProgress.remainingWork} pcs remaining`
+                                                : 'All work completed'}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
                     </div>
 
                     {/* Footer */}

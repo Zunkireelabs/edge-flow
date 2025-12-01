@@ -405,7 +405,7 @@ export const createAlteration = async (data: AdminAlterationInput) => {
       },
     });
 
-    // 6️⃣ Create sub_batch_altered record
+    // 6️⃣ Create sub_batch_altered record (with worker_log_id for tracking)
     const altered = await tx.sub_batch_altered.create({
       data: {
         sub_batch_id: data.sub_batch_id,
@@ -414,6 +414,7 @@ export const createAlteration = async (data: AdminAlterationInput) => {
         sent_to_department_id: data.return_to_department_id,
         source_department_sub_batch_id: sourceEntry.id,
         created_department_sub_batch_id: newDeptSubBatch.id,
+        worker_log_id: data.worker_log_id, // ✅ Link to worker log for accountability tracking
       },
     });
 

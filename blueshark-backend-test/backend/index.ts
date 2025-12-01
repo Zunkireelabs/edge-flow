@@ -21,19 +21,44 @@ import inventoryRoutes from "./src/routes/inventory";
 import inventorySubtractionRoutes from "./src/routes/inventorySubtraction";
 import adminProductionRoutes from "./src/routes/adminProduction";
 
+// Security and error handling middleware
+import {
+  securityHeaders,
+  apiLimiter,
+  authLimiter,
+  requestLogger,
+  sanitizeInput,
+} from "./src/middleware/securityMiddleware";
+import errorMiddleware, { notFoundHandler } from "./src/middleware/errorMiddleware";
 
 dotenv.config();
 
 const app = express();
 
-app.use(cors());
-app.use(express.json());
+// Security middleware (apply first)
+app.use(securityHeaders);
+app.use(cors({
+  origin: process.env.NODE_ENV === "production"
+    ? ["https://edge-flow-gamma.vercel.app", "https://edge-flow-git-dev-sthasadins-projects.vercel.app"]
+    : "*",
+  credentials: true,
+}));
+app.use(express.json({ limit: "10mb" })); // Limit request body size
+app.use(sanitizeInput);
+
+// Request logging (development only for less noise)
+if (process.env.NODE_ENV === "development") {
+  app.use(requestLogger);
+}
+
+// Apply rate limiting to all API routes
+app.use("/api", apiLimiter);
 
 import healthRoutes from "./src/routes/health";
 app.use("/api/health", healthRoutes);
 
-// Auth routes
-app.use("/api/auth", authRoutes);
+// Auth routes (with stricter rate limiting)
+app.use("/api/auth", authLimiter, authRoutes);
 
 // Supervisor routes
 app.use("/api/supervisors", supervisorRoutes);
@@ -94,5 +119,14 @@ app.get("/", (req, res) => {
   res.send("Backend server is running!");
 });
 
+// 404 handler for undefined routes (must be after all routes)
+app.use(notFoundHandler);
+
+// Global error handler (must be last middleware)
+app.use(errorMiddleware);
+
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+  console.log(`Environment: ${process.env.NODE_ENV || "development"}`);
+});

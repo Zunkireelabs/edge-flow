@@ -223,6 +223,9 @@ export async function getSubBatchesByDepartment(departmentId: number) {
           sent_to_department: true, // Department where rejected items went (always null for waste)
         },
       },
+      // ✅ Include altered/rejected entries FROM this department_sub_batch (for Kanban card display)
+      altered_source: true,  // sub_batch_altered where source_department_sub_batch_id = this.id
+      rejected_source: true, // sub_batch_rejected where source_department_sub_batch_id = this.id
     },
   });
 
@@ -283,11 +286,18 @@ export async function getSubBatchesByDepartment(departmentId: number) {
         sent_from_dept_name = dept?.name || null;
       }
 
+      // ✅ Calculate total altered and rejected FROM this department_sub_batch
+      const totalAltered = (sub as any).altered_source?.reduce((sum: number, a: any) => sum + (a.quantity || 0), 0) || 0;
+      const totalRejected = (sub as any).rejected_source?.reduce((sum: number, r: any) => sum + (r.quantity || 0), 0) || 0;
+
       return {
         ...sub,
         alteration_source,
         rejection_source,
         sent_from_department_name: sent_from_dept_name,
+        // ✅ NEW: Totals for Kanban card display
+        total_altered: totalAltered,
+        total_rejected: totalRejected,
       };
     })
   );

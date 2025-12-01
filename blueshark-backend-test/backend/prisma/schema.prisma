@@ -25,6 +25,8 @@ model rolls {
   batches     batches[]
   vendor      vendors?      @relation(fields: [vendor_id], references: [id])
   sub_batches sub_batches[]
+
+  @@index([vendor_id])
 }
 
 model batches {
@@ -38,6 +40,9 @@ model batches {
   roll        rolls?        @relation(fields: [roll_id], references: [id])
   vendor      vendors?      @relation(fields: [vendor_id], references: [id])
   sub_batches sub_batches[]
+
+  @@index([roll_id])
+  @@index([vendor_id])
 }
 
 model sub_batches {
@@ -62,6 +67,12 @@ model sub_batches {
   department       departments?             @relation(fields: [department_id], references: [id])
   roll             rolls?                   @relation(fields: [roll_id], references: [id])
   worker_logs      worker_logs[]
+
+  @@index([batch_id])
+  @@index([roll_id])
+  @@index([department_id])
+  @@index([status])
+  @@index([start_date])
 }
 
 model sub_batch_size_details {
@@ -70,6 +81,8 @@ model sub_batch_size_details {
   category     String
   pieces       Int
   sub_batch    sub_batches? @relation(fields: [sub_batch_id], references: [id])
+
+  @@index([sub_batch_id])
 }
 
 model sub_batch_attachments {
@@ -78,6 +91,8 @@ model sub_batch_attachments {
   attachment_name String
   quantity        Int
   sub_batch       sub_batches? @relation(fields: [sub_batch_id], references: [id])
+
+  @@index([sub_batch_id])
 }
 
 model sub_batch_rejected {
@@ -95,6 +110,11 @@ model sub_batch_rejected {
   worker_log                      worker_logs?            @relation(fields: [worker_log_id], references: [id])
   source_entry                    department_sub_batches? @relation("RejectedSource", fields: [source_department_sub_batch_id], references: [id])
   created_entry                   department_sub_batches? @relation("RejectedCreated", fields: [created_department_sub_batch_id], references: [id])
+
+  @@index([sub_batch_id])
+  @@index([sent_to_department_id])
+  @@index([worker_log_id])
+  @@index([source_department_sub_batch_id])
 }
 
 model sub_batch_altered {
@@ -111,6 +131,11 @@ model sub_batch_altered {
   worker_log                      worker_logs?            @relation(fields: [worker_log_id], references: [id])
   source_entry                    department_sub_batches? @relation("AlteredSource", fields: [source_department_sub_batch_id], references: [id])
   created_entry                   department_sub_batches? @relation("AlteredCreated", fields: [created_department_sub_batch_id], references: [id])
+
+  @@index([sub_batch_id])
+  @@index([sent_to_department_id])
+  @@index([worker_log_id])
+  @@index([source_department_sub_batch_id])
 }
 
 model departments {
@@ -137,6 +162,9 @@ model department_workers {
   assigned_date DateTime
   department    departments? @relation(fields: [department_id], references: [id])
   worker        workers?     @relation(fields: [worker_id], references: [id])
+
+  @@index([department_id])
+  @@index([worker_id])
 }
 
 model department_sub_batches {
@@ -187,6 +215,17 @@ model department_sub_batches {
   rejected_created   sub_batch_rejected[]           @relation("RejectedCreated")
   altered_source     sub_batch_altered[]            @relation("AlteredSource")
   altered_created    sub_batch_altered[]            @relation("AlteredCreated")
+
+  // Critical indexes for performance
+  @@index([department_id])
+  @@index([sub_batch_id])
+  @@index([assigned_worker_id])
+  @@index([parent_department_sub_batch_id])
+  @@index([is_current])
+  @@index([stage])
+  @@index([department_id, is_current]) // Composite: supervisor dashboard queries
+  @@index([department_id, sub_batch_id, is_parent, is_current]) // Composite: card lookups
+  @@index([createdAt])
 }
 
 model clients {
@@ -210,6 +249,8 @@ model workers {
   dept_workers           department_workers[]
   worker_logs            worker_logs[]
   department             departments?             @relation(fields: [department_id], references: [id])
+
+  @@index([department_id])
 }
 
 model worker_logs {
@@ -233,6 +274,15 @@ model worker_logs {
   sub_batch               sub_batches             @relation(fields: [sub_batch_id], references: [id])
   worker                  workers                 @relation(fields: [worker_id], references: [id])
   department_sub_batch    department_sub_batches? @relation(fields: [department_sub_batch_id], references: [id])
+
+  // Critical indexes for worker log queries
+  @@index([worker_id])
+  @@index([sub_batch_id])
+  @@index([department_id])
+  @@index([department_sub_batch_id])
+  @@index([sub_batch_id, department_id]) // Composite: getSubBatchHistory queries
+  @@index([work_date])
+  @@index([activity_type])
 }
 
 model vendors {
@@ -298,6 +348,10 @@ model department_sub_batch_history {
   reason                  String?
   createdAt               DateTime                @default(now())
   department_sub_batch    department_sub_batches? @relation(fields: [department_sub_batch_id], references: [id])
+
+  @@index([department_sub_batch_id])
+  @@index([sub_batch_id])
+  @@index([createdAt])
 }
 
 model Supervisor {
@@ -332,6 +386,9 @@ model inventory_subtraction {
   quantity     Float
   remarks      String?
   inventory    inventory @relation(fields: [inventory_id], references: [id])
+
+  @@index([inventory_id])
+  @@index([date])
 }
 
 model inventory_addition {
@@ -341,6 +398,9 @@ model inventory_addition {
   quantity     Float
   remarks      String?
   inventory    inventory @relation(fields: [inventory_id], references: [id])
+
+  @@index([inventory_id])
+  @@index([date])
 }
 
 enum DepartmentStage {

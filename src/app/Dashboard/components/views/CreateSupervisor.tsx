@@ -1,9 +1,136 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
-import React, { useState, useEffect } from "react";
-import { Plus, X, Trash2, Edit2, Users, Mail, KeyRound, MoreVertical } from "lucide-react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
+import { Plus, X, Trash2, Edit2, Users, ChevronDown, ChevronUp, SlidersHorizontal, ChevronLeft, ChevronRight, ArrowUpDown, Search, Check } from "lucide-react";
 import Loader from "@/app/Components/Loader";
+import { useToast } from "@/app/Components/ToastContext";
+
+// Filter Dropdown Option Interface
+interface FilterOption {
+  value: string;
+  label: string;
+  description?: string;
+}
+
+// Custom Filter Dropdown Component
+const FilterDropdown = ({
+  label,
+  options,
+  value,
+  onChange,
+  searchable = true,
+  icon,
+}: {
+  label: string;
+  options: FilterOption[];
+  value: string;
+  onChange: (value: string) => void;
+  searchable?: boolean;
+  icon?: React.ReactNode;
+}) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const dropdownRef = useRef<HTMLDivElement>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+
+  const selectedOption = options.find(opt => opt.value === value);
+  const displayLabel = selectedOption?.label || label;
+
+  const filteredOptions = options.filter(opt =>
+    opt.label.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (opt.description && opt.description.toLowerCase().includes(searchQuery.toLowerCase()))
+  );
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+        setSearchQuery("");
+      }
+    };
+    if (isOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+      setTimeout(() => searchInputRef.current?.focus(), 100);
+    }
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [isOpen]);
+
+  const handleSelect = (optionValue: string) => {
+    onChange(optionValue);
+    setIsOpen(false);
+    setSearchQuery("");
+  };
+
+  const isActive = value !== "all";
+
+  return (
+    <div className="relative" ref={dropdownRef}>
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className={`flex items-center gap-2 px-3 py-2 text-sm border rounded-md transition-all duration-200 ${
+          isActive
+            ? "border-[#2272B4] bg-blue-50 text-[#2272B4]"
+            : "border-gray-300 bg-white text-gray-700 hover:border-gray-400"
+        }`}
+      >
+        {icon && <span className="flex-shrink-0">{icon}</span>}
+        <span className="max-w-[150px] truncate">{displayLabel}</span>
+        <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`} />
+      </button>
+
+      {isOpen && (
+        <div className="absolute top-full left-0 mt-2 w-72 bg-white rounded-lg shadow-lg border border-gray-200 z-50 overflow-hidden">
+          <div className="absolute -top-2 left-4 w-4 h-4 bg-white border-l border-t border-gray-200 transform rotate-45" />
+          {searchable && (
+            <div className="p-3 border-b border-gray-100">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <input
+                  ref={searchInputRef}
+                  type="text"
+                  placeholder="Search..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full pl-9 pr-3 py-2 text-sm border border-gray-200 rounded-full focus:outline-none focus:ring-2 focus:ring-[#2272B4] focus:border-transparent"
+                />
+              </div>
+            </div>
+          )}
+          <div className="max-h-64 overflow-y-auto">
+            {filteredOptions.length === 0 ? (
+              <div className="px-4 py-3 text-sm text-gray-500 text-center">No options found</div>
+            ) : (
+              filteredOptions.map((option) => (
+                <button
+                  key={option.value}
+                  onClick={() => handleSelect(option.value)}
+                  className={`w-full px-4 py-3 text-left hover:bg-gray-50 transition-colors flex items-start gap-3 ${
+                    value === option.value ? "bg-blue-50" : ""
+                  }`}
+                >
+                  <div className={`mt-0.5 w-4 h-4 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${
+                    value === option.value ? "border-[#2272B4] bg-[#2272B4]" : "border-gray-300"
+                  }`}>
+                    {value === option.value && <Check className="w-2.5 h-2.5 text-white" />}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className={`text-sm font-medium ${value === option.value ? "text-[#2272B4]" : "text-gray-900"}`}>
+                      {option.label}
+                    </div>
+                    {option.description && (
+                      <div className="text-xs text-gray-500 mt-0.5">{option.description}</div>
+                    )}
+                  </div>
+                </button>
+              ))
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
 
 // Supervisor interface
 interface Supervisor {
@@ -22,18 +149,24 @@ const CREATE_SUPERVISOR = process.env.NEXT_PUBLIC_CREATE_SUPERVISOR!;
 const GET_SUPERVISORS = process.env.NEXT_PUBLIC_GET_SUPERVISOR!;
 
 const CreateSupervisor = () => {
+  const { showToast, showConfirm } = useToast();
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [saveLoading, setSaveLoading] = useState(false);
   const [loading, setLoading] = useState(true);
   const [supervisors, setSupervisors] = useState<Supervisor[]>([]);
   const [editingId, setEditingId] = useState<number | null>(null);
-  const [menuOpenId, setMenuOpenId] = useState<number | null>(null);
 
   const [formData, setFormData] = useState<SupervisorFormData>({
     name: "",
     email: "",
     password: "",
   });
+
+  // Sorting and pagination states
+  const [sortColumn, setSortColumn] = useState<string>("id");
+  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(25);
 
   // Fetch supervisors
   const fetchSupervisors = async () => {
@@ -55,7 +188,7 @@ const CreateSupervisor = () => {
       setSupervisors(supervisorsArray);
     } catch (err) {
       console.error(err);
-      alert("Error fetching supervisors.");
+      showToast("error", "Error fetching supervisors.");
     } finally {
       setLoading(false);
     }
@@ -75,13 +208,13 @@ const CreateSupervisor = () => {
       setSaveLoading(true);
       const token = localStorage.getItem("token");
       if (!token) {
-        alert("Admin not logged in!");
+        showToast("error", "Admin not logged in!");
         window.location.href = "/login";
         return;
       }
 
       if (!editingId && (!formData.name || !formData.email || !formData.password)) {
-        alert("Name, email, and password are required for new supervisor");
+        showToast("warning", "Name, email, and password are required for new supervisor");
         return;
       }
 
@@ -115,24 +248,32 @@ const CreateSupervisor = () => {
       }
 
       await fetchSupervisors();
-      alert(`Supervisor ${editingId ? "updated" : "created"} successfully!`);
+      showToast("success", `Supervisor ${editingId ? "updated" : "created"} successfully!`);
       resetForm();
       setIsDrawerOpen(false);
     } catch (err: any) {
       console.error(err);
-      alert(err.message || "Error saving supervisor.");
+      showToast("error", err.message || "Error saving supervisor.");
     } finally {
       setSaveLoading(false);
     }
   };
 
   const handleDelete = async (id: number) => {
-    if (!confirm("Are you sure you want to delete this supervisor?")) return;
+    const confirmed = await showConfirm({
+      title: "Delete Supervisor",
+      message: "Are you sure you want to delete this supervisor? This action cannot be undone.",
+      confirmText: "Delete",
+      cancelText: "Cancel",
+      type: "danger",
+    });
+
+    if (!confirmed) return;
 
     try {
       const token = localStorage.getItem("token");
       if (!token) {
-        alert("Admin not logged in!");
+        showToast("error", "Admin not logged in!");
         window.location.href = "/login";
         return;
       }
@@ -150,10 +291,10 @@ const CreateSupervisor = () => {
       }
 
       await fetchSupervisors();
-      alert("Supervisor deleted successfully!");
+      showToast("success", "Supervisor deleted successfully!");
     } catch (err: any) {
       console.error(err);
-      alert(err.message || "Error deleting supervisor.");
+      showToast("error", err.message || "Error deleting supervisor.");
     }
   };
 
@@ -167,19 +308,53 @@ const CreateSupervisor = () => {
     setIsDrawerOpen(true);
   };
 
+  // Sort and paginate supervisors using useMemo
+  const { paginatedSupervisors, totalPages, totalFiltered } = useMemo(() => {
+    // Step 1: Sort
+    const sorted = [...supervisors].sort((a, b) => {
+      let aVal: any = a[sortColumn as keyof Supervisor];
+      let bVal: any = b[sortColumn as keyof Supervisor];
+      if (aVal == null) aVal = "";
+      if (bVal == null) bVal = "";
+      if (typeof aVal === "string" && typeof bVal === "string") {
+        return sortDirection === "asc" ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
+      }
+      return sortDirection === "asc" ? aVal - bVal : bVal - aVal;
+    });
+
+    // Step 2: Paginate
+    const totalFiltered = sorted.length;
+    const totalPages = Math.ceil(totalFiltered / itemsPerPage);
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const paginated = sorted.slice(startIndex, startIndex + itemsPerPage);
+
+    return { paginatedSupervisors: paginated, totalPages, totalFiltered };
+  }, [supervisors, sortColumn, sortDirection, currentPage, itemsPerPage]);
+
+  // Handle sort column click
+  const handleSort = (column: string) => {
+    if (sortColumn === column) {
+      setSortDirection(sortDirection === "asc" ? "desc" : "asc");
+    } else {
+      setSortColumn(column);
+      setSortDirection("asc");
+    }
+    setCurrentPage(1);
+  };
 
   return (
-    <div className="p-8">
+    <div className="p-8 bg-white min-h-screen">
+      {/* Header */}
       <div className="flex justify-between items-center mb-6">
         <div>
-          <h2 className="text-2xl font-bold">Supervisor View</h2>
-          <p className="text-gray-500 text-l font-regular">
+          <h2 className="text-xl font-semibold text-gray-900">Supervisor View</h2>
+          <p className="text-gray-500 text-sm">
             Manage Supervisor and look after it.
           </p>
         </div>
 
         <button
-          className="flex items-center gap-2 bg-blue-600 text-white px-5 py-2.5 rounded-xl font-semibold shadow-md hover:bg-blue-700 hover:shadow-lg transition-all duration-200 hover:scale-105"
+          className="flex items-center gap-2 bg-[#2272B4] text-white px-5 py-2.5 rounded font-semibold shadow-md hover:bg-[#0E538B] hover:shadow-lg transition-all duration-200 hover:scale-105"
           onClick={() => {
             resetForm();
             setIsDrawerOpen(true);
@@ -189,65 +364,182 @@ const CreateSupervisor = () => {
         </button>
       </div>
 
-      <div className="mt-6 bg-white shadow rounded-lg p-4">
-        <h3 className="text-lg font-semibold mb-4">Supervisors</h3>
+      {/* HubSpot-style Horizontal Filter Bar */}
+      <div className="mb-4 flex items-center gap-3 flex-wrap">
+        {/* Sort Dropdown */}
+        <FilterDropdown
+          label="Sort"
+          value={`${sortColumn}-${sortDirection}`}
+          onChange={(val) => {
+            const [col, dir] = val.split('-');
+            setSortColumn(col);
+            setSortDirection(dir as "asc" | "desc");
+            setCurrentPage(1);
+          }}
+          searchable={false}
+          icon={<ArrowUpDown className="w-4 h-4" />}
+          options={[
+            { value: "id-desc", label: "Newest first", description: "Most recently created" },
+            { value: "id-asc", label: "Oldest first", description: "First created supervisors" },
+            { value: "name-asc", label: "Name A-Z", description: "Alphabetical order" },
+            { value: "name-desc", label: "Name Z-A", description: "Reverse alphabetical" },
+            { value: "email-asc", label: "Email A-Z", description: "Email alphabetical order" },
+            { value: "email-desc", label: "Email Z-A", description: "Email reverse alphabetical" },
+          ]}
+        />
 
+        {/* Advanced Filters Link */}
+        <button className="flex items-center gap-1.5 text-sm text-gray-600 hover:text-[#2272B4] transition-colors">
+          <SlidersHorizontal className="w-4 h-4" />
+          Advanced filters
+        </button>
+
+        {/* Results Count */}
+        <span className="text-sm text-gray-500 ml-auto">
+          {totalFiltered} {totalFiltered === 1 ? "result" : "results"}
+        </span>
+      </div>
+
+      {/* Table Container */}
+      <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
         {loading ? (
           <Loader loading={true} message="Loading Supervisors..." />
-        ) : supervisors.length === 0 ? (
+        ) : totalFiltered === 0 ? (
           <div className="flex flex-col items-center justify-center py-12">
             <Users size={48} className="text-gray-300 mb-4" />
-            <p className="text-black mb-2 font-medium">No Supervisor Found</p>
-            <p className="text-gray-500 mb-2 font-medium">
-              Get started by creating your first Supervisor. Click the Add Supervisor button to begin.
+            <p className="text-gray-900 mb-2 font-medium">No Supervisor Found</p>
+            <p className="text-gray-500 text-sm">
+              Get started by creating your first supervisor.
             </p>
           </div>
         ) : (
-          <table className="w-full border-collapse">
-            <thead>
-              <tr className="bg-gray-200">
-                <th className="p-2 text-left">ID</th>
-                <th className="p-2 text-left">Name</th>
-                <th className="p-2 text-left">Email</th>
-                <th className="p-2 text-left">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {supervisors.map((sup) => (
-                <tr key={sup.id}>
-                  <td className="p-2">{sup.id}</td>
-                  <td className="p-2">{sup.name}</td>
-                  <td className="p-2">{sup.email}</td>
-                  <td className="p-2 relative">
-                    <button
-                      className="p-2 rounded hover:bg-gray-200"
-                      onClick={() => setMenuOpenId(menuOpenId === sup.id ? null : sup.id)}
+          <>
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-full">
+                <thead>
+                  <tr className="border-b border-gray-200 bg-gray-50">
+                    <th
+                      className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                      onClick={() => handleSort("id")}
                     >
-                      <MoreVertical size={18} />
-                    </button>
-
-                    {menuOpenId === sup.id && (
-                      <div className="absolute right-0 mt-2 w-36 bg-white border rounded shadow-md z-10">
-
-                        <button
-                          onClick={() => { handleEdit(sup); setMenuOpenId(null); }}
-                          className="flex items-center gap-2 w-full px-3 py-2 text-left hover:bg-gray-100"
-                        >
-                          <Edit2 size={16} /> Edit
-                        </button>
-                        <button
-                          onClick={() => { handleDelete(sup.id); setMenuOpenId(null); }}
-                          className="flex items-center gap-2 w-full px-3 py-2 text-left hover:bg-red-100 text-red-600"
-                        >
-                          <Trash2 size={16} /> Delete
-                        </button>
+                      <div className="flex items-center gap-1">
+                        ID
+                        {sortColumn === "id" && (sortDirection === "asc" ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)}
                       </div>
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+                    </th>
+                    <th
+                      className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                      onClick={() => handleSort("name")}
+                    >
+                      <div className="flex items-center gap-1">
+                        Name
+                        {sortColumn === "name" && (sortDirection === "asc" ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)}
+                      </div>
+                    </th>
+                    <th
+                      className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                      onClick={() => handleSort("email")}
+                    >
+                      <div className="flex items-center gap-1">
+                        Email
+                        {sortColumn === "email" && (sortDirection === "asc" ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)}
+                      </div>
+                    </th>
+                    <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-200">
+                  {paginatedSupervisors.map((sup) => (
+                    <tr key={sup.id} className="hover:bg-gray-50 transition-colors">
+                      <td className="px-4 py-3 text-sm text-gray-500">S{String(sup.id).padStart(3, '0')}</td>
+                      <td className="px-4 py-3">
+                        <span className="text-sm font-medium text-[#2272B4] hover:underline cursor-pointer">{sup.name}</span>
+                      </td>
+                      <td className="px-4 py-3 text-sm text-gray-600">{sup.email}</td>
+                      <td className="px-4 py-3 text-right">
+                        <div className="flex items-center justify-end gap-1">
+                          <button
+                            onClick={() => handleEdit(sup)}
+                            className="p-1.5 rounded hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors"
+                            title="Edit"
+                          >
+                            <Edit2 size={16} />
+                          </button>
+                          <button
+                            onClick={() => handleDelete(sup.id)}
+                            className="p-1.5 rounded hover:bg-gray-100 text-gray-400 hover:text-red-500 transition-colors"
+                            title="Delete"
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Pagination */}
+            <div className="px-4 py-3 border-t border-gray-200 flex items-center justify-between bg-white">
+              <span className="text-sm text-gray-700">
+                Showing {((currentPage - 1) * itemsPerPage) + 1} to {Math.min(currentPage * itemsPerPage, totalFiltered)} of {totalFiltered}
+              </span>
+              <div className="flex items-center gap-4">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-gray-600">per page</span>
+                  <select
+                    value={itemsPerPage}
+                    onChange={(e) => {
+                      setItemsPerPage(Number(e.target.value));
+                      setCurrentPage(1);
+                    }}
+                    className="border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-[#2272B4]"
+                  >
+                    <option value={10}>10</option>
+                    <option value={25}>25</option>
+                    <option value={50}>50</option>
+                    <option value={100}>100</option>
+                  </select>
+                </div>
+                <div className="flex items-center gap-1">
+                  <button
+                    onClick={() => setCurrentPage(1)}
+                    disabled={currentPage === 1}
+                    className="p-1.5 rounded hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed text-gray-600"
+                  >
+                    <ChevronLeft className="w-4 h-4" />
+                    <ChevronLeft className="w-4 h-4 -ml-3" />
+                  </button>
+                  <button
+                    onClick={() => setCurrentPage(currentPage - 1)}
+                    disabled={currentPage === 1}
+                    className="p-1.5 rounded hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed text-gray-600"
+                  >
+                    <ChevronLeft className="w-4 h-4" />
+                  </button>
+                  <span className="px-3 py-1 text-sm text-gray-700">
+                    Page {currentPage} of {totalPages || 1}
+                  </span>
+                  <button
+                    onClick={() => setCurrentPage(currentPage + 1)}
+                    disabled={currentPage >= totalPages}
+                    className="p-1.5 rounded hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed text-gray-600"
+                  >
+                    <ChevronRight className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={() => setCurrentPage(totalPages)}
+                    disabled={currentPage >= totalPages}
+                    className="p-1.5 rounded hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed text-gray-600"
+                  >
+                    <ChevronRight className="w-4 h-4" />
+                    <ChevronRight className="w-4 h-4 -ml-3" />
+                  </button>
+                </div>
+              </div>
+            </div>
+          </>
         )}
       </div>
 
@@ -266,40 +558,46 @@ const CreateSupervisor = () => {
             >
               <X size={20} />
             </button>
-            <h3 className="text-lg font-semibold mb-3">
-              {editingId ? "Edit Supervisor" : "Add New Supervisor"}
-            </h3>
+            {/* Header */}
+            <div className="border-b border-gray-200 pb-3 mb-4">
+              <h3 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+                <Users size={20} className="text-blue-600" />
+                {editingId ? "Edit Supervisor" : "Add New Supervisor"}
+              </h3>
+            </div>
 
-            <div className="space-y-3">
+            <div className="space-y-4">
               <div>
-                <label className="flex items-center gap-2 font-semibold">
-                  <Users size={16} /> Name *
+                <label className="block text-sm font-semibold text-gray-900 mb-1.5">
+                  Name <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="text"
+                  placeholder="Enter supervisor name"
                   value={formData.name}
                   onChange={(e) =>
                     setFormData({ ...formData, name: e.target.value })
                   }
-                  className="w-full border border-gray-300 rounded-[10px] px-3 py-2"
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
                 />
               </div>
               <div>
-                <label className="flex items-center gap-2 font-semibold">
-                  <Mail size={16} /> Email *
+                <label className="block text-sm font-semibold text-gray-900 mb-1.5">
+                  Email <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="email"
+                  placeholder="Enter email address"
                   value={formData.email}
                   onChange={(e) =>
                     setFormData({ ...formData, email: e.target.value })
                   }
-                  className="w-full border border-gray-300 rounded-[10px] px-3 py-2"
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
                 />
               </div>
               <div>
-                <label className="flex items-center gap-2 font-semibold">
-                  <KeyRound size={16} /> Password {editingId && "(Leave blank to keep current password)"}
+                <label className="block text-sm font-semibold text-gray-900 mb-1.5">
+                  Password {editingId ? <span className="text-gray-500 font-normal">(Leave blank to keep current)</span> : <span className="text-red-500">*</span>}
                 </label>
                 <input
                   type="password"
@@ -307,7 +605,7 @@ const CreateSupervisor = () => {
                   onChange={(e) =>
                     setFormData({ ...formData, password: e.target.value })
                   }
-                  className="w-full border border-gray-300 rounded-[10px] px-3 py-2"
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
                   placeholder={editingId ? "Enter new password to change" : "Enter password"}
                 />
               </div>
@@ -322,7 +620,7 @@ const CreateSupervisor = () => {
                 Cancel
               </button>
               <button
-                className="px-6 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 font-medium transition-colors shadow-sm"
+                className="px-6 py-2 rounded bg-[#2272B4] text-white hover:bg-[#0E538B] disabled:opacity-50 font-medium transition-colors shadow-sm"
                 onClick={handleSave}
                 disabled={saveLoading}
               >

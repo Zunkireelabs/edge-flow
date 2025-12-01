@@ -61,7 +61,7 @@ const Dashboard = () => {
       {/* Header */}
       <div className="mb-8">
         <h2 className="text-3xl font-bold text-gray-900">Dashboard Overview</h2>
-        <p className="text-gray-600 mt-2">Monitor your department's production progress and team performance</p>
+        <p className="text-gray-600 mt-2">Monitor your department&apos;s production progress and team performance</p>
       </div>
 
       {/* Stats Grid */}
