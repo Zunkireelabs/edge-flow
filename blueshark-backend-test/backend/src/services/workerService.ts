@@ -58,18 +58,24 @@ export const deleteWorker = async (id: number) => {
   });
 };
 
-// ✅ Get Workers by Department ID
+// ✅ Get Workers by Department ID (via department_workers junction table)
 export const getWorkersByDepartment = async (departmentId: number) => {
-  return await prisma.workers.findMany({
+  // Query through department_workers junction table
+  const departmentWorkers = await prisma.department_workers.findMany({
     where: {
       department_id: departmentId,
     },
     include: {
-      department: true, // Include department details
+      worker: true, // Include full worker details
     },
     orderBy: {
-      name: "asc", // Sort by name alphabetically
+      worker: {
+        name: "asc", // Sort by worker name alphabetically
+      },
     },
   });
+
+  // Extract and return just the worker objects
+  return departmentWorkers.map(dw => dw.worker);
 };
 

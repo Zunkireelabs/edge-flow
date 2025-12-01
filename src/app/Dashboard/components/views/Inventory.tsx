@@ -304,7 +304,7 @@ const Inventory = () => {
   };
 
   return (
-    <div className="p-8 bg-gray-50 min-h-full">
+    <div className="p-8 bg-white min-h-full">
       {/* Header Section */}
       <div className="flex justify-between items-center mb-6">
         <div>

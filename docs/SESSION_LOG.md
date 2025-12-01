@@ -72,7 +72,8 @@
 - [x] ~~**Enterprise UI Overhaul**~~ - ✅ Databricks-inspired design (commit 81d27e2)
 - [x] ~~**Toast/Confirm System**~~ - ✅ Custom notifications replacing browser alerts (commit c7a9251)
 - [x] ~~**HubSpot-style Data Tables**~~ - ✅ Horizontal filters, sorting, pagination (commit 223702d)
-- [ ] **Fix Worker Assignment Splitting Bug** - See [`quality/CRITICAL_ISSUE_ANALYSIS.md`](./quality/CRITICAL_ISSUE_ANALYSIS.md)
+- [x] ~~**Fix Worker Assignment Splitting Bug**~~ - ✅ Fixed (2025-12-01) - See QC Session below
+- [ ] **Continue QC Testing** - Scenario 4: Rejection Flow (next)
 
 ### Short-term (This Week)
 - [ ] Phase 2: API Documentation (Swagger/OpenAPI)
@@ -91,12 +92,17 @@
 
 ---
 
-## Current State (Updated: 2025-11-30)
+## Current State (Updated: 2025-12-01)
 
 ### What's Working
+- ✅ **Kanban Card Enhancement** - Shows Remaining, Processed, Altered (amber), Rejected (red) counts
+- ✅ **Activity History** - Shows all events including alterations/rejections with color-coded dots
 - ✅ **Enterprise UI Overhaul** - Databricks-inspired design system implemented
 - ✅ **Toast/Confirm System** - Custom notifications replacing browser alerts
 - ✅ **HubSpot-style Data Tables** - Horizontal filters, sorting, pagination across all views
+- ✅ **Worker Assignment System** - Fixed splitting bug, multiple workers per batch working
+- ✅ **Department Transfer** - Sub-batches flow correctly between departments
+- ✅ **Kanban Card Display** - Shows Remaining + Worked pieces correctly
 - ✅ Production frontend live at edge-flow-gamma.vercel.app
 - ✅ Production backend live at edge-flow-backend.onrender.com
 - ✅ Production database with tables and admin user
@@ -112,13 +118,16 @@
 - ✅ **Phase 2 Database Optimization COMPLETE** (indexes, N+1 fix, connection pooling)
 - ✅ **Phase 2 Security Hardening COMPLETE** (helmet, rate limiting, error handling)
 - ✅ **Developer Workflow documentation created**
-- ✅ **Local development environment working** (localhost:3001 + localhost:5000)
+- ✅ **Local development environment working** (localhost:3000 + localhost:5000)
 
 ### What's In Progress
-- 🔄 Ready for next feature development or bug fixes
+- 🔄 **QC Testing** - Scenarios 1-3 PASSED, Scenario 4 (Rejection Flow) next
 
 ### What's Not Working / Known Issues
 - ⚠️ Neon free tier: databases auto-suspend after 5 min inactivity (mitigated with 30s connection timeout)
+- ⚠️ UI-S2-001: Data doesn't auto-refresh after worker assignment (requires manual refresh)
+- ⚠️ UI-S2-002: Native browser alert for "Successfully sent to department!"
+- ⚠️ BACKLOG-001: "Mark Sub-batch as Completed" button visible at all departments (should be hidden until last department)
 
 ### Credentials & Access
 | Service | Credential | Notes |
@@ -130,6 +139,343 @@
 ---
 
 ## Session Entries
+
+---
+
+### Session: 2025-12-01 (Kanban Card Enhancement - Altered/Rejected Counts)
+
+**Duration:** ~1 hour
+**Focus:** Add Altered and Rejected counts to Kanban cards for "info at a glance"
+
+#### Goals
+1. Display Altered and Rejected counts on Kanban cards
+2. Update backend API to return total_altered and total_rejected
+3. Follow Databricks/HubSpot enterprise design patterns
+
+#### What Was Done
+
+**1. Backend API Enhancement**
+
+Updated `departmentService.ts` to include altered/rejected source data:
+
+```typescript
+// Added Prisma includes
+altered_source: true,  // sub_batch_altered where source_department_sub_batch_id = this.id
+rejected_source: true, // sub_batch_rejected where source_department_sub_batch_id = this.id
+
+// Added calculations in return object
+const totalAltered = (sub as any).altered_source?.reduce((sum: number, a: any) => sum + (a.quantity || 0), 0) || 0;
+const totalRejected = (sub as any).rejected_source?.reduce((sum: number, r: any) => sum + (r.quantity || 0), 0) || 0;
+```
+
+**2. Frontend Display (Already Implemented)**
+
+The frontend display logic was already in place from previous session:
+- Amber color for Altered with RefreshCw icon
+- Red color for Rejected with XCircle icon
+- Only shown when counts > 0
+
+**3. Database Fix**
+
+Fixed `worker_log_id: null` issue in `sub_batch_altered` record:
+- Root cause: Alteration was created before backend fix was applied
+- Solution: Ran script to update `worker_log_id = 6` (D2-W1's worker_log)
+- Result: Activity History now correctly shows alteration events
+
+#### Files Modified
+
+**Backend:**
+- `blueshark-backend-test/backend/src/services/departmentService.ts` - Added altered_source, rejected_source includes and total calculations
+- `blueshark-backend-test/backend/src/services/productionViewService.ts` - Same enhancements
+
+**Frontend:**
+- `src/app/SupervisorDashboard/components/views/DepartmentView.tsx` - Already had display logic (lines 619-637)
+
+#### API Test Results
+
+| Department | Card | total_altered | total_rejected |
+|------------|------|---------------|----------------|
+| Dep-2 | SB-T2 (id: 3) | 5 | 0 |
+| Dep-1 | SB-T1 (id: 1) | 0 | 10 |
+
+#### Visual Result
+
+Kanban card now shows:
+- Remaining: 0 pcs (gray)
+- Processed: 44 pcs (green)
+- Altered: 5 pcs (amber)
+
+Activity History shows:
+- "D2-W1 sent for alteration - 5 pcs" with yellow dot
+- Note: "Stitching uneven - needs re-stitch"
+
+#### Design Decisions
+
+| Decision | Rationale |
+|----------|-----------|
+| Show only when > 0 | Keep cards clean, show only relevant data |
+| Color coding | Amber (warning) for altered, Red (error) for rejected |
+| Processed calculation | `received - remaining - altered - rejected` = actual good work |
+| Icons | RefreshCw (alteration = rework), XCircle (rejection = waste) |
+
+#### Key Learning
+
+**Data Fetching Consistency**: The frontend uses `/supervisors/sub-batches` endpoint (via `departmentService.getSubBatchesByDepartment`), NOT `/production-view`. Always check which API endpoint a component actually uses before making backend changes.
+
+#### Next Steps
+1. Test rejection flow with multiple workers
+2. Deploy changes to production
+3. Continue QC testing scenarios
+
+---
+
+### Session: 2025-12-01 (QC Testing - Worker Assignment & Department Transfer)
+
+**Duration:** ~3 hours
+**Focus:** Comprehensive QC testing of worker assignment system and bug fixes
+
+#### Goals
+1. Test Worker Assignment Splitting Bug fix
+2. Complete QC Scenarios 1-3
+3. Document all issues found
+4. Fix bugs discovered during QC
+
+#### What Was Done
+
+**1. QC Testing Infrastructure**
+- Created `docs/qc-session-notes/` folder for QC documentation
+- Created scenario-specific markdown files for each test
+- Established step-by-step QC methodology with screenshots
+
+**2. Bugs Found & Fixed**
+
+| Bug ID | Severity | Description | Fix Location | Status |
+|--------|----------|-------------|--------------|--------|
+| **BUG-001** | Critical | `getWorkersByDepartment()` queried `workers.department_id` instead of `department_workers` junction table. Workers didn't appear in Supervisor dropdown. | `backend/src/services/workerService.ts` | ✅ FIXED |
+| **BUG-002** | Medium | Kanban card only showed "Worked" pieces for "Assigned" cards, not Main cards. Condition was `isAssigned && item.quantity_assigned`. | `src/app/SupervisorDashboard/components/views/DepartmentView.tsx:578-586` | ✅ FIXED |
+
+**3. UI/UX Issues Documented**
+
+| Issue ID | Severity | Description | Screenshot |
+|----------|----------|-------------|------------|
+| UI-001 | Low | Roll Name shows Batch name in Task Details | Scenario 1 |
+| UI-002 | Low | Dates show "Jan 1, 1970" (Unix epoch default) | Scenario 1 |
+| UI-004 | Medium | Native browser alert for "Stage updated successfully!" | Scenario 1 |
+| UI-S2-001 | Medium | Data doesn't auto-refresh after worker assignment | Scenario 2 |
+| UI-S2-002 | Low | Native browser alert for "Successfully sent to department!" | Scenario 2 |
+
+**4. Backlog Items Identified**
+
+| ID | Priority | Description |
+|----|----------|-------------|
+| BACKLOG-001 | Medium | Hide "Mark Sub-batch as Completed" button until sub-batch reaches LAST department in workflow. Currently visible at all departments, risking accidental permanent lock. |
+
+**5. QC Scenarios Completed**
+
+| Scenario | Description | Status | Key Validations |
+|----------|-------------|--------|-----------------|
+| **Scenario 1** | Partial Worker Assignment | ✅ PASSED | Assigning partial quantity doesn't create duplicate records |
+| **Scenario 2** | Complete Work & Transfer | ✅ PASSED | Full assignment + status change + department transfer works |
+| **Scenario 3** | Multiple Workers Same Batch | ✅ PASSED | 3 workers on same batch: 15+20+14=49 pcs, ONE card |
+
+**6. Current Test Data State**
+
+| Sub-Batch | Location | Status | Workers Assigned | Pieces |
+|-----------|----------|--------|------------------|--------|
+| SB-T1 | Dep-1 | In Progress | D1-W1 (10 pcs) | 10/20 worked |
+| SB-T2 | Dep-2 | In Progress (All Work Done) | D2-W1 (15), D2-W2 (20), D2-W3 (14) | 49/49 worked |
+
+#### Files Modified
+
+**Backend:**
+- `blueshark-backend-test/backend/src/services/workerService.ts` - Fixed getWorkersByDepartment()
+
+**Frontend:**
+- `src/app/SupervisorDashboard/components/views/DepartmentView.tsx` - Fixed Kanban card "Worked" display
+
+**Documentation Created:**
+- `docs/qc-session-notes/README.md`
+- `docs/qc-session-notes/SCENARIO_1_PARTIAL_WORKER_ASSIGNMENT.md`
+- `docs/qc-session-notes/SCENARIO_2_COMPLETE_WORK_AND_TRANSFER.md`
+- `docs/qc-session-notes/SCENARIO_3_MULTIPLE_WORKERS_SAME_BATCH.md`
+
+#### Key Technical Fixes
+
+**BUG-001 Fix - workerService.ts:**
+```typescript
+// BEFORE (broken):
+export const getWorkersByDepartment = async (departmentId: number) => {
+  return await prisma.workers.findMany({
+    where: { department_id: departmentId }, // This column is NULL!
+  });
+};
+
+// AFTER (fixed):
+export const getWorkersByDepartment = async (departmentId: number) => {
+  const departmentWorkers = await prisma.department_workers.findMany({
+    where: { department_id: departmentId },
+    include: { worker: true },
+    orderBy: { worker: { name: "asc" } },
+  });
+  return departmentWorkers.map(dw => dw.worker);
+};
+```
+
+**BUG-002 Fix - DepartmentView.tsx:**
+```typescript
+// BEFORE (broken):
+{isAssigned && item.quantity_assigned && (
+  <span>Assigned: {item.quantity_assigned} pcs</span>
+)}
+
+// AFTER (fixed):
+{item.quantity_assigned && item.quantity_assigned > 0 && (
+  <span className="text-green-600">Worked: {item.quantity_assigned} pcs</span>
+)}
+```
+
+#### How to Resume QC Testing
+
+1. **Start servers:**
+   ```bash
+   # Terminal 1 - Frontend
+   npm run dev  # localhost:3000
+
+   # Terminal 2 - Backend
+   cd blueshark-backend-test/backend && npm run dev  # localhost:5000
+   ```
+
+2. **Current test data:**
+   - SB-T2 is in Dep-2 with all 49 pieces worked (D2-W1: 15, D2-W2: 20, D2-W3: 14)
+   - Ready to change to "Completed" and send to Dep-3
+   - SB-T1 is in Dep-1 with 10 pieces worked (can be used for Rejection testing)
+
+3. **Next scenario:** Scenario 4 - Rejection Flow
+   - Test rejecting pieces during worker assignment
+   - Verify rejection creates proper records
+   - Test rejection card flow
+
+#### Learnings
+
+1. **Junction Table Pattern**: Workers are linked to departments via `department_workers` junction table, not a direct FK column
+2. **Conditional Display**: Kanban cards need to show data for ALL card types, not just specific badge types
+3. **QC Documentation**: Step-by-step screenshots invaluable for tracking exactly what was tested
+4. **Product Manager Mindset**: Always question if a button/action should be available at every stage
+
+#### Next Steps
+1. **Scenario 4**: Test Rejection Flow
+2. **Scenario 5**: Test Alteration Flow
+3. **Scenario 6**: Full End-to-End Workflow (Dep-1 → Dep-2 → Dep-3 → Complete)
+4. **Fix UI Issues**: Auto-refresh after assignment, replace remaining browser alerts
+
+---
+
+### Session: 2025-12-01 (Continued - Bug Fixes & Activity History Feature)
+
+**Duration:** ~2 hours
+**Focus:** Pre-Scenario 4 bug fixes, documentation organization, Activity History feature implementation
+
+#### Goals
+1. Fix data sync issues discovered during pre-Scenario 4 checks
+2. Organize documentation with centralized BACKLOG.md
+3. Implement Activity History section for QC debugging
+
+#### What Was Done
+
+**1. Bugs Found & Fixed (Pre-Scenario 4)**
+
+| Bug ID | Severity | Description | Fix Location | Status |
+|--------|----------|-------------|--------------|--------|
+| **BUG-003** | Medium | Kanban card "Worked" display showed stale `quantity_assigned` value instead of calculated `(quantity_received - quantity_remaining)` | `DepartmentView.tsx:578-592` | ✅ FIXED |
+| **BUG-004** | Medium | Stage not auto-updating to IN_PROGRESS when workers assigned. Cards stayed in "New Arrivals" column. | `workerLogService.ts:83-99` | ✅ FIXED |
+
+**2. Documentation Organization**
+
+Created centralized tracking system:
+- **Created `docs/BACKLOG.md`** - Single source of truth for all actionable items (bugs, UI issues, features, tech debt)
+- **Updated `docs/qc-session-notes/README.md`** - Added link to BACKLOG.md
+
+**3. Activity History Feature (QC-001) ✅**
+
+Implemented collapsible Activity History section in `TaskDetailsModal.tsx` to help debug during QC testing.
+
+**Features:**
+- Collapsible header with event count
+- Timeline view with colored dots:
+  - 🔵 Blue: Department arrival event
+  - 🟢 Green: Worker assignment events
+  - 🟡 Yellow/🟣 Purple: Current status indicator
+- Shows: Worker name, pieces assigned, date, department name
+- Uses correct field mappings (`worker`, `qtyWorked`, `date` from mapped records)
+
+**Location:** `TaskDetailsModal.tsx:1373-1480`
+
+#### Files Modified
+
+**Frontend:**
+- `src/app/SupervisorDashboard/components/views/DepartmentView.tsx` - Fixed "Worked" calculation (lines 578-592)
+- `src/app/SupervisorDashboard/depcomponents/TaskDetailsModal.tsx` - Added Activity History section
+
+**Backend:**
+- `blueshark-backend-test/backend/src/services/workerLogService.ts` - Auto-update stage logic (lines 83-99)
+
+**Documentation:**
+- `docs/BACKLOG.md` - Created (new file)
+- `docs/qc-session-notes/README.md` - Updated with BACKLOG link
+
+#### Key Technical Fixes
+
+**BUG-003 Fix - DepartmentView.tsx (Worked calculation):**
+```typescript
+// BEFORE (broken - used stale quantity_assigned):
+{item.quantity_assigned && item.quantity_assigned > 0 && (
+  <span>Worked: {item.quantity_assigned} pcs</span>
+)}
+
+// AFTER (fixed - calculates from received - remaining):
+{(() => {
+  const received = item.quantity_received ?? item.sub_batch.estimated_pieces;
+  const remaining = item.quantity_remaining ?? item.sub_batch.estimated_pieces;
+  const worked = received - remaining;
+  return worked > 0 ? (
+    <span className="text-green-600">Worked: {worked} pcs</span>
+  ) : null;
+})()}
+```
+
+**BUG-004 Fix - workerLogService.ts (Auto-update stage):**
+```typescript
+// Added to worker log creation:
+const shouldUpdateStage = activeDeptSubBatch.stage === DepartmentStage.NEW_ARRIVAL;
+
+await tx.department_sub_batches.update({
+  where: { id: activeDeptSubBatch.id },
+  data: {
+    quantity_assigned: currentAssigned + data.quantity_worked,
+    quantity_remaining: { decrement: data.quantity_worked },
+    // ✅ Auto-update stage from NEW_ARRIVAL to IN_PROGRESS
+    ...(shouldUpdateStage && { stage: DepartmentStage.IN_PROGRESS }),
+    remarks: "Assigned",
+  },
+});
+```
+
+#### BACKLOG Summary
+
+| Category | Open | Fixed/Done |
+|----------|------|------------|
+| Bugs | 0 | 4 |
+| UI/UX Issues | 5 | 0 |
+| Feature Backlog | 2 | 0 |
+| QC Quick Wins | 0 | 1 |
+
+#### Known Issue (Non-Critical)
+- Activity History "Arrived at Department" may show "Date not available" if `createdAt` isn't returned by backend API - added to backlog for future fix
+
+#### Next Steps
+1. **Scenario 4**: Test Rejection Flow
+2. **Scenario 5**: Test Alteration Flow
+3. Address remaining UI issues from BACKLOG.md
 
 ---
 

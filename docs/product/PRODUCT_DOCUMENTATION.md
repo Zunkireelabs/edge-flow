@@ -289,67 +289,73 @@
 
 ---
 
-### Feature 7: Quality Control - Rejections
+### Feature 7: Quality Control - Rejections (Scrap/Waste)
 
-**Description:** Mark defective items for return to previous departments.
+**Description:** Mark defective items as permanent waste/scrap that cannot be fixed.
 
-**User Story:** As a Supervisor, I want to mark defective items as rejected so that they can be sent back for rework.
+**User Story:** As a Supervisor, I want to mark unfixable defective items as rejected/scrapped so that they are logged as inventory loss.
 
 **Key Capabilities:**
 - Open reject modal from task details
+- Select worker whose work has defects (accountability tracking)
 - Enter rejection reason
 - Specify quantity being rejected
-- Select department to send rejects to
-- System creates new "Rejected" card
-- Track rejection source and reason
+- System logs rejection as permanent waste
+- NO card created - items are discarded
 
 **Business Rules:**
-- Reject quantity cannot exceed remaining quantity
+- Reject quantity cannot exceed worker's assigned quantity
 - Must provide rejection reason
-- New card created with "Rejected" badge (red)
-- Links to original sub-batch
-- Appears in target department's kanban
+- ✅ Can reject from ANY department (including first department)
+- NO new card created - items are permanent loss
+- Quantity permanently reduced from inventory
+- Logged in wastage/rejection records for analysis
 
 **Acceptance Criteria:**
 - [ ] Modal opens with form fields
+- [ ] Worker dropdown shows workers with assigned work
 - [ ] Reason field is required
-- [ ] Quantity validation works
-- [ ] Department dropdown populated
-- [ ] New red card appears in target department
-- [ ] Original card's quantity reduced
-- [ ] Rejection reason visible in new card
+- [ ] Quantity validation works (max = worker's assigned qty)
+- [ ] NO card created (items scrapped)
+- [ ] Original card's quantity reduced permanently
+- [ ] Rejection logged with worker accountability
 
 ---
 
-### Feature 8: Quality Control - Alterations
+### Feature 8: Quality Control - Alterations (Send Back for Rework)
 
-**Description:** Mark items needing modifications or rework.
+**Description:** Send fixable defective items back to a PREVIOUS department for rework.
 
-**User Story:** As a Supervisor, I want to mark items for alteration so that they can be sent for rework.
+**User Story:** As a Supervisor, I want to send items with fixable defects back to a previous department so that they can be reworked and returned to production.
 
 **Key Capabilities:**
 - Open alteration modal from task details
-- Enter alteration reason
+- Select worker whose work has fixable defects
+- Enter alteration reason (what needs to be fixed)
 - Specify quantity for alteration
-- Select department to handle alterations
-- System creates new "Altered" card
-- Track alteration source and reason
+- Select PREVIOUS department to send items to (for rework)
+- System creates new "Altered" card (yellow) in target department
+- Items return to production after rework is complete
 
 **Business Rules:**
-- Alteration quantity cannot exceed remaining quantity
+- Alteration quantity cannot exceed worker's assigned quantity
 - Must provide alteration reason
-- New card created with "Altered" badge (yellow)
-- Links to original sub-batch
-- Appears in target department's kanban
+- ❌ CANNOT alter from FIRST department (no previous department to send back to)
+- Can only send to departments BEFORE current in workflow
+- New yellow card created with "Altered" badge
+- Links to original sub-batch for traceability
+- Appears in target department's kanban as "New Arrival"
 
 **Acceptance Criteria:**
 - [ ] Modal opens with form fields
+- [ ] Worker dropdown shows workers with assigned work
 - [ ] Reason field is required
-- [ ] Quantity validation works
-- [ ] Department dropdown populated
+- [ ] Quantity validation works (max = worker's assigned qty)
+- [ ] Department dropdown shows ONLY previous departments in workflow
+- [ ] First department shows "Cannot send for alteration from first department"
 - [ ] New yellow card appears in target department
 - [ ] Original card's quantity reduced
-- [ ] Alteration reason visible in new card
+- [ ] Alteration reason and source visible in new card
 
 ---
 

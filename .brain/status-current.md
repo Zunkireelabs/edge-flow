@@ -1,8 +1,8 @@
 # BlueShark - Current Status
 
-**Last Updated:** November 29, 2025
+**Last Updated:** December 1, 2025
 **Sprint:** Active Development
-**Overall Health:** Active (Backend Setup Phase)
+**Overall Health:** Stable (QC Testing Complete)
 
 ---
 
@@ -10,40 +10,46 @@
 
 | Area | Status | Notes |
 |------|--------|-------|
-| Frontend | Active | Next.js 15.5, running locally |
-| Backend | Setup | Local backend test in progress |
+| Frontend | Active | Next.js 15.5, Kanban cards enhanced |
+| Backend | Stable | Local backend running on port 5000 |
 | Database | Configured | Neon PostgreSQL (dev/prod branches) |
 | Deployment | Ready | Vercel + Render configured |
 
 ---
 
-## Recent Work (Nov 29, 2025)
+## Recent Work (Dec 1, 2025)
 
 ### Completed Today
-- System architecture documentation
-- Infrastructure audit
-- Backend test environment setup
-- BlueShark-Stark brain initialization
+- **Kanban Card Enhancement**: Added Altered/Rejected counts display
+  - Amber color for Altered with RefreshCw icon
+  - Red color for Rejected with XCircle icon
+  - Only shown when counts > 0
+  - Processed count now excludes altered/rejected from calculation
+- **Backend API Update**: `departmentService.ts` now includes `total_altered` and `total_rejected`
+  - Added `altered_source` and `rejected_source` Prisma includes
+  - Calculated totals returned in API response
+- **Database Fix**: Fixed `worker_log_id: null` in `sub_batch_altered` record
+  - Alteration data now properly linked to worker logs
+  - Activity History shows alteration events correctly
 
-### In Progress
-- Local backend development setup
-- Database schema verification
-- Environment variable configuration
+### Previous Session (Nov 30, 2025)
+- Toast notification system implementation
+- Confirmation modal system
+- HubSpot-style data table layout across all views
 
 ---
 
 ## Current Development Focus
 
-### Immediate Priority
-1. **Backend Stabilization** - Get local backend running properly
-2. **Database Verification** - Ensure all tables exist and match schema
-3. **API Testing** - Verify all endpoints work correctly
-4. **Environment Config** - Clean up .env files
+### Completed Features
+1. **Kanban Cards** - Enterprise-level info display (Remaining, Processed, Altered, Rejected)
+2. **Activity History** - Shows all events including alterations/rejections with color-coded dots
+3. **Toast/Confirm System** - Custom notifications replacing browser alerts
+4. **HubSpot-style Tables** - Horizontal filters, sortable columns, pagination
 
 ### Feature Backlog
 - Dashboard analytics (production stats)
 - Export functionality (CSV/PDF)
-- Search and filtering
 - Drag-and-drop on kanban boards
 - Bulk worker assignments
 - Mobile responsive improvements
@@ -52,13 +58,14 @@
 
 ## Known Issues
 
-### Critical
-- Production DB tables need verification after fresh deployment
-- Login URLs in Vercel may be misconfigured
+### Resolved
+- ✅ Alteration data not showing (fixed worker_log_id linkage)
+- ✅ Activity History missing alteration events (now displays correctly)
+- ✅ Kanban cards missing Altered/Rejected info (now shows counts)
 
 ### Medium
-- Local .env points to localhost:5000 (backend)
-- Need to verify Render DATABASE_URL
+- Date picker shows "Jan 1, 1970" (needs proper date handling)
+- Some API endpoints require supervisor role for testing
 
 ### Low
 - UI polish items pending
@@ -66,22 +73,20 @@
 
 ---
 
-## Recent Commits Summary
+## Key Files Modified Today
 
-Based on claude.md development history:
+### Backend
+- `blueshark-backend-test/backend/src/services/departmentService.ts`
+  - Added `altered_source`, `rejected_source` includes
+  - Added `total_altered`, `total_rejected` calculations
 
-**Nov 22, 2025:**
-- Batch-first selection with auto-fill roll
-- Modal width consistency
-- Date input styling fixes
-- Comprehensive UI consistency pass
+- `blueshark-backend-test/backend/src/services/productionViewService.ts`
+  - Same enhancements for production view API
 
-**Nov 13, 2025:**
-- Worker assignment validation
-- Edit/delete worker functionality
-- Billable tracking system
-- Department-based filtering
-- Quantity-based advancement
+### Frontend
+- `src/app/SupervisorDashboard/components/views/DepartmentView.tsx`
+  - Already had display logic for Altered/Rejected (from previous session)
+  - Now receiving data correctly from updated API
 
 ---
 
@@ -103,6 +108,16 @@ Database: Neon production branch
 
 ---
 
+## API Endpoints Updated
+
+| Endpoint | Changes |
+|----------|---------|
+| `GET /api/departments/:id/sub-batches` | Now returns `total_altered`, `total_rejected` |
+| `GET /api/supervisors/sub-batches` | Same enhancements |
+| `GET /api/production-view` | Same enhancements |
+
+---
+
 ## Team & Ownership
 
 - **Lead Developer:** Sadin
@@ -113,12 +128,12 @@ Database: Neon production branch
 
 ## Next Session Action Items
 
-1. Verify backend starts without errors
-2. Test database connection
-3. Run Prisma migrations if needed
-4. Test key API endpoints (auth, rolls, batches)
-5. Verify frontend-backend integration
+1. Test rejection flow with multiple workers
+2. Verify Kanban card displays in all edge cases
+3. Consider adding rejected count display in Dep-1 card
+4. Test full QC scenario end-to-end
+5. Deploy changes to production
 
 ---
 
-**Status updated by BlueShark-Stark on sync.**
+**Status updated by BlueShark-Stark on memorize.**

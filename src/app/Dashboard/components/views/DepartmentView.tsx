@@ -301,7 +301,7 @@ export default function DepartmentWorkloadView() {
   };
 
   return (
-    <div className="flex min-h-screen bg-gray-50">
+    <div className="flex min-h-screen bg-white">
       {/* Filter Sidebar */}
       <div
         className={`bg-white shadow flex-shrink-0 border-r border-gray-200 min-h-screen overflow-y-auto transition-all duration-300 ease-in-out ${
@@ -435,7 +435,7 @@ export default function DepartmentWorkloadView() {
         </div>
 
         {/* Kanban Board */}
-        <div className="p-6 bg-gray-50">
+        <div className="p-6 bg-white">
           {!selectedDepartment ? (
             <div className="flex items-center justify-center h-96 bg-white rounded-lg border-2 border-dashed border-gray-300">
               <div className="text-center">

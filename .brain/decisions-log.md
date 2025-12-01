@@ -1,7 +1,7 @@
 # BlueShark - Technical Decisions Log
 
 **Purpose:** Track major technical decisions and their rationale
-**Last Updated:** November 29, 2025
+**Last Updated:** December 1, 2025
 
 ---
 
@@ -56,6 +56,21 @@
 ---
 
 ## UI/UX Decisions
+
+### Decision: Kanban Card Information Display
+**Date:** December 1, 2025
+**Decision:** Display Altered and Rejected counts on Kanban cards with color-coded indicators
+**Rationale:**
+- Users need "info at a glance" for quick decisions
+- Enterprise-level UX following Databricks/HubSpot patterns
+- Reduces need to open task details to see key metrics
+**Impact:**
+- Kanban cards show: Remaining (gray), Processed (green), Altered (amber), Rejected (red)
+- Only show Altered/Rejected when count > 0 (keep cards clean)
+- Processed calculation: `received - remaining - altered - rejected`
+- Icons: Package (Remaining), CheckCircle (Processed), RefreshCw (Altered), XCircle (Rejected)
+
+---
 
 ### Decision: Modal Width Standardization
 **Date:** November 22, 2025

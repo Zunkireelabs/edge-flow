@@ -234,40 +234,41 @@
 
 ### Data Table (Databricks-style)
 ```tsx
-// Table container - no wrapper card
-<table className="w-full min-w-full">
+// Table container - no border, clean
+<div className="bg-white overflow-hidden">
+  <table className="w-full min-w-full">
 
-// Table header - clean, minimal
+// Table header - subtle background, light font weight
 <thead>
-  <tr className="border-b border-gray-200">
-    <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Column Name</th>
-    <th className="px-4 py-3 text-right text-sm font-medium text-gray-500">Actions</th>
+  <tr className="border-b border-gray-100 bg-gray-50/50">
+    <th className="px-4 py-3 text-left text-sm font-normal text-gray-500">Column Name</th>
+    <th className="px-4 py-3 text-right text-sm font-normal text-gray-500">Actions</th>
   </tr>
 </thead>
 
-// Table body
-<tbody className="divide-y divide-gray-100">
+// Table body - very light row dividers
+<tbody className="divide-y divide-gray-50">
   <tr className="hover:bg-gray-50 transition-colors">
     {/* ID column - muted */}
-    <td className="px-4 py-3.5 text-sm text-gray-500">R001</td>
+    <td className="px-4 py-3 text-sm text-gray-500">R001</td>
 
-    {/* Primary column - blue link style */}
-    <td className="px-4 py-3.5">
-      <span className="text-sm font-medium text-blue-600 hover:text-blue-700 hover:underline cursor-pointer">
+    {/* Primary column - Databricks blue link style */}
+    <td className="px-4 py-3">
+      <span className="text-sm font-normal text-[#2272B4] hover:underline cursor-pointer">
         Item Name
       </span>
     </td>
 
     {/* Regular data */}
-    <td className="px-4 py-3.5 text-sm text-gray-600">Value</td>
+    <td className="px-4 py-3 text-sm text-gray-600">Value</td>
 
     {/* Empty value */}
-    <td className="px-4 py-3.5 text-sm text-gray-600">
+    <td className="px-4 py-3 text-sm text-gray-600">
       <span className="text-gray-400">—</span>
     </td>
 
     {/* Actions */}
-    <td className="px-4 py-3.5 text-right">
+    <td className="px-4 py-3 text-right">
       <div className="flex items-center justify-end gap-1">
         <button className="p-1.5 rounded hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors">
           <Eye size={16} />
@@ -282,13 +283,16 @@
 ```
 
 **Table Design Principles:**
-- No card wrapper around tables
-- Header: `text-sm font-medium text-gray-500` (normal case, not uppercase)
-- Row padding: `py-3.5` for breathing room
-- Primary column: Blue link color (`text-blue-600`)
+- No border on table container (clean edge)
+- Header row: `bg-gray-50/50` subtle background tint
+- Header border: `border-gray-100` (lighter than before)
+- Header text: `font-normal text-gray-500` (not bold)
+- Row padding: `py-3` (compact)
+- Row dividers: `divide-gray-50` (very subtle)
+- Primary column: Databricks blue `text-[#2272B4]` (#2272B4 = rgb 34, 114, 180)
+- Link text: `font-normal` (not medium)
 - ID columns: Muted (`text-gray-500`)
 - Action icons: `text-gray-400` with hover states
-- Only horizontal dividers (`divide-y divide-gray-100`)
 
 ### Filter Sidebar
 ```tsx
