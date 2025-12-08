@@ -14,6 +14,7 @@ import TaskDetailsModal from "../../depcomponents/TaskDetailsModal";
 import AlteredTaskDetailsModal from "../../depcomponents/altered/AlteredTaskDetailsModal";
 import RejectedTaskDetailsModal from "../../depcomponents/rejected/RejectedTaskDetailsModal";
 import Loader from "@/app/Components/Loader";
+import { useToast } from "@/app/Components/ToastContext";
 
 interface SizeDetail {
   id: number;
@@ -162,6 +163,7 @@ const STAGES = [
 ];
 
 const SupervisorKanban = () => {
+  const { showToast } = useToast();
   const [kanbanData, setKanbanData] = useState<KanbanData>({
     newArrival: [],
     inProgress: [],
@@ -282,13 +284,13 @@ const SupervisorKanban = () => {
 
       // Check if user is supervisor and has valid token
       if (!token) {
-        alert("Authentication required. Please login again.");
+        showToast("error", "Authentication required. Please login again.");
         window.location.href = "/login";
         return;
       }
 
       if (role !== "SUPERVISOR") {
-        alert("Access denied. This page is for supervisors only.");
+        showToast("error", "Access denied. This page is for supervisors only.");
         return;
       }
 
@@ -312,7 +314,7 @@ const SupervisorKanban = () => {
 
       if (!response.ok) {
         if (response.status === 401) {
-          alert("Session expired. Please login again.");
+          showToast("error", "Session expired. Please login again.");
           localStorage.clear();
           window.location.href = "/login";
           return;
@@ -329,10 +331,11 @@ const SupervisorKanban = () => {
       }
     } catch (error) {
       console.error('Error fetching kanban data:', error);
-      alert('Failed to fetch work items. Please check your connection and try again.');
+      showToast("error", "Failed to fetch work items. Please check your connection and try again.");
     } finally {
       setLoading(false);
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -356,11 +359,13 @@ const SupervisorKanban = () => {
 
   // Handle item click to open task details - Memoized
   const handleItemClick = useCallback((item: WorkItem) => {
-    // Check if this is an altered task
-    const isAltered = item.remarks?.toLowerCase().includes('alter') ?? false;
+    // Check if this is an altered task - use alteration_source which persists
+    // (remarks field changes to "Assigned" after worker assignment, but alteration_source stays)
+    const isAltered = item.alteration_source !== null && item.alteration_source !== undefined;
 
-    // Check if this is a rejected task
-    const isRejected = item.remarks?.toLowerCase().includes('reject') ?? false;
+    // Check if this is a rejected task - use rejection_source which persists
+    // (remarks field changes to "Assigned" after worker assignment, but rejection_source stays)
+    const isRejected = item.rejection_source !== null && item.rejection_source !== undefined;
 
     setSelectedItem(item);
     setIsAlteredTask(isAltered);
@@ -399,20 +404,26 @@ const SupervisorKanban = () => {
                            selectedItem.sent_from_department_name ||
                            selectedItem.sent_from_department ||
                            'Unknown',
+      // ✅ NEW: Pass source department ID for filtering "Send to Department" dropdown
+      sent_from_department_id: selectedItem.alteration_source?.from_department_id || selectedItem.sent_from_department,
       alteration_date: selectedItem.alteration_source?.created_at || selectedItem.createdAt || new Date().toISOString(),
       // ✅ Use alteration_source for source department (where alteration happened)
       altered_by: selectedItem.alteration_source?.from_department_name || 'Unknown Department',
-      altered_quantity: selectedItem.alteration_source?.quantity || selectedItem.quantity_remaining || 0,
+      altered_quantity: selectedItem.alteration_source?.quantity || selectedItem.quantity_received || 0,
       alter_reason: selectedItem.alteration_source?.reason || selectedItem.alter_reason || selectedItem.remarks || '',
       attachments: selectedItem.sub_batch?.attachments?.map((att: Attachment) => ({
         name: att.attachment_name,
         count: att.quantity
       })) || [],
       quantity_remaining: selectedItem.quantity_remaining,
+      // ✅ NEW: Pass quantity_received (constant, doesn't change with work) for Production Summary
+      quantity_received: selectedItem.quantity_received,
       sub_batch: selectedItem.sub_batch,
       original_quantity: selectedItem.sub_batch?.estimated_pieces,
       // ✅ Pass through alteration_source for enhanced UI
       alteration_source: selectedItem.alteration_source || null,
+      // ✅ NEW: Pass current department info
+      department: selectedItem.department,
     };
   }, [selectedItem]);
 
@@ -554,23 +565,38 @@ const SupervisorKanban = () => {
                   items.map((item) => {
                     // Determine if item is rejected or altered based on remarks
                     const isRejected = item.remarks?.toLowerCase().includes('reject') ?? false;
-                    const isAltered = item.remarks?.toLowerCase().includes('alter') ?? false;
+                    const isAlteredByRemarks = item.remarks?.toLowerCase().includes('alter') ?? false;
                     const isAssigned = item.remarks === 'Assigned';
-                    const isNewArrival = stage.key === 'newArrival' && !isRejected && !isAltered && !isAssigned;
+                    const isNewArrival = stage.key === 'newArrival' && !isRejected && !isAlteredByRemarks && !isAssigned;
+
+                    // Check if this is a rework card using alteration_source (persists even after worker assignment)
+                    // This is more reliable than remarks which changes to "Assigned" after worker assignment
+                    const isReworkCard = item.alteration_source !== null && item.alteration_source !== undefined;
+                    const reworkQuantity = item.alteration_source?.quantity ?? 0;
 
                     return (
                       <div
                         key={item.id}
-                        className={`relative rounded-lg p-4 border hover:shadow-md transition-shadow cursor-pointer ${getCardStyle(item.remarks)}`}
+                        className={`relative rounded-lg p-4 border hover:shadow-md transition-shadow cursor-pointer ${
+                          // Rework cards maintain amber styling even after assignment
+                          isReworkCard && isAssigned
+                            ? 'border-amber-500 bg-amber-50'
+                            : getCardStyle(item.remarks)
+                        }`}
                         onClick={() => handleItemClick(item)}
                       >
                         {/* Status Badge - Top Right */}
-                        <span className={`absolute top-3 right-3 inline-block px-3 py-1 text-xs rounded-md font-medium ${getBadgeColor(item.remarks)}`}>
-                          {getBadgeText(item.remarks, isNewArrival)}
+                        <span className={`absolute top-3 right-3 inline-block px-3 py-1 text-xs rounded-md font-medium ${
+                          // Rework cards show amber "Rework" badge even after assignment
+                          isReworkCard && isAssigned
+                            ? 'bg-amber-500 text-white'
+                            : getBadgeColor(item.remarks)
+                        }`}>
+                          {isReworkCard && isAssigned ? 'Rework' : getBadgeText(item.remarks, isNewArrival)}
                         </span>
 
-                        {/* Send To Badge - Bottom Right for Completed */}
-                        {stage.key === 'completed' && (
+                        {/* Send To Badge - Bottom Right for Completed - Hide if sub-batch is finalized */}
+                        {stage.key === 'completed' && item.sub_batch?.status !== 'COMPLETED' && (
                           <span className="absolute bottom-3 right-3 inline-flex items-center gap-1 px-3 py-1 bg-blue-500 text-white text-xs rounded-md font-medium rounded-xl">
                             Send To <ChevronDown size={18} />
                           </span>
@@ -599,11 +625,14 @@ const SupervisorKanban = () => {
                           </div>
 
                           {/* Processed - calculated from received - remaining - altered - rejected */}
+                          {/* Note: For rework cards, total_altered/rejected don't apply - they track work from THIS card */}
                           {(() => {
                             const received = item.quantity_received ?? item.sub_batch.estimated_pieces;
                             const remaining = item.quantity_remaining ?? item.sub_batch.estimated_pieces;
-                            const altered = item.total_altered ?? 0;
-                            const rejected = item.total_rejected ?? 0;
+                            // Rework cards don't have their own altered/rejected counts from THIS card
+                            // total_altered/rejected only apply to source/main cards
+                            const altered = isReworkCard ? 0 : (item.total_altered ?? 0);
+                            const rejected = isReworkCard ? 0 : (item.total_rejected ?? 0);
                             // Processed = actual good work completed (excludes altered/rejected)
                             const processed = received - remaining - altered - rejected;
                             return processed > 0 ? (
@@ -616,8 +645,9 @@ const SupervisorKanban = () => {
                             ) : null;
                           })()}
 
-                          {/* Altered - Only show if > 0 */}
-                          {(item.total_altered ?? 0) > 0 && (
+                          {/* Altered - Only show if > 0 AND not a rework card */}
+                          {/* Rework cards don't show altered count since they originated from alteration */}
+                          {!isReworkCard && (item.total_altered ?? 0) > 0 && (
                             <div className="flex items-center gap-2 text-sm text-amber-600">
                               <RefreshCw size={14} className="text-amber-500" />
                               <span className="text-xs font-medium">
@@ -626,12 +656,23 @@ const SupervisorKanban = () => {
                             </div>
                           )}
 
-                          {/* Rejected - Only show if > 0 */}
-                          {(item.total_rejected ?? 0) > 0 && (
+                          {/* Rejected - Only show if > 0 AND not a rework card */}
+                          {/* Rework cards don't show rejected count since they weren't the source of rejection */}
+                          {!isReworkCard && (item.total_rejected ?? 0) > 0 && (
                             <div className="flex items-center gap-2 text-sm text-red-600">
                               <XCircle size={14} className="text-red-500" />
                               <span className="text-xs font-medium">
                                 Rejected: {item.total_rejected?.toLocaleString()} pcs
+                              </span>
+                            </div>
+                          )}
+
+                          {/* Rework Indicator - Show if this card originated from alteration */}
+                          {isReworkCard && reworkQuantity > 0 && (
+                            <div className="flex items-center gap-2 text-sm text-amber-600">
+                              <RefreshCw size={14} className="text-amber-500" />
+                              <span className="text-xs font-medium">
+                                Rework: {reworkQuantity.toLocaleString()} pcs
                               </span>
                             </div>
                           )}

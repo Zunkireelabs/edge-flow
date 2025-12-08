@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Calendar, ChevronRight } from "lucide-react";
+import { Calendar, ChevronRight, CheckCircle, RefreshCw, XCircle } from "lucide-react";
 import Loader from "@/app/Components/Loader";
 import ProductionTaskDetailsModal from "./modals/ProductionTaskDetailsModal";
 
@@ -52,6 +52,7 @@ interface SubBatchInDepartment extends SubBatch {
   id: number; // department_sub_batch_id - unique identifier from department_sub_batches table
   department_stage: string;
   quantity_remaining: number | null;
+  quantity_received?: number | null; // For calculating worked pieces
   assigned_worker_id: number | null;
   assigned_worker_name: string | null;
   size_details: SizeDetail[];
@@ -59,6 +60,15 @@ interface SubBatchInDepartment extends SubBatch {
   createdAt: string;
   remarks: string | null; // Values: "Main", "Assigned", "Rejected", "Altered"
   sub_batch_id: number; // Reference to parent sub_batch
+  // Alteration/Rejection tracking
+  total_altered?: number;
+  total_rejected?: number;
+  alteration_source?: {
+    from_department_id: number | null;
+    from_department_name: string | null;
+    quantity: number;
+    reason: string | null;
+  } | null;
 }
 
 interface DepartmentColumn {
@@ -381,9 +391,11 @@ const ProductionView = () => {
                 const departmentsWithData = data.department_columns
                   .map((dept) => {
                     // Get visible sub-batches for this department
-                    // Filter by sub_batch_id (parent) rather than department_sub_batch_id
+                    // Filter by sb.id which is the sub_batch.id from backend
+                    // NOTE: sb.id is set to dsb.sub_batch.id in the backend response
+                    // Do NOT use batch_id as fallback - that's the parent batch, not the sub-batch
                     const visibleSubBatchesInDept = dept.sub_batches.filter(sb =>
-                      isSubBatchVisible(sb.sub_batch_id || sb.batch_id || sb.id)
+                      isSubBatchVisible(sb.id)
                     );
 
                     return { dept, visibleSubBatchesInDept };
@@ -444,18 +456,29 @@ const ProductionView = () => {
                         {visibleSubBatchesInDept.map((subBatchInDept, cardIndex) => {
                           const priority = getPriority(subBatchInDept.due_date);
 
+                          // Check if this is a rework card for styling
+                          const isReworkCard = !!subBatchInDept.alteration_source ||
+                            subBatchInDept.remarks === 'Altered' ||
+                            subBatchInDept.remarks?.toLowerCase().includes('alter');
+
                           return (
                             <div
                               key={`dept-${dept.department_id}-card-${subBatchInDept.id}-${subBatchInDept.remarks || 'main'}-${cardIndex}`}
                               onClick={() => handleCardClick(subBatchInDept)}
-                              className="bg-white rounded-lg p-4 cursor-pointer hover:shadow-lg transition-all duration-200 border border-gray-200 hover:border-gray-300 group"
+                              className={`rounded-lg p-4 cursor-pointer hover:shadow-lg transition-all duration-200 group border-l-4 ${
+                                isReworkCard
+                                  ? 'bg-amber-50 border-l-amber-500 border border-amber-200 hover:border-amber-300'
+                                  : `${getCardStyle(subBatchInDept.remarks)} border hover:border-gray-300`
+                              }`}
                             >
                               {/* Task Header */}
                               <div className="flex items-start justify-between mb-3">
                                 <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">SUB-{subBatchInDept.id}</span>
                                 {priority ? getPriorityBadge(priority) : (
-                                  <span className={`text-xs font-medium px-2.5 py-1 rounded-md ${getBadgeColor(subBatchInDept.remarks)}`}>
-                                    {getBadgeText(subBatchInDept.remarks)}
+                                  <span className={`text-xs font-medium px-2.5 py-1 rounded-md ${
+                                    isReworkCard ? 'bg-amber-500 text-white' : getBadgeColor(subBatchInDept.remarks)
+                                  }`}>
+                                    {isReworkCard ? 'Rework' : getBadgeText(subBatchInDept.remarks)}
                                   </span>
                                 )}
                               </div>
@@ -472,14 +495,76 @@ const ProductionView = () => {
                                 </div>
                               )}
 
-                              {/* Quantity Display */}
-                              {subBatchInDept.quantity_remaining !== null && (
-                                <div className="mb-3">
-                                  <span className="text-xs bg-gray-100 text-gray-700 px-2.5 py-1 rounded-md font-medium border border-gray-200">
-                                    📦 Remaining: {subBatchInDept.quantity_remaining.toLocaleString()} pcs
-                                  </span>
-                                </div>
-                              )}
+                              {/* Quantity Display - Enhanced like DepartmentView */}
+                              {(() => {
+                                // Detect if this is a rework card (from alteration)
+                                const isReworkCard = !!subBatchInDept.alteration_source ||
+                                  subBatchInDept.remarks === 'Altered' ||
+                                  subBatchInDept.remarks?.toLowerCase().includes('alter');
+
+                                const received = subBatchInDept.quantity_received ?? subBatchInDept.estimated_pieces;
+                                const remaining = subBatchInDept.quantity_remaining ?? subBatchInDept.estimated_pieces;
+                                const altered = isReworkCard ? 0 : (subBatchInDept.total_altered ?? 0);
+                                const rejected = isReworkCard ? 0 : (subBatchInDept.total_rejected ?? 0);
+                                const processed = received - remaining - altered - rejected;
+
+                                // For rework cards, show rework quantity
+                                const reworkQuantity = isReworkCard ?
+                                  (subBatchInDept.alteration_source?.quantity ?? subBatchInDept.quantity_received ?? 0) : 0;
+
+                                return (
+                                  <div className="space-y-1.5 mb-3">
+                                    {/* Remaining */}
+                                    {remaining !== null && remaining >= 0 && (
+                                      <div className="flex items-center gap-2 text-sm text-gray-600">
+                                        <span className="text-xs font-medium">
+                                          Remaining: {remaining.toLocaleString()} pcs
+                                        </span>
+                                      </div>
+                                    )}
+
+                                    {/* Processed */}
+                                    {processed > 0 && (
+                                      <div className="flex items-center gap-2 text-sm text-green-600">
+                                        <CheckCircle size={14} className="text-green-500" />
+                                        <span className="text-xs font-medium">
+                                          Processed: {processed.toLocaleString()} pcs
+                                        </span>
+                                      </div>
+                                    )}
+
+                                    {/* Rework indicator for altered cards */}
+                                    {isReworkCard && reworkQuantity > 0 && (
+                                      <div className="flex items-center gap-2 text-sm text-amber-600">
+                                        <RefreshCw size={14} className="text-amber-500" />
+                                        <span className="text-xs font-medium">
+                                          Rework: {reworkQuantity.toLocaleString()} pcs
+                                        </span>
+                                      </div>
+                                    )}
+
+                                    {/* Altered - Only show if > 0 AND not a rework card */}
+                                    {!isReworkCard && altered > 0 && (
+                                      <div className="flex items-center gap-2 text-sm text-amber-600">
+                                        <RefreshCw size={14} className="text-amber-500" />
+                                        <span className="text-xs font-medium">
+                                          Altered: {altered.toLocaleString()} pcs
+                                        </span>
+                                      </div>
+                                    )}
+
+                                    {/* Rejected - Only show if > 0 AND not a rework card */}
+                                    {!isReworkCard && rejected > 0 && (
+                                      <div className="flex items-center gap-2 text-sm text-red-600">
+                                        <XCircle size={14} className="text-red-500" />
+                                        <span className="text-xs font-medium">
+                                          Rejected: {rejected.toLocaleString()} pcs
+                                        </span>
+                                      </div>
+                                    )}
+                                  </div>
+                                );
+                              })()}
 
                               {/* Task Meta Info */}
                               <div className="space-y-2 mb-4">

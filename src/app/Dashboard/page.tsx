@@ -1,13 +1,36 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
 import LeftSidebar from "./components/layout/LeftSidebar";
 import RightContent from "./components/layout/RightContent";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
 const AdminPage = () => {
-  const [activeView, setActiveView] = useState("dashboard");
+  const searchParams = useSearchParams();
+  const router = useRouter();
+
+  // Get initial view from URL query param, default to "dashboard"
+  const viewFromUrl = searchParams.get("view") || "dashboard";
+  const [activeView, setActiveView] = useState(viewFromUrl);
   const [sidebarOpen, setSidebarOpen] = useState(true);
+
+  // Sync state with URL when URL changes (browser back/forward)
+  useEffect(() => {
+    const viewParam = searchParams.get("view") || "dashboard";
+    if (viewParam !== activeView) {
+      setActiveView(viewParam);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
+
+  // Update URL when view changes
+  const handleViewChange = (view: string) => {
+    setActiveView(view);
+    // Update URL without full page reload
+    const newUrl = view === "dashboard" ? "/Dashboard" : `/Dashboard?view=${view}`;
+    router.push(newUrl, { scroll: false });
+  };
 
   return (
     <div className="flex h-screen bg-gray-50">
@@ -25,7 +48,7 @@ const AdminPage = () => {
               className="text-gray-600 group-hover:text-gray-900"
             />
           </button>
-          <LeftSidebar activeView={activeView} onViewChange={setActiveView} />
+          <LeftSidebar activeView={activeView} onViewChange={handleViewChange} />
         </div>
       )}
 
@@ -45,7 +68,7 @@ const AdminPage = () => {
 
       {/* Right content always flex-1 */}
       <div className="flex-1 overflow-auto">
-        <RightContent activeView={activeView} onViewChange={setActiveView} />
+        <RightContent activeView={activeView} onViewChange={handleViewChange} />
       </div>
     </div>
   );

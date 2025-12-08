@@ -1,8 +1,9 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { X, Calendar, ChevronDown, Plus, Trash2, Inbox, CheckCircle, Clock, Pencil, MoreVertical, ChevronRight } from 'lucide-react';
 import NepaliDatePicker from '@/app/Components/NepaliDatePicker';
+import { useToast } from '@/app/Components/ToastContext';
 
 interface RejectedTaskData {
     id: number;
@@ -54,6 +55,7 @@ const RejectedTaskDetailsModal: React.FC<RejectedTaskDetailsModalProps> = ({
     taskData,
     onStageChange
 }) => {
+    const { showToast } = useToast();
     const [status, setStatus] = useState(taskData.status || 'NEW_ARRIVAL');
     const [saving, setSaving] = useState(false);
     const [workerRecords, setWorkerRecords] = useState<WorkerRecord[]>([]);
@@ -71,8 +73,24 @@ const RejectedTaskDetailsModal: React.FC<RejectedTaskDetailsModalProps> = ({
     const [editDate, setEditDate] = useState('');
     const [isBillable, setIsBillable] = useState(true);
     const [openMenuId, setOpenMenuId] = useState<number | null>(null);
+    const [unitPrice, setUnitPrice] = useState<string>('');
     const [subBatchHistory, setSubBatchHistory] = useState<any>(null);
     const [expandedDepartments, setExpandedDepartments] = useState<number[]>([]);
+
+    // Check if current department is the LAST department in the workflow
+    // This is used to determine if "Mark Sub-batch as Completed" button should be shown
+    const isLastDepartment = useMemo(() => {
+        const departmentFlow = subBatchHistory?.department_flow;
+        const currentDeptName = taskData?.department?.name;
+
+        if (!departmentFlow || !currentDeptName) return false;
+
+        // Parse flow: "Dep-1 → Dep-2 → Dep-3"
+        const flow = departmentFlow.split('→').map((d: string) => d.trim());
+        const lastDepartment = flow[flow.length - 1];
+
+        return currentDeptName === lastDepartment;
+    }, [subBatchHistory?.department_flow, taskData?.department?.name]);
 
     const fetchSubBatchHistory = useCallback(async () => {
         const subBatchId = taskData?.sub_batch?.id;
@@ -214,38 +232,50 @@ const RejectedTaskDetailsModal: React.FC<RejectedTaskDetailsModalProps> = ({
 
         // Check if there's remaining work
         if (remainingWork <= 0) {
-            alert('Cannot add worker!\n\nThere is no remaining work. All received quantity has been assigned to workers.');
+            showToast('error', 'Cannot add worker! There is no remaining work. All received quantity has been assigned to workers.');
             return;
         }
 
-        // Require worker, quantity, and date (quantity is now REQUIRED)
+        // Require worker, quantity, unit_price, and date
         if (!newWorkerId || !newWorkerDate || !newWorkerQuantity || !newWorkerQuantity.trim()) {
-            alert('Please select worker, enter quantity, and select date');
+            showToast('warning', 'Please select worker, enter quantity, and select date');
+            return;
+        }
+
+        // Validate unit_price
+        if (!unitPrice || !unitPrice.trim()) {
+            showToast('warning', 'Please enter a unit price');
+            return;
+        }
+
+        const parsedUnitPrice = parseFloat(unitPrice);
+        if (isNaN(parsedUnitPrice) || parsedUnitPrice < 0) {
+            showToast('error', 'Please enter a valid unit price (0 or greater)');
             return;
         }
 
         // Validate quantity is a positive number
         const quantity = parseInt(newWorkerQuantity);
         if (isNaN(quantity) || quantity <= 0) {
-            alert('Please enter a valid quantity greater than 0');
+            showToast('error', 'Please enter a valid quantity greater than 0');
             return;
         }
 
         // Check if the entered quantity exceeds remaining work
         if (quantity > remainingWork) {
-            alert(`Cannot assign ${quantity} units!\n\nOnly ${remainingWork} units remaining from the rejected quantity of ${receivedQuantity}.\n\nAlready assigned: ${workedQuantity} units`);
+            showToast('error', `Cannot assign ${quantity} units! Only ${remainingWork} units remaining from rejected quantity of ${receivedQuantity}. Already assigned: ${workedQuantity} units`);
             return;
         }
 
         const selectedWorker = workers.find(w => w.id === parseInt(newWorkerId));
 
         if (!selectedWorker) {
-            alert('Selected worker not found');
+            showToast('error', 'Selected worker not found');
             return;
         }
 
         if (!taskData?.sub_batch?.id) {
-            alert('Sub-batch ID is missing');
+            showToast('error', 'Sub-batch ID is missing');
             console.error('taskData.sub_batch:', taskData?.sub_batch);
             return;
         }
@@ -258,12 +288,12 @@ const RejectedTaskDetailsModal: React.FC<RejectedTaskDetailsModalProps> = ({
             const parsedDepartmentId = typeof departmentId === 'string' ? parseInt(departmentId) : departmentId;
 
             if (!parsedDepartmentId) {
-                alert('Error: Department ID is missing!');
+                showToast('error', 'Department ID is missing!');
                 setSaving(false);
                 return;
             }
 
-            // Build payload with required quantity
+            // Build payload with required quantity and unit_price
             const payload: any = {
                 worker_id: parseInt(newWorkerId),
                 worker_name: selectedWorker.name,
@@ -273,7 +303,8 @@ const RejectedTaskDetailsModal: React.FC<RejectedTaskDetailsModalProps> = ({
                 department_id: parsedDepartmentId,
                 quantity_received: quantity,  // Required field
                 quantity_worked: quantity,    // Required field
-                sub_batch_id: taskData.sub_batch.id
+                sub_batch_id: taskData.sub_batch.id,
+                unit_price: parsedUnitPrice,  // Required for wage calculation
             };
 
             const response = await fetch(`${process.env.NEXT_PUBLIC_CREATE_WORKER_LOGS}`, {
@@ -286,11 +317,12 @@ const RejectedTaskDetailsModal: React.FC<RejectedTaskDetailsModalProps> = ({
                 // Refresh worker records
                 await fetchWorkerRecords();
 
-                alert('Worker assigned successfully!');
+                showToast('success', 'Worker assigned successfully!');
                 setNewWorkerId('');
                 setNewWorkerQuantity('');
                 setNewWorkerDate('');
                 setIsBillable(true);
+                setUnitPrice('');
             } else {
                 const errorText = await response.text();
                 let errorMessage = 'Unknown error';
@@ -300,18 +332,19 @@ const RejectedTaskDetailsModal: React.FC<RejectedTaskDetailsModalProps> = ({
                 } catch {
                     errorMessage = errorText;
                 }
-                alert(`Failed to save worker!\n\nError: ${errorMessage}`);
+                showToast('error', `Failed to save worker! Error: ${errorMessage}`);
             }
         } catch (e) {
             console.error('Exception while saving:', e);
-            alert(`Error saving record!\n\n${e instanceof Error ? e.message : 'Unknown error'}`);
+            showToast('error', `Error saving record! ${e instanceof Error ? e.message : 'Unknown error'}`);
         } finally {
             setSaving(false);
         }
     };
 
     const handleDeleteWorker = async (workerId: number) => {
-        if (!confirm('Are you sure you want to delete this worker assignment?')) {
+        const confirmed = window.confirm('Are you sure you want to delete this worker assignment?');
+        if (!confirmed) {
             return;
         }
 
@@ -324,16 +357,16 @@ const RejectedTaskDetailsModal: React.FC<RejectedTaskDetailsModalProps> = ({
             });
 
             if (response.ok) {
-                alert('Worker assignment deleted successfully!');
+                showToast('success', 'Worker assignment deleted successfully!');
                 await fetchWorkerRecords();
             } else {
                 const errorText = await response.text();
                 console.error('Error deleting worker:', errorText);
-                alert(`Failed to delete worker: ${errorText}`);
+                showToast('error', `Failed to delete worker: ${errorText}`);
             }
         } catch (error) {
             console.error('Error deleting worker:', error);
-            alert('Error deleting worker. Please try again.');
+            showToast('error', 'Error deleting worker. Please try again.');
         } finally {
             setSaving(false);
         }
@@ -359,19 +392,19 @@ const RejectedTaskDetailsModal: React.FC<RejectedTaskDetailsModalProps> = ({
     const handleSaveEdit = async (workerId: number) => {
         // Validate quantity
         if (!editQuantity || !editQuantity.trim()) {
-            alert('Please enter quantity');
+            showToast('warning', 'Please enter quantity');
             return;
         }
 
         const quantity = parseInt(editQuantity);
         if (isNaN(quantity) || quantity <= 0) {
-            alert('Please enter a valid quantity greater than 0');
+            showToast('error', 'Please enter a valid quantity greater than 0');
             return;
         }
 
         // Validate date
         if (!editDate) {
-            alert('Please select a date');
+            showToast('warning', 'Please select a date');
             return;
         }
 
@@ -384,7 +417,7 @@ const RejectedTaskDetailsModal: React.FC<RejectedTaskDetailsModalProps> = ({
 
         // Check if the new quantity exceeds remaining work
         if (quantity > remainingWork) {
-            alert(`Cannot assign ${quantity} units!\n\nOnly ${remainingWork} units available (excluding current assignment).\n\nTotal rejected quantity: ${receivedQuantity}\nOther workers: ${otherWorkersQuantity} units`);
+            showToast('error', `Cannot assign ${quantity} units! Only ${remainingWork} units available (excluding current assignment). Total rejected: ${receivedQuantity}, Other workers: ${otherWorkersQuantity} units`);
             return;
         }
 
@@ -405,17 +438,17 @@ const RejectedTaskDetailsModal: React.FC<RejectedTaskDetailsModalProps> = ({
             });
 
             if (response.ok) {
-                alert('Worker assignment updated successfully!');
+                showToast('success', 'Worker assignment updated successfully!');
                 await fetchWorkerRecords();
                 handleCancelEdit();
             } else {
                 const errorText = await response.text();
                 console.error('Error updating worker:', errorText);
-                alert(`Failed to update worker: ${errorText}`);
+                showToast('error', `Failed to update worker: ${errorText}`);
             }
         } catch (error) {
             console.error('Error updating worker:', error);
-            alert('Error updating worker. Please try again.');
+            showToast('error', 'Error updating worker. Please try again.');
         } finally {
             setSaving(false);
         }
@@ -436,7 +469,7 @@ const RejectedTaskDetailsModal: React.FC<RejectedTaskDetailsModalProps> = ({
 
     const handleSave = async () => {
         if (!taskData?.id) {
-            alert('Task data is missing');
+            showToast('error', 'Task data is missing');
             return;
         }
 
@@ -447,7 +480,7 @@ const RejectedTaskDetailsModal: React.FC<RejectedTaskDetailsModalProps> = ({
                 const token = localStorage.getItem('token');
 
                 if (!token) {
-                    alert('Authentication required. Please login again.');
+                    showToast('error', 'Authentication required. Please login again.');
                     return;
                 }
 
@@ -480,7 +513,7 @@ const RejectedTaskDetailsModal: React.FC<RejectedTaskDetailsModalProps> = ({
                 const result = await response.json();
 
                 if (result.success) {
-                    alert('Successfully sent to department!');
+                    showToast('success', 'Successfully sent to department!');
                     onClose();
                     setSendToDepartment('');
 
@@ -496,13 +529,13 @@ const RejectedTaskDetailsModal: React.FC<RejectedTaskDetailsModalProps> = ({
                 }
             } catch (error: any) {
                 console.error('Error sending to department:', error);
-                alert(`Failed to send to department: ${error.message}`);
+                showToast('error', `Failed to send to department: ${error.message}`);
             } finally {
                 setSaving(false);
             }
         } else if (taskData.status === 'COMPLETED' && status === 'COMPLETED' && !sendToDepartment) {
             // Task is already completed, status is still completed, but no department selected
-            alert('Please select a department to send this completed task to');
+            showToast('warning', 'Please select a department to send this completed task to');
             return;
         } else {
             // Normal stage update (including moving to COMPLETED for the first time OR changing status from COMPLETED to something else)
@@ -511,7 +544,7 @@ const RejectedTaskDetailsModal: React.FC<RejectedTaskDetailsModalProps> = ({
                 const token = localStorage.getItem('token');
 
                 if (!token) {
-                    alert('Authentication required. Please login again.');
+                    showToast('error', 'Authentication required. Please login again.');
                     return;
                 }
 
@@ -538,7 +571,7 @@ const RejectedTaskDetailsModal: React.FC<RejectedTaskDetailsModalProps> = ({
                 const result = await response.json();
 
                 if (result.success) {
-                    alert('Status updated successfully!');
+                    showToast('success', 'Status updated successfully!');
                     onClose();
                     // Refresh the kanban board
                     if (onStageChange) {
@@ -549,7 +582,7 @@ const RejectedTaskDetailsModal: React.FC<RejectedTaskDetailsModalProps> = ({
                 }
             } catch (error) {
                 console.error('Error updating stage:', error);
-                alert(error instanceof Error ? error.message : 'Failed to update status. Please try again.');
+                showToast('error', error instanceof Error ? error.message : 'Failed to update status. Please try again.');
             } finally {
                 setSaving(false);
             }
@@ -559,7 +592,7 @@ const RejectedTaskDetailsModal: React.FC<RejectedTaskDetailsModalProps> = ({
     // Handle marking sub-batch as completed
     const handleMarkAsCompleted = async () => {
         if (confirmationText.toLowerCase() !== 'yes') {
-            alert('Please type "yes" to confirm marking this sub-batch as completed');
+            showToast('warning', 'Please type "yes" to confirm marking this sub-batch as completed');
             return;
         }
 
@@ -568,14 +601,14 @@ const RejectedTaskDetailsModal: React.FC<RejectedTaskDetailsModalProps> = ({
             const token = localStorage.getItem('token');
 
             if (!token) {
-                alert('Authentication required. Please login again.');
+                showToast('error', 'Authentication required. Please login again.');
                 return;
             }
 
             const subBatchId = taskData.id;
 
             if (!subBatchId) {
-                alert('Cannot mark as completed: Sub-batch ID is missing');
+                showToast('error', 'Cannot mark as completed: Sub-batch ID is missing');
                 return;
             }
 
@@ -601,7 +634,7 @@ const RejectedTaskDetailsModal: React.FC<RejectedTaskDetailsModalProps> = ({
             const result = await response.json();
 
             if (result.success) {
-                alert('Sub-batch has been marked as COMPLETED! It can no longer be moved.');
+                showToast('success', 'Sub-batch has been marked as COMPLETED! It can no longer be moved.');
                 setShowCompletionDialog(false);
                 setConfirmationText('');
                 onClose();
@@ -619,7 +652,7 @@ const RejectedTaskDetailsModal: React.FC<RejectedTaskDetailsModalProps> = ({
             }
         } catch (error: any) {
             console.error('Error marking as completed:', error);
-            alert(`Failed to mark as completed: ${error.message}`);
+            showToast('error', `Failed to mark as completed: ${error.message}`);
         } finally {
             setSaving(false);
         }
@@ -966,7 +999,21 @@ const RejectedTaskDetailsModal: React.FC<RejectedTaskDetailsModalProps> = ({
                                     <label className="text-sm font-medium text-gray-900 block mb-2">Worker Name</label>
                                     <select
                                         value={newWorkerId}
-                                        onChange={(e) => setNewWorkerId(e.target.value)}
+                                        onChange={(e) => {
+                                            const selectedId = e.target.value;
+                                            setNewWorkerId(selectedId);
+                                            // Auto-fill unit_price from worker's wage_rate
+                                            if (selectedId) {
+                                                const selectedWorker = workers.find(w => w.id === parseInt(selectedId));
+                                                if (selectedWorker && selectedWorker.wage_rate) {
+                                                    setUnitPrice(selectedWorker.wage_rate.toString());
+                                                } else {
+                                                    setUnitPrice('');
+                                                }
+                                            } else {
+                                                setUnitPrice('');
+                                            }
+                                        }}
                                         disabled={loadingWorkers || workers.length === 0}
                                         className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white disabled:bg-gray-100 disabled:cursor-not-allowed"
                                     >
@@ -1005,7 +1052,7 @@ const RejectedTaskDetailsModal: React.FC<RejectedTaskDetailsModalProps> = ({
                                         </div>
                                     )}
                                 </div>
-                                <div className="w-32">
+                                <div className="w-28">
                                     <label className="text-sm font-medium text-gray-900 block mb-2">
                                         Quantity <span className="text-red-500">*</span>
                                     </label>
@@ -1018,6 +1065,26 @@ const RejectedTaskDetailsModal: React.FC<RejectedTaskDetailsModalProps> = ({
                                         className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
                                         required
                                     />
+                                </div>
+                                <div className="w-28">
+                                    <label className="text-sm font-medium text-gray-900 block mb-2">
+                                        Unit Price <span className="text-red-500">*</span>
+                                    </label>
+                                    <input
+                                        type="number"
+                                        value={unitPrice}
+                                        onChange={(e) => setUnitPrice(e.target.value)}
+                                        placeholder="Rs."
+                                        min="0"
+                                        step="0.01"
+                                        className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                                        required
+                                    />
+                                    {newWorkerId && (
+                                        <p className="text-xs text-gray-500 mt-1">
+                                            Rate: Rs. {workers.find(w => w.id === parseInt(newWorkerId))?.wage_rate || 0}
+                                        </p>
+                                    )}
                                 </div>
                                 <div className="w-40">
                                     <label className="text-sm font-medium text-gray-900 block mb-2">Date</label>
@@ -1280,8 +1347,10 @@ const RejectedTaskDetailsModal: React.FC<RejectedTaskDetailsModalProps> = ({
                                 Cancel
                             </button>
                             <div className="flex gap-3">
-                                {/* Show Mark as Completed button only when stage is COMPLETED */}
-                                {taskData.status === 'COMPLETED' && (
+                                {/* Show Mark as Completed button only when:
+                                    1. Status is COMPLETED
+                                    2. Current department is the LAST department in workflow */}
+                                {taskData.status === 'COMPLETED' && isLastDepartment && (
                                     <button
                                         onClick={() => setShowCompletionDialog(true)}
                                         disabled={saving}

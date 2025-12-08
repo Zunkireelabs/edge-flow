@@ -19,6 +19,7 @@ import wageRoutes from "./src/routes/wage";
 import productionViewRoutes from "./src/routes/productionView";
 import inventoryRoutes from "./src/routes/inventory";
 import inventorySubtractionRoutes from "./src/routes/inventorySubtraction";
+import inventoryCategoryRoutes from "./src/routes/inventoryCategory";
 import adminProductionRoutes from "./src/routes/adminProduction";
 
 // Security and error handling middleware
@@ -109,6 +110,9 @@ app.use("/api/inventory", inventoryRoutes);
 
 // Inventory Subtraction Routes
 app.use("/api/inventory-subtraction", inventorySubtractionRoutes);
+
+// Inventory Category Routes
+app.use("/api/inventory-categories", inventoryCategoryRoutes);
 
 // Admin Production Routes
 app.use("/api/admin/production", adminProductionRoutes);

@@ -121,21 +121,28 @@ export const getSubBatchHistory = async (subBatchId: number) => {
     },
   });
 
-  // Group worker logs by department_id for efficient lookup
-  const workerLogsByDepartment = new Map<number, typeof allWorkerLogs>();
+  // Group worker logs by department_sub_batch_id for efficient lookup
+  // IMPORTANT: Must use department_sub_batch_id (not department_id) to correctly
+  // isolate worker logs per department entry (e.g., original vs rework entries)
+  const workerLogsByDeptEntry = new Map<number, typeof allWorkerLogs>();
   for (const log of allWorkerLogs) {
-    if (log.department_id) {
-      const existing = workerLogsByDepartment.get(log.department_id) || [];
+    if (log.department_sub_batch_id) {
+      const existing = workerLogsByDeptEntry.get(log.department_sub_batch_id) || [];
       existing.push(log);
-      workerLogsByDepartment.set(log.department_id, existing);
+      workerLogsByDeptEntry.set(log.department_sub_batch_id, existing);
     }
   }
 
   // Map department entries with their pre-fetched worker logs
   const departmentDetails = completedDepartments.map((deptEntry) => {
-    const workerLogs = deptEntry.department_id
-      ? workerLogsByDepartment.get(deptEntry.department_id) || []
-      : [];
+    // Match worker logs by the specific department entry ID (not department_id)
+    // This ensures each entry only shows its own logs
+    const workerLogs = workerLogsByDeptEntry.get(deptEntry.id) || [];
+
+    // Determine entry type based on alter_reason or sent_from_department
+    // If it has alter_reason, it's a rework/alteration entry
+    const isReworkEntry = !!deptEntry.alter_reason || !!deptEntry.sent_from_department;
+    const entryType = isReworkEntry ? 'REWORK' : 'ORIGINAL';
 
     return {
       department_entry_id: deptEntry.id,
@@ -145,7 +152,11 @@ export const getSubBatchHistory = async (subBatchId: number) => {
       sent_to_department_name: deptEntry.sent_to_department?.name,
       arrival_date: deptEntry.createdAt,
       quantity_remaining: deptEntry.quantity_remaining,
+      quantity_received: deptEntry.quantity_received,
       remarks: deptEntry.remarks,
+      entry_type: entryType, // 'ORIGINAL' or 'REWORK' - helps frontend differentiate
+      alter_reason: deptEntry.alter_reason, // Rework reason if applicable
+      sent_from_department_id: deptEntry.sent_from_department, // Where rework came from
       worker_logs: workerLogs.map((log) => ({
         id: log.id,
         worker_id: log.worker_id,

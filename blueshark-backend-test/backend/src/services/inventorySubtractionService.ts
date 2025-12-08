@@ -6,6 +6,7 @@ export const createInventorySubtraction = async (data: {
   date?: Date;
   quantity: number;
   remarks?: string;
+  reason?: string; // Reason code: PRODUCTION_USE, DAMAGED, SAMPLE, RETURNED, EXPIRED, OTHER
 }) => {
   // Use a transaction to ensure both operations succeed or fail together
   return await prisma.$transaction(async (tx) => {
@@ -31,6 +32,7 @@ export const createInventorySubtraction = async (data: {
         date: data.date || new Date(),
         quantity: data.quantity,
         remarks: data.remarks,
+        reason: data.reason,
       },
       include: {
         inventory: true,

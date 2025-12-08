@@ -10,9 +10,14 @@ export const createInventory = async (data: {
   vendor: string;
   phone: string;
   remarks?: string;
+  category_id?: number | null;
+  min_quantity?: number;
 }) => {
   return await prisma.inventory.create({
     data,
+    include: {
+      category: true,
+    },
   });
 };
 
@@ -22,6 +27,31 @@ export const getAllInventory = async () => {
     orderBy: {
       date: "desc", // Sort by date, newest first
     },
+    include: {
+      category: true, // Include category relation
+    },
+  });
+};
+
+// Get Low Stock Items (quantity <= min_quantity)
+export const getLowStockItems = async () => {
+  return await prisma.inventory.findMany({
+    where: {
+      AND: [
+        { min_quantity: { gt: 0 } }, // Only items with min_quantity set
+        {
+          quantity: {
+            lte: prisma.inventory.fields.min_quantity,
+          },
+        },
+      ],
+    },
+    include: {
+      category: true,
+    },
+    orderBy: {
+      quantity: "asc",
+    },
   });
 };
 
@@ -29,6 +59,9 @@ export const getAllInventory = async () => {
 export const getInventoryById = async (id: number) => {
   return await prisma.inventory.findUnique({
     where: { id },
+    include: {
+      category: true,
+    },
   });
 };
 
@@ -44,11 +77,16 @@ export const updateInventory = async (
     vendor?: string;
     phone?: string;
     remarks?: string;
+    category_id?: number | null;
+    min_quantity?: number;
   }
 ) => {
   return await prisma.inventory.update({
     where: { id },
     data,
+    include: {
+      category: true,
+    },
   });
 };
 

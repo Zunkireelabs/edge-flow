@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { X, AlertCircle } from 'lucide-react';
+import { useToast } from '@/app/Components/ToastContext';
 
 interface Department {
   id: number;
@@ -31,6 +32,7 @@ const AddWorkerModal: React.FC<AddWorkerModalProps> = ({
   onClose,
   onSuccess,
 }) => {
+  const { showToast } = useToast();
   const [selectedWorkerId, setSelectedWorkerId] = useState('');
   const [, setSelectedDepartmentId] = useState('');
   const [workers, setWorkers] = useState<Worker[]>([]);
@@ -77,11 +79,11 @@ const AddWorkerModal: React.FC<AddWorkerModalProps> = ({
         const data = await res.json();
         setWorkers(data);
       } else {
-        alert('Failed to fetch workers');
+        showToast('error', 'Failed to fetch workers');
       }
     } catch (e) {
       console.error(e);
-      alert('Error fetching workers');
+      showToast('error', 'Error fetching workers');
     } finally {
       setLoading(false);
     }
@@ -94,11 +96,11 @@ const AddWorkerModal: React.FC<AddWorkerModalProps> = ({
         const data = await res.json();
         setDepartments(data);
       } else {
-        alert('Failed to fetch departments');
+        showToast('error', 'Failed to fetch departments');
       }
     } catch (e) {
       console.error(e);
-      alert('Error fetching departments');
+      showToast('error', 'Error fetching departments');
     }
   };
 
@@ -109,28 +111,28 @@ const AddWorkerModal: React.FC<AddWorkerModalProps> = ({
   const handleSubmit = async () => {
     // Validation
     if (!selectedWorkerId) {
-      alert('Please select a worker');
+      showToast('warning', 'Please select a worker');
       return;
     }
 
     if (!supervisorDepartmentId) {
-      alert('Unable to determine your department. Please try again.');
+      showToast('error', 'Unable to determine your department. Please try again.');
       return;
     }
 
     const worker = getSelectedWorker();
     if (!worker) {
-      alert('Invalid worker selection');
+      showToast('error', 'Invalid worker selection');
       return;
     }
 
     // Check if worker is already assigned to any department (including this one)
     if (worker.department_id) {
       if (worker.department_id === supervisorDepartmentId) {
-        alert(`${worker.name} is already assigned to your department`);
+        showToast('warning', `${worker.name} is already assigned to your department`);
       } else {
         const currentDept = departments.find(d => d.id === worker.department_id);
-        alert(`Cannot add worker. ${worker.name} is already assigned to ${currentDept?.name || 'another department'}`);
+        showToast('error', `Cannot add worker. ${worker.name} is already assigned to ${currentDept?.name || 'another department'}`);
       }
       return;
     }
@@ -150,16 +152,16 @@ const AddWorkerModal: React.FC<AddWorkerModalProps> = ({
 
       if (response.ok) {
         const selectedDept = departments.find(d => d.id === supervisorDepartmentId);
-        alert(`Worker "${worker.name}" has been assigned to ${selectedDept?.name || 'your department'} successfully!`);
+        showToast('success', `Worker "${worker.name}" has been assigned to ${selectedDept?.name || 'your department'} successfully!`);
         onSuccess();
         onClose();
       } else {
         const err = await response.json().catch(() => ({}));
-        alert(`Failed to assign worker: ${err.message || 'Unknown error'}`);
+        showToast('error', `Failed to assign worker: ${err.message || 'Unknown error'}`);
       }
     } catch (e) {
       console.error(e);
-      alert('Error assigning worker to department');
+      showToast('error', 'Error assigning worker to department');
     } finally {
       setIsSubmitting(false);
     }

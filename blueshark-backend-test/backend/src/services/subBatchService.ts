@@ -352,6 +352,9 @@ export async function advanceSubBatchToNextDepartment(
       total_quantity: currentDept.total_quantity, // Copy the original total quantity
       remarks: "Main in this Department", // ✅ Fresh arrival in new department, independent main card (use quantity_received)
       sent_from_department: currentDept.department_id, // ✅ Track which department it came from
+      // ✅ Propagate alter_reason and reject_reason so rework/rejection cards maintain their identity
+      alter_reason: currentDept.alter_reason, // Keeps rework cards identifiable across departments
+      reject_reason: currentDept.reject_reason, // Keeps rejection cards identifiable across departments
     },
   });
 }

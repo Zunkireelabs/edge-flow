@@ -73,6 +73,8 @@
 - [x] ~~**Toast/Confirm System**~~ - ✅ Custom notifications replacing browser alerts (commit c7a9251)
 - [x] ~~**HubSpot-style Data Tables**~~ - ✅ Horizontal filters, sorting, pagination (commit 223702d)
 - [x] ~~**Fix Worker Assignment Splitting Bug**~~ - ✅ Fixed (2025-12-01) - See QC Session below
+- [x] ~~**URL Slug Persistence**~~ - ✅ Both dashboards now persist view state in URL (2025-12-08)
+- [x] ~~**UI-004: Toast for SupervisorDashboard**~~ - ✅ All alerts replaced with Toast notifications (2025-12-08)
 - [ ] **Continue QC Testing** - Scenario 4: Rejection Flow (next)
 
 ### Short-term (This Week)
@@ -92,13 +94,14 @@
 
 ---
 
-## Current State (Updated: 2025-12-01)
+## Current State (Updated: 2025-12-08)
 
 ### What's Working
+- ✅ **BACKLOG-001 FIXED** - "Mark Sub-batch as Completed" button now only shows at LAST department
 - ✅ **Kanban Card Enhancement** - Shows Remaining, Processed, Altered (amber), Rejected (red) counts
 - ✅ **Activity History** - Shows all events including alterations/rejections with color-coded dots
 - ✅ **Enterprise UI Overhaul** - Databricks-inspired design system implemented
-- ✅ **Toast/Confirm System** - Custom notifications replacing browser alerts
+- ✅ **Toast/Confirm System** - Custom notifications replacing browser alerts (ALL VIEWS)
 - ✅ **HubSpot-style Data Tables** - Horizontal filters, sorting, pagination across all views
 - ✅ **Worker Assignment System** - Fixed splitting bug, multiple workers per batch working
 - ✅ **Department Transfer** - Sub-batches flow correctly between departments
@@ -119,15 +122,19 @@
 - ✅ **Phase 2 Security Hardening COMPLETE** (helmet, rate limiting, error handling)
 - ✅ **Developer Workflow documentation created**
 - ✅ **Local development environment working** (localhost:3000 + localhost:5000)
+- ✅ **QC Scenarios 1-6 PASSED** - Full end-to-end testing complete
+- ✅ **UI-007: Rework card visual distinction** - Fully working with amber styling
+- ✅ **Alteration/Rework Flow** - Complete fix for all edge cases (2025-12-08)
+- ✅ **Rejection Flow** - Working correctly with proper data display
+- ✅ **URL Slug Persistence** - Both Admin and Supervisor dashboards maintain view state in URL
+- ✅ **UI-004 COMPLETE** - All native `alert()` calls replaced with Toast notifications in SupervisorDashboard
 
 ### What's In Progress
-- 🔄 **QC Testing** - Scenarios 1-3 PASSED, Scenario 4 (Rejection Flow) next
+- 🔄 Ready for deployment to dev and production
 
 ### What's Not Working / Known Issues
 - ⚠️ Neon free tier: databases auto-suspend after 5 min inactivity (mitigated with 30s connection timeout)
 - ⚠️ UI-S2-001: Data doesn't auto-refresh after worker assignment (requires manual refresh)
-- ⚠️ UI-S2-002: Native browser alert for "Successfully sent to department!"
-- ⚠️ BACKLOG-001: "Mark Sub-batch as Completed" button visible at all departments (should be hidden until last department)
 
 ### Credentials & Access
 | Service | Credential | Notes |
@@ -139,6 +146,423 @@
 ---
 
 ## Session Entries
+
+---
+
+### Session: 2025-12-08 (URL Slug Persistence + Toast Migration)
+
+**Duration:** ~2 hours
+**Focus:** URL-based view persistence for both dashboards, complete Toast notification migration for SupervisorDashboard
+
+#### Goals
+1. Add URL slug persistence for Admin Dashboard views
+2. Add URL slug persistence for Supervisor Dashboard views
+3. Replace all remaining `alert()` calls with Toast notifications in SupervisorDashboard
+
+#### What Was Done
+
+**1. URL Slug Persistence - Admin Dashboard ✅**
+
+**Problem:** When users navigate to different views (Rolls, Batches, Workers, etc.) and refresh the page, they always return to the default Dashboard view instead of staying on their current view.
+
+**Solution:** Implemented URL query parameter-based view persistence using Next.js `useSearchParams` and `useRouter`.
+
+**File:** `src/app/Dashboard/page.tsx`
+
+```typescript
+import { useSearchParams, useRouter } from "next/navigation";
+
+const viewFromUrl = searchParams.get("view") || "dashboard";
+const [activeView, setActiveView] = useState(viewFromUrl);
+
+useEffect(() => {
+  const viewParam = searchParams.get("view") || "dashboard";
+  if (viewParam !== activeView) {
+    setActiveView(viewParam);
+  }
+}, [searchParams]);
+
+const handleViewChange = (view: string) => {
+  setActiveView(view);
+  const newUrl = view === "dashboard" ? "/Dashboard" : `/Dashboard?view=${view}`;
+  router.push(newUrl, { scroll: false });
+};
+```
+
+**Result:** URLs now change when navigating (e.g., `/Dashboard?view=rollview`), and refreshing maintains the view.
+
+---
+
+**2. URL Slug Persistence - Supervisor Dashboard ✅**
+
+Applied the same pattern to Supervisor Dashboard.
+
+**Files Modified:**
+- `src/app/SupervisorDashboard/page.tsx` - Added URL-based view state
+- `src/app/SupervisorDashboard/components/layout/RightContent.tsx` - Added `onViewChange` prop
+- `src/app/SupervisorDashboard/components/ContentRouter.tsx` - Added `onViewChange` prop
+
+**Result:** Supervisor dashboard views now persist in URL (e.g., `/SupervisorDashboard?view=departmentview`).
+
+---
+
+**3. Toast Notification Migration - SupervisorDashboard ✅**
+
+Replaced ALL native `alert()` calls with custom `showToast()` notifications across SupervisorDashboard modal components.
+
+**Files Modified:**
+
+| File | Alerts Replaced |
+|------|-----------------|
+| `DepartmentView.tsx` | 4 alerts |
+| `AddWorkerModal.tsx` | 12 alerts |
+| `AssignAlteredWorkerModal.tsx` | 2 alerts |
+| `AssignRejectedWorkerModal.tsx` | 2 alerts |
+| `AlteredTaskDetailsModal.tsx` | 9 alerts |
+| `RejectedTaskDetailsModal.tsx` | 35 alerts |
+| **Total** | **64 alerts** |
+
+**Changes Per File:**
+1. Added import: `import { useToast } from '@/app/Components/ToastContext';`
+2. Added hook: `const { showToast } = useToast();`
+3. Replaced `alert()` with appropriate toast type:
+   - `showToast('success', '...')` - Success messages
+   - `showToast('error', '...')` - Error messages
+   - `showToast('warning', '...')` - Validation warnings
+4. Replaced `confirm()` with `window.confirm()` for delete confirmations
+
+**Example Transformations:**
+
+```typescript
+// BEFORE (validation warning):
+alert("Please enter a valid quantity greater than 0");
+
+// AFTER:
+showToast("error", "Please enter a valid quantity greater than 0");
+
+// BEFORE (success message):
+alert("Worker assigned successfully!");
+
+// AFTER:
+showToast("success", "Worker assigned successfully!");
+
+// BEFORE (delete confirmation):
+if (!confirm("Are you sure you want to delete this worker assignment?")) return;
+
+// AFTER:
+const confirmed = window.confirm("Are you sure you want to delete this worker assignment?");
+if (!confirmed) return;
+```
+
+#### Files Modified Summary
+
+**Admin Dashboard:**
+- `src/app/Dashboard/page.tsx` - URL persistence
+
+**Supervisor Dashboard:**
+- `src/app/SupervisorDashboard/page.tsx` - URL persistence
+- `src/app/SupervisorDashboard/components/layout/RightContent.tsx` - onViewChange prop
+- `src/app/SupervisorDashboard/components/ContentRouter.tsx` - onViewChange prop
+- `src/app/SupervisorDashboard/components/views/DepartmentView.tsx` - Toast migration
+- `src/app/SupervisorDashboard/depcomponents/AddWorkerModal.tsx` - Toast migration
+- `src/app/SupervisorDashboard/depcomponents/altered/AssignAlteredWorkerModal.tsx` - Toast migration
+- `src/app/SupervisorDashboard/depcomponents/rejected/AssignRejectedWorkerModal.tsx` - Toast migration
+- `src/app/SupervisorDashboard/depcomponents/altered/AlteredTaskDetailsModal.tsx` - Toast migration
+- `src/app/SupervisorDashboard/depcomponents/rejected/RejectedTaskDetailsModal.tsx` - Toast migration
+
+#### Testing Results
+
+| Feature | Expected | Result |
+|---------|----------|--------|
+| Admin Dashboard URL persistence | `/Dashboard?view=rollview` | ✅ PASSED |
+| Supervisor Dashboard URL persistence | `/SupervisorDashboard?view=departmentview` | ✅ PASSED |
+| Refresh maintains view | Stay on current view | ✅ PASSED |
+| Toast success messages | Green toast appears | ✅ PASSED |
+| Toast error messages | Red toast appears | ✅ PASSED |
+| Toast warning messages | Amber toast appears | ✅ PASSED |
+| No native alerts remaining | All replaced | ✅ PASSED |
+| App compiles successfully | No errors | ✅ PASSED |
+
+#### Key Learnings
+
+1. **URL State Management**: Using `searchParams` and `router.push()` is the cleanest way to persist view state in Next.js
+2. **Props Drilling**: For view change handlers, props need to be passed through the component hierarchy (page → layout → content router)
+3. **Toast Migration Strategy**: Systematic file-by-file replacement ensures no alerts are missed
+4. **Confirm vs Toast**: Keep native `confirm()` for destructive actions (delete), use Toast for informational messages
+
+#### Next Steps
+1. Deploy changes to dev branch
+2. Test on dev environment
+3. Continue with remaining QC testing scenarios
+
+---
+
+### Session: 2025-12-08 (Alteration/Rework Flow - Complete Bug Fixes)
+
+**Duration:** ~3 hours
+**Focus:** Fix all remaining issues with alteration/rework card flow, data display, and department transfer
+
+#### Goals
+1. Fix total_rejected showing on rework cards instead of source cards
+2. Fix "Sent from Department" showing ID instead of name
+3. Fix Route Details showing wrong label for altered cards
+4. Fix Alteration Details showing "Unknown Department"
+5. Fix Production Summary showing wrong Worked/Remaining values
+6. Fix Send to Department dropdown only showing source department
+
+#### What Was Done
+
+**Issue 1: total_rejected showing on rework card ✅ FIXED**
+
+**Problem:** The Kanban card for a rework item was displaying "Rejected: 9 pcs" which should only show on the main/source card, not the rework card.
+
+**Root Cause:** The frontend was displaying `total_rejected` from the API without checking if the card was a rework card.
+
+**Solution:** Added `!isReworkCard` condition to hide Altered/Rejected counts on rework cards.
+
+**File:** `src/app/SupervisorDashboard/components/views/DepartmentView.tsx` (lines 645-665)
+```typescript
+// Altered - Only show if > 0 AND not a rework card
+{!isReworkCard && (item.total_altered ?? 0) > 0 && (...)}
+
+// Rejected - Only show if > 0 AND not a rework card
+{!isReworkCard && (item.total_rejected ?? 0) > 0 && (...)}
+```
+
+---
+
+**Issue 2: "Sent from Department" showing ID instead of name ✅ FIXED**
+
+**Problem:** The Task Details modal was showing "Sent from Department: 1" instead of "Dep-1".
+
+**Root Cause:** Backend wasn't fetching department name when `alter_reason` exists but `altered_created` array is empty (happens with forwarded rework cards).
+
+**Solution:** Added department name lookup in backend when `alter_reason` exists.
+
+**File:** `blueshark-backend-test/backend/src/services/departmentService.ts` (lines 254-274)
+```typescript
+} else if (sub.alter_reason) {
+    let fromDeptName = null;
+    if (sub.sent_from_department) {
+        const fromDept = await prisma.departments.findUnique({
+            where: { id: sub.sent_from_department },
+            select: { name: true },
+        });
+        fromDeptName = fromDept?.name || null;
+    }
+    alteration_source = {
+        from_department_id: sub.sent_from_department || null,
+        from_department_name: fromDeptName,
+        // ...
+    };
+}
+```
+
+---
+
+**Issue 3: Route Details showing "(Rejected)" for altered card ✅ FIXED**
+
+**Problem:** Route Details section was showing "(Rejected)" label next to department names for an altered card, which was incorrect.
+
+**Root Cause:** The logic was checking rejection data from the main sub-batch history instead of the current card's context.
+
+**Solution:** Simplified Route Details logic for altered cards to only show relevant status.
+
+**File:** `src/app/SupervisorDashboard/depcomponents/altered/AlteredTaskDetailsModal.tsx`
+
+---
+
+**Issue 4: Alteration Details showing "Unknown Department" ✅ FIXED**
+
+**Problem:** The Alteration Details section showed "SOURCE DEPARTMENT: Unknown Department" instead of the actual department name.
+
+**Root Cause:** Same as Issue 2 - backend wasn't populating `from_department_name` for forwarded rework cards.
+
+**Solution:** Same fix as Issue 2 - the backend change resolved both issues.
+
+---
+
+**Issue 5: Production Summary showing wrong Worked/Remaining values ✅ FIXED**
+
+**Problem:** Production Summary showed "Received: 1, Worked: 1, Remaining: 1" which is mathematically impossible.
+
+**Root Cause:** Worker records were being filtered by `department_id` instead of `department_sub_batch_id`, causing worker logs from other cards to be included.
+
+**Solution:** Changed filter to use `department_sub_batch_id` as primary filter.
+
+**File:** `src/app/SupervisorDashboard/depcomponents/altered/AlteredTaskDetailsModal.tsx` (lines 208-225)
+```typescript
+const filteredData = result.data.filter((r: any) => {
+    const isAltered = r.activity_type === 'ALTERED';
+    // Primary filter: Match by department_sub_batch_id (most accurate)
+    const isThisCard = r.department_sub_batch_id && currentDeptSubBatchId &&
+                      r.department_sub_batch_id.toString() === currentDeptSubBatchId.toString();
+    // Fallback filter: Match by department_id if department_sub_batch_id not set
+    const isCurrentDepartment = !r.department_sub_batch_id &&
+                               r.department_id && currentDepartmentId &&
+                               r.department_id.toString() === currentDepartmentId.toString();
+    return isAltered && (isThisCard || isCurrentDepartment);
+});
+```
+
+---
+
+**Issue 6: Send to Department only showing source department ✅ FIXED**
+
+**Problem:** After completing rework in Dep-2, the "Send to Department" dropdown only showed Dep-1 (source). Should show all departments for workflow continuation.
+
+**Root Cause:** Dropdown filter was intentionally limiting to source department only.
+
+**Solution:** Changed filter to show all departments except the current one.
+
+**File:** `src/app/SupervisorDashboard/depcomponents/altered/AlteredTaskDetailsModal.tsx` (lines 935-949)
+```typescript
+// BEFORE: Only source department
+.filter((dept) => {
+    const sourceDeptId = taskData.alteration_source?.from_department_id;
+    return sourceDeptId ? dept.id === sourceDeptId : true;
+})
+
+// AFTER: All departments except current
+.filter((dept) => {
+    const currentDeptId = localStorage.getItem("departmentId");
+    return currentDeptId ? dept.id.toString() !== currentDeptId : true;
+})
+```
+
+#### Files Modified
+
+**Frontend:**
+| File | Changes |
+|------|---------|
+| `DepartmentView.tsx` | Added `!isReworkCard` condition for Altered/Rejected display |
+| `AlteredTaskDetailsModal.tsx` | Fixed worker records filter, fixed Send to Department dropdown, simplified Route Details |
+
+**Backend:**
+| File | Changes |
+|------|---------|
+| `departmentService.ts` | Added department name lookup for `alter_reason` and `reject_reason` cases |
+
+#### Testing Results
+
+| Test Case | Expected | Result |
+|-----------|----------|--------|
+| Rework card shows Rejected count | NO | ✅ PASSED |
+| Sent from Department shows name | "Dep-1" | ✅ PASSED |
+| Route Details shows correct label | "(Altered)" not "(Rejected)" | ✅ PASSED |
+| Alteration Details shows source | "Dep-1" not "Unknown" | ✅ PASSED |
+| Production Summary math correct | Received - Worked = Remaining | ✅ PASSED |
+| Send to Department dropdown | Shows all depts except current | ✅ PASSED |
+
+#### Key Learnings
+
+1. **Card-specific filtering**: Use `department_sub_batch_id` to filter data for a specific card, not just `department_id`
+2. **Rework card detection**: `alteration_source !== null` is reliable indicator of rework cards
+3. **Backend data enrichment**: When displaying names, always fetch them in backend - don't rely on IDs persisting through card forwards
+4. **Workflow continuation**: After rework, cards should continue to next department, not just return to source
+
+#### Next Steps
+1. Push changes to dev branch
+2. Test on dev environment
+3. Deploy to production
+
+---
+
+### Session: 2025-12-06 (BACKLOG-001 Fix + UI-007 Rework Card Distinction)
+
+**Duration:** ~2 hours
+**Focus:** Hide "Mark Complete" button until last department, add rework card visual distinction
+
+#### Goals
+1. Update BACKLOG.md with all outstanding items from Options A, B, C
+2. Fix BACKLOG-001: Hide "Mark Sub-batch as Completed" button until LAST department
+3. Fix UI-007: Add visual distinction for rework/alteration cards
+
+#### What Was Done
+
+**1. Updated BACKLOG.md**
+- Added 6 new UI issues from Scenarios 5 & 6 (UI-005 through UI-010)
+- Organized all outstanding items for tracking
+- Updated counts: UI/UX Issues now at 12 (was 6)
+
+**2. BACKLOG-001: Hide "Mark Complete" Until Last Department ✅ FIXED**
+
+**Problem:** The green "Mark Sub-batch as Completed" button was visible at ALL departments when stage was "Completed". This was dangerous because:
+- A supervisor at Dep-1 (first department) could accidentally mark a sub-batch as permanently COMPLETED
+- Once marked COMPLETED, the sub-batch can NEVER be moved to other departments
+
+**Solution:** Added `isLastDepartment` check to all three modal components:
+
+**Files Modified:**
+| File | Changes |
+|------|---------|
+| `TaskDetailsModal.tsx` | Added `isLastDepartment` useMemo (lines 579-592), updated button condition (line 1567) |
+| `AlteredTaskDetailsModal.tsx` | Added `useMemo` import, added `isLastDepartment` useMemo (lines 86-99), updated button condition (line 1513) |
+| `RejectedTaskDetailsModal.tsx` | Added `useMemo` import, added `isLastDepartment` useMemo (lines 77-90), updated button condition (line 1301) |
+
+**Logic Added:**
+```typescript
+const isLastDepartment = useMemo(() => {
+    const departmentFlow = subBatchHistory?.department_flow;
+    const currentDeptName = taskData?.department?.name;
+    if (!departmentFlow || !currentDeptName) return false;
+    const flow = departmentFlow.split('→').map((d: string) => d.trim());
+    return currentDeptName === flow[flow.length - 1];
+}, [subBatchHistory?.department_flow, taskData?.department?.name]);
+```
+
+**Verification:**
+- Dep-1 (first): Button HIDDEN ✅
+- Dep-3 (last): Button VISIBLE ✅
+
+**3. UI-007: Rework Card Visual Distinction (In Progress)**
+
+**Problem:** After an alteration card's work is completed, the card looks identical to a regular sub-batch card. The "Alteration" badge changes to "Assigned" (blue), losing all visual indication that this was a rework item.
+
+**Frontend Changes (DepartmentView.tsx):**
+- Added `isReworkCard` detection using `alteration_source`
+- Added `reworkQuantity` variable
+- Card maintains amber border/background for rework cards even after assignment
+- Badge shows "Rework" (amber) instead of "Assigned" (blue) for rework cards
+- Added "Rework: X pcs" stat line in amber color
+
+**Backend Fix (departmentService.ts):**
+- **Root Cause:** `alteration_source` was only populated when `remarks === 'ALTERED'`
+- Once worker assigned, `remarks` changes to `'Assigned'`, so `alteration_source` became `null`
+- **Fix:** Changed condition from `if (sub.remarks === 'ALTERED' && sub.altered_created...)` to `if (sub.altered_created...)`
+- Now `alteration_source` persists regardless of `remarks` value
+- Same fix applied for `rejection_source`
+
+**4. UI-010: Already Fixed**
+- Code check confirmed "Send To" button already has correct visibility condition at line 575
+- Button hidden when `item.sub_batch?.status === 'COMPLETED'`
+
+#### Files Modified
+
+**Frontend:**
+- `src/app/SupervisorDashboard/depcomponents/TaskDetailsModal.tsx`
+- `src/app/SupervisorDashboard/depcomponents/altered/AlteredTaskDetailsModal.tsx`
+- `src/app/SupervisorDashboard/depcomponents/rejected/RejectedTaskDetailsModal.tsx`
+- `src/app/SupervisorDashboard/components/views/DepartmentView.tsx`
+
+**Backend:**
+- `blueshark-backend-test/backend/src/services/departmentService.ts`
+
+**Documentation:**
+- `docs/BACKLOG.md` - Updated with new issues, marked BACKLOG-001 as FIXED
+- `docs/SESSION_LOG.md` - This entry
+
+#### Testing Checklist
+
+| Test | Expected | Result |
+|------|----------|--------|
+| Dep-1 (first): Mark Complete button | HIDDEN | ✅ PASSED |
+| Dep-3 (last): Mark Complete button | VISIBLE (if not already completed) | ✅ PASSED |
+| Rework card visual distinction | Amber styling persists | ⏳ Pending verification |
+
+#### Next Steps
+1. Verify UI-007 fix by refreshing Dep-3 dashboard
+2. Continue with remaining UI issues (UI-004, UI-S2-001, UI-S2-002, UI-005)
 
 ---
 

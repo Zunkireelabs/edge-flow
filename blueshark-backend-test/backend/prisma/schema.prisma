@@ -365,6 +365,14 @@ model Supervisor {
   department   departments? @relation(fields: [departmentId], references: [id])
 }
 
+// Inventory Categories - User-defined categories for organizing inventory items
+model inventory_category {
+  id        Int         @id @default(autoincrement())
+  name      String      @unique
+  createdAt DateTime    @default(now())
+  inventory inventory[]
+}
+
 model inventory {
   id                     Int                     @id @default(autoincrement())
   name                   String
@@ -375,8 +383,13 @@ model inventory {
   vendor                 String
   phone                  String
   remarks                String?
+  category_id            Int?                    // Optional category reference
+  min_quantity           Float?                  @default(0) // Low-stock threshold
+  category               inventory_category?     @relation(fields: [category_id], references: [id])
   inventory_subtractions inventory_subtraction[]
   inventory_additions    inventory_addition[]
+
+  @@index([category_id])
 }
 
 model inventory_subtraction {
@@ -385,6 +398,7 @@ model inventory_subtraction {
   date         DateTime  @default(now())
   quantity     Float
   remarks      String?
+  reason       String?   // Reason code: PRODUCTION_USE, DAMAGED, SAMPLE, RETURNED, EXPIRED, OTHER
   inventory    inventory @relation(fields: [inventory_id], references: [id])
 
   @@index([inventory_id])

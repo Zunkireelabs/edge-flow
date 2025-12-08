@@ -11,6 +11,7 @@ import { NavigationItem } from "../../types/navigation";
 
 interface RightContentProps {
   activeView: string;
+  onViewChange?: (view: string) => void;
 }
 
 const navItems: NavigationItem[] = [
@@ -26,15 +27,15 @@ const navItems: NavigationItem[] = [
   { id: "vendors", label: "Vendors", icon: Truck },
   { id: "workers", label: "Workers", icon: Users2 },
   { id: "departments", label: "Departments", icon: Building },
-  { id: "createsupervisor", label: "Supervisor", icon: UserPlus }, 
+  { id: "createsupervisor", label: "Supervisor", icon: UserPlus },
 ];
 
-const RightContent: React.FC<RightContentProps> = ({ activeView }) => (
+const RightContent: React.FC<RightContentProps> = ({ activeView, onViewChange }) => (
   <div className="flex flex-col flex-1 h-full bg-[#f7f7f7] pl-2">
     <Header activeView={activeView} navigationItems={navItems} />
     <main className="flex-1 overflow-hidden">
       <div className="bg-[#ffffff] rounded-l-xl h-full border border-gray-200 overflow-auto">
-        <ContentRouter activeView={activeView} />
+        <ContentRouter activeView={activeView} onViewChange={onViewChange} />
       </div>
     </main>
   </div>

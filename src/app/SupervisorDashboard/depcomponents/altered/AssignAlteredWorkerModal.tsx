@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
 import NepaliDatePicker from '@/app/Components/NepaliDatePicker';
+import { useToast } from '@/app/Components/ToastContext';
 
 interface Worker {
     id: number;
@@ -30,6 +31,7 @@ const AssignAlteredWorkerModal: React.FC<AssignAlteredWorkerModalProps> = ({
     alteredQuantity,
     taskId
 }) => {
+    const { showToast } = useToast();
     const [workers, setWorkers] = useState<Worker[]>([]);
     const [selectedWorkerId, setSelectedWorkerId] = useState<number | null>(null);
     const [quantity, setQuantity] = useState<number>(0);
@@ -65,12 +67,12 @@ const AssignAlteredWorkerModal: React.FC<AssignAlteredWorkerModalProps> = ({
 
     const handleSave = () => {
         if (!selectedWorkerId || !quantity || quantity <= 0) {
-            alert('Please select a worker and enter a valid quantity');
+            showToast('warning', 'Please select a worker and enter a valid quantity');
             return;
         }
 
         if (quantity > alteredQuantity) {
-            alert(`Quantity cannot exceed altered quantity (${alteredQuantity})`);
+            showToast('error', `Quantity cannot exceed altered quantity (${alteredQuantity})`);
             return;
         }
 

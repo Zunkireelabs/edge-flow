@@ -236,19 +236,13 @@ export async function getSubBatchesByDepartment(departmentId: number) {
       let alteration_source = null;
       let rejection_source = null;
 
-      // For ALTERED cards - Get source department info
-      if (sub.remarks === 'ALTERED' && sub.altered_created && sub.altered_created.length > 0) {
+      // For cards that originated from alteration - populate alteration_source
+      // Check multiple indicators since rework cards can be forwarded to other departments:
+      // 1. altered_created - direct alteration record (original alteration card)
+      // 2. alter_reason - set when card originated from alteration (persists across forwards)
+      if (sub.altered_created && sub.altered_created.length > 0) {
         const alteredRecord = sub.altered_created[0];
         const sourceDept = alteredRecord.source_entry?.department;
-
-        console.log('=== Alteration Source Debug ===');
-        console.log('Sub-batch ID:', sub.sub_batch_id);
-        console.log('Dept Sub-batch ID:', sub.id);
-        console.log('Remarks:', sub.remarks);
-        console.log('altered_created length:', sub.altered_created.length);
-        console.log('alteredRecord:', alteredRecord);
-        console.log('source_entry:', alteredRecord.source_entry);
-        console.log('sourceDept:', sourceDept);
 
         alteration_source = {
           from_department_id: sourceDept?.id || sub.sent_from_department,
@@ -257,13 +251,33 @@ export async function getSubBatchesByDepartment(departmentId: number) {
           reason: alteredRecord.reason || sub.alter_reason,
           created_at: sub.createdAt,
         };
+      } else if (sub.alter_reason) {
+        // Card was forwarded from a rework - alter_reason persists but altered_created doesn't
+        // This handles cases where rework card is sent to next department (e.g., Dep-1 -> Dep-2)
+        // Fetch the department name since we only have the ID
+        let fromDeptName = null;
+        if (sub.sent_from_department) {
+          const fromDept = await prisma.departments.findUnique({
+            where: { id: sub.sent_from_department },
+            select: { name: true },
+          });
+          fromDeptName = fromDept?.name || null;
+        }
 
-        console.log('Built alteration_source:', alteration_source);
-        console.log('==============================');
+        alteration_source = {
+          from_department_id: sub.sent_from_department || null,
+          from_department_name: fromDeptName,
+          quantity: sub.quantity_received || sub.total_quantity,
+          reason: sub.alter_reason,
+          created_at: sub.createdAt,
+        };
       }
 
-      // For REJECTED cards - Get source department info
-      if (sub.remarks === 'REJECTED' && sub.rejected_created && sub.rejected_created.length > 0) {
+      // For cards that originated from rejection - populate rejection_source
+      // Check multiple indicators since rejection cards can be forwarded:
+      // 1. rejected_created - direct rejection record (original rejection card)
+      // 2. reject_reason - set when card originated from rejection (persists across forwards)
+      if (sub.rejected_created && sub.rejected_created.length > 0) {
         const rejectedRecord = sub.rejected_created[0];
         const sourceDept = rejectedRecord.source_entry?.department;
 
@@ -272,6 +286,25 @@ export async function getSubBatchesByDepartment(departmentId: number) {
           from_department_name: sourceDept?.name || null,
           quantity: rejectedRecord.quantity,
           reason: rejectedRecord.reason || sub.reject_reason,
+          created_at: sub.createdAt,
+        };
+      } else if (sub.reject_reason) {
+        // Card was forwarded from a rejection - reject_reason persists but rejected_created doesn't
+        // Fetch the department name since we only have the ID
+        let fromDeptName = null;
+        if (sub.sent_from_department) {
+          const fromDept = await prisma.departments.findUnique({
+            where: { id: sub.sent_from_department },
+            select: { name: true },
+          });
+          fromDeptName = fromDept?.name || null;
+        }
+
+        rejection_source = {
+          from_department_id: sub.sent_from_department || null,
+          from_department_name: fromDeptName,
+          quantity: sub.quantity_received || sub.total_quantity,
+          reason: sub.reject_reason,
           created_at: sub.createdAt,
         };
       }

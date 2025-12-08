@@ -576,6 +576,21 @@ const TaskDetailsModal: React.FC<TaskDetailsModalProps> = ({ isOpen, onClose, ta
         };
     }, [currentDepartmentRecords]);
 
+    // Check if current department is the LAST department in the workflow
+    // This is used to determine if "Mark Sub-batch as Completed" button should be shown
+    const isLastDepartment = useMemo(() => {
+        const departmentFlow = subBatchHistory?.department_flow;
+        const currentDeptName = taskData?.department?.name;
+
+        if (!departmentFlow || !currentDeptName) return false;
+
+        // Parse flow: "Dep-1 → Dep-2 → Dep-3"
+        const flow = departmentFlow.split('→').map((d: string) => d.trim());
+        const lastDepartment = flow[flow.length - 1];
+
+        return currentDeptName === lastDepartment;
+    }, [subBatchHistory?.department_flow, taskData?.department?.name]);
+
     // Memoize event handlers
     const handleAddRecord = useCallback(() => {
         setModalMode('add');
@@ -1171,7 +1186,12 @@ const TaskDetailsModal: React.FC<TaskDetailsModalProps> = ({ isOpen, onClose, ta
                                                             }}
                                                             className="w-full flex items-center justify-between px-4 py-3 hover:bg-gray-50 rounded-t-lg"
                                                         >
-                                                            <span className="text-sm font-medium text-gray-900">{dept.department_name}</span>
+                                                            <div className="flex items-center gap-2">
+                                                                <span className="text-sm font-medium text-gray-900">{dept.department_name}</span>
+                                                                {dept.entry_type === 'REWORK' && (
+                                                                    <span className="text-xs px-2 py-0.5 bg-amber-100 text-amber-700 rounded-full">Rework</span>
+                                                                )}
+                                                            </div>
                                                             <ChevronRight
                                                                 size={16}
                                                                 className={`text-gray-500 transition-transform ${isExpanded ? 'rotate-90' : ''}`}
@@ -1540,8 +1560,11 @@ const TaskDetailsModal: React.FC<TaskDetailsModalProps> = ({ isOpen, onClose, ta
                                 Cancel
                             </button>
                             <div className="flex gap-2">
-                                {/* Show Mark as Completed button only when stage is COMPLETED and sub-batch is not already completed */}
-                                {taskData.stage === 'COMPLETED' && taskData.sub_batch?.status !== 'COMPLETED' && (
+                                {/* Show Mark as Completed button only when:
+                                    1. Stage is COMPLETED
+                                    2. Sub-batch is not already marked as COMPLETED
+                                    3. Current department is the LAST department in workflow */}
+                                {taskData.stage === 'COMPLETED' && taskData.sub_batch?.status !== 'COMPLETED' && isLastDepartment && (
                                     <button
                                         onClick={() => setShowCompletionDialog(true)}
                                         disabled={saving}

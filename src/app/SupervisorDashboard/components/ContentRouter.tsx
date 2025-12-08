@@ -13,9 +13,12 @@ import CreateSupervisor from "./views/CreateSupervisor";
 
 interface ContentRouterProps {
   activeView: string;
+  onViewChange?: (view: string) => void;
 }
 
-const ContentRouter: React.FC<ContentRouterProps> = ({ activeView }) => {
+const ContentRouter: React.FC<ContentRouterProps> = ({ activeView, onViewChange }) => {
+  // onViewChange can be passed to child components if they need to navigate
+  void onViewChange; // Acknowledge the prop to avoid unused variable warning
   switch (activeView) {
     case "dashboard":
       return <Dashboard />;

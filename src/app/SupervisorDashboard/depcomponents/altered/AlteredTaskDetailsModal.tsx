@@ -1,7 +1,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { X, Calendar, Plus, ChevronDown, ChevronRight, CheckCircle, Clock, Inbox, Pencil, Trash2, MoreVertical, Edit3, AlertTriangle } from 'lucide-react';
 import NepaliDatePicker from '@/app/Components/NepaliDatePicker';
+import { useToast } from '@/app/Components/ToastContext';
 
 interface AlteredTaskData {
     id: number;
@@ -14,13 +15,16 @@ interface AlteredTaskData {
     due_date: string;
     status: string;
     sent_from_department: string;
+    sent_from_department_id?: number;  // ✅ NEW: For filtering "Send to Department" dropdown
     alteration_date: string;
     altered_by: string;
     altered_quantity: number;
     alter_reason?: string;  // Alteration reason from database
     attachments?: { name: string; count: number }[];
     quantity_remaining?: number;
+    quantity_received?: number;  // ✅ NEW: Actual received quantity (constant, doesn't change with work)
     sub_batch?: any;  // Add sub_batch object for accessing estimated_pieces
+    department?: { id: number; name: string };  // ✅ NEW: Current department info
     // ✅ Add alteration_source from backend
     alteration_source?: {
         from_department_id: number;
@@ -62,6 +66,7 @@ const AlteredTaskDetailsModal: React.FC<AlteredTaskDetailsModalProps> = ({
     taskData,
     onStageChange
 }) => {
+    const { showToast } = useToast();
     const [status, setStatus] = useState(taskData.status || 'NEW_ARRIVAL');
     const [saving, setSaving] = useState(false);
     const [workerRecords, setWorkerRecords] = useState<WorkerRecord[]>([]);
@@ -82,6 +87,22 @@ const AlteredTaskDetailsModal: React.FC<AlteredTaskDetailsModalProps> = ({
     const [editDate, setEditDate] = useState('');
     const [isBillable, setIsBillable] = useState(true);
     const [openMenuId, setOpenMenuId] = useState<number | null>(null);
+    const [unitPrice, setUnitPrice] = useState<string>('');
+
+    // Check if current department is the LAST department in the workflow
+    // This is used to determine if "Mark Sub-batch as Completed" button should be shown
+    const isLastDepartment = useMemo(() => {
+        const departmentFlow = subBatchHistory?.department_flow;
+        const currentDeptName = taskData?.department?.name;
+
+        if (!departmentFlow || !currentDeptName) return false;
+
+        // Parse flow: "Dep-1 → Dep-2 → Dep-3"
+        const flow = departmentFlow.split('→').map((d: string) => d.trim());
+        const lastDepartment = flow[flow.length - 1];
+
+        return currentDeptName === lastDepartment;
+    }, [subBatchHistory?.department_flow, taskData?.department?.name]);
 
     // Fetch sub-batch history (department flow and worker logs)
     const fetchSubBatchHistory = useCallback(async () => {
@@ -188,15 +209,23 @@ const AlteredTaskDetailsModal: React.FC<AlteredTaskDetailsModalProps> = ({
             console.log('Current Department ID:', currentDepartmentId);
 
             if (result.success && Array.isArray(result.data)) {
-                // Filter to show ONLY workers assigned to this altered sub-batch in the CURRENT department
+                // Filter to show ONLY workers assigned to THIS SPECIFIC department_sub_batch card
+                // Using department_sub_batch_id ensures we only show work done on THIS card, not other cards
+                const currentDeptSubBatchId = taskData.id; // This is the department_sub_batch ID
+
                 const filteredData = result.data.filter((r: any) => {
                     const isAltered = r.activity_type === 'ALTERED';
-                    const isCurrentDepartment = r.department_id && currentDepartmentId &&
+                    // Primary filter: Match by department_sub_batch_id (most accurate)
+                    const isThisCard = r.department_sub_batch_id && currentDeptSubBatchId &&
+                                      r.department_sub_batch_id.toString() === currentDeptSubBatchId.toString();
+                    // Fallback filter: Match by department_id if department_sub_batch_id not set
+                    const isCurrentDepartment = !r.department_sub_batch_id &&
+                                               r.department_id && currentDepartmentId &&
                                                r.department_id.toString() === currentDepartmentId.toString();
-                    return isAltered && isCurrentDepartment;
+                    return isAltered && (isThisCard || isCurrentDepartment);
                 });
 
-                console.log('Filtered ALTERED workers for current department:', filteredData);
+                console.log('Filtered ALTERED workers for this card (dept_sub_batch_id:', currentDeptSubBatchId, '):', filteredData);
 
                 const mappedRecords = filteredData.map((r: any) => ({
                     id: r.id,
@@ -250,38 +279,50 @@ const AlteredTaskDetailsModal: React.FC<AlteredTaskDetailsModalProps> = ({
 
         // Check if there's remaining work
         if (remainingWork <= 0) {
-            alert('Cannot add worker!\n\nThere is no remaining work. All received quantity has been assigned to workers.');
+            showToast('error', 'Cannot add worker! There is no remaining work. All received quantity has been assigned to workers.');
             return;
         }
 
-        // Require worker, quantity, and date (quantity is now REQUIRED)
+        // Require worker, quantity, unit_price, and date
         if (!newWorkerId || !newWorkerDate || !newWorkerQuantity || !newWorkerQuantity.trim()) {
-            alert('Please select worker, enter quantity, and select date');
+            showToast('warning', 'Please select worker, enter quantity, and select date');
+            return;
+        }
+
+        // Validate unit_price
+        if (!unitPrice || !unitPrice.trim()) {
+            showToast('warning', 'Please enter a unit price');
+            return;
+        }
+
+        const parsedUnitPrice = parseFloat(unitPrice);
+        if (isNaN(parsedUnitPrice) || parsedUnitPrice < 0) {
+            showToast('error', 'Please enter a valid unit price (0 or greater)');
             return;
         }
 
         // Validate quantity is a positive number
         const quantity = parseInt(newWorkerQuantity);
         if (isNaN(quantity) || quantity <= 0) {
-            alert('Please enter a valid quantity greater than 0');
+            showToast('error', 'Please enter a valid quantity greater than 0');
             return;
         }
 
         // Check if the entered quantity exceeds remaining work
         if (quantity > remainingWork) {
-            alert(`Cannot assign ${quantity} units!\n\nOnly ${remainingWork} units remaining from the altered quantity of ${receivedQuantity}.\n\nAlready assigned: ${workedQuantity} units`);
+            showToast('error', `Cannot assign ${quantity} units! Only ${remainingWork} units remaining from altered quantity of ${receivedQuantity}. Already assigned: ${workedQuantity} units`);
             return;
         }
 
         const selectedWorker = workers.find(w => w.id === parseInt(newWorkerId));
 
         if (!selectedWorker) {
-            alert('Selected worker not found');
+            showToast('error', 'Selected worker not found');
             return;
         }
 
         if (!taskData?.sub_batch?.id) {
-            alert('Sub-batch ID is missing');
+            showToast('error', 'Sub-batch ID is missing');
             console.error('taskData.sub_batch:', taskData?.sub_batch);
             return;
         }
@@ -302,12 +343,12 @@ const AlteredTaskDetailsModal: React.FC<AlteredTaskDetailsModalProps> = ({
             console.log('Department ID (parsed):', parsedDepartmentId);
 
             if (!parsedDepartmentId) {
-                alert('Error: Department ID is missing!');
+                showToast('error', 'Department ID is missing!');
                 setSaving(false);
                 return;
             }
 
-            // Build payload with required quantity
+            // Build payload with required quantity and unit_price
             const payload: any = {
                 worker_id: parseInt(newWorkerId),
                 worker_name: selectedWorker.name,
@@ -317,7 +358,8 @@ const AlteredTaskDetailsModal: React.FC<AlteredTaskDetailsModalProps> = ({
                 department_id: parsedDepartmentId,
                 quantity_received: quantity,  // Required field
                 quantity_worked: quantity,    // Required field
-                sub_batch_id: taskData.sub_batch.id
+                sub_batch_id: taskData.sub_batch.id,
+                unit_price: parsedUnitPrice,  // Required for wage calculation
             };
 
             console.log('Final Payload:', JSON.stringify(payload, null, 2));
@@ -342,11 +384,12 @@ const AlteredTaskDetailsModal: React.FC<AlteredTaskDetailsModalProps> = ({
                 // Refresh worker records
                 await fetchWorkerRecords();
 
-                alert('Worker assigned successfully!');
+                showToast('success', 'Worker assigned successfully!');
                 setNewWorkerId('');
                 setNewWorkerQuantity('');
                 setNewWorkerDate('');
                 setIsBillable(true);
+                setUnitPrice('');
             } else {
                 const errorText = await response.text();
                 console.error('======= ERROR RESPONSE =======');
@@ -362,21 +405,22 @@ const AlteredTaskDetailsModal: React.FC<AlteredTaskDetailsModalProps> = ({
                 } catch {
                     errorMessage = errorText;
                 }
-                alert(`Failed to save worker!\n\nError: ${errorMessage}\n\nCheck console for full details.`);
+                showToast('error', `Failed to save worker! Error: ${errorMessage}`);
             }
         } catch (e) {
             console.error('======= EXCEPTION =======');
             console.error('Exception while saving:', e);
             console.error('Stack:', e instanceof Error ? e.stack : 'No stack trace');
             console.error('=========================');
-            alert(`Error saving record!\n\n${e instanceof Error ? e.message : 'Unknown error'}\n\nCheck console for details.`);
+            showToast('error', `Error saving record! ${e instanceof Error ? e.message : 'Unknown error'}`);
         } finally {
             setSaving(false);
         }
     };
 
     const handleDeleteWorker = async (workerId: number) => {
-        if (!confirm('Are you sure you want to delete this worker assignment?')) {
+        const confirmed = window.confirm('Are you sure you want to delete this worker assignment?');
+        if (!confirmed) {
             return;
         }
 
@@ -392,16 +436,16 @@ const AlteredTaskDetailsModal: React.FC<AlteredTaskDetailsModalProps> = ({
             });
 
             if (response.ok) {
-                alert('Worker assignment deleted successfully!');
+                showToast('success', 'Worker assignment deleted successfully!');
                 await fetchWorkerRecords();
             } else {
                 const errorText = await response.text();
                 console.error('Error deleting worker:', errorText);
-                alert(`Failed to delete worker: ${errorText}`);
+                showToast('error', `Failed to delete worker: ${errorText}`);
             }
         } catch (error) {
             console.error('Error deleting worker:', error);
-            alert('Error deleting worker. Please try again.');
+            showToast('error', 'Error deleting worker. Please try again.');
         } finally {
             setSaving(false);
         }
@@ -427,19 +471,19 @@ const AlteredTaskDetailsModal: React.FC<AlteredTaskDetailsModalProps> = ({
     const handleSaveEdit = async (workerId: number) => {
         // Validate quantity
         if (!editQuantity || !editQuantity.trim()) {
-            alert('Please enter quantity');
+            showToast('warning', 'Please enter quantity');
             return;
         }
 
         const quantity = parseInt(editQuantity);
         if (isNaN(quantity) || quantity <= 0) {
-            alert('Please enter a valid quantity greater than 0');
+            showToast('error', 'Please enter a valid quantity greater than 0');
             return;
         }
 
         // Validate date
         if (!editDate) {
-            alert('Please select a date');
+            showToast('warning', 'Please select a date');
             return;
         }
 
@@ -452,7 +496,7 @@ const AlteredTaskDetailsModal: React.FC<AlteredTaskDetailsModalProps> = ({
 
         // Check if the new quantity exceeds remaining work
         if (quantity > remainingWork) {
-            alert(`Cannot assign ${quantity} units!\n\nOnly ${remainingWork} units available (excluding current assignment).\n\nTotal altered quantity: ${receivedQuantity}\nOther workers: ${otherWorkersQuantity} units`);
+            showToast('error', `Cannot assign ${quantity} units! Only ${remainingWork} units available (excluding current assignment). Total altered: ${receivedQuantity}, Other workers: ${otherWorkersQuantity} units`);
             return;
         }
 
@@ -477,17 +521,17 @@ const AlteredTaskDetailsModal: React.FC<AlteredTaskDetailsModalProps> = ({
             });
 
             if (response.ok) {
-                alert('Worker assignment updated successfully!');
+                showToast('success', 'Worker assignment updated successfully!');
                 await fetchWorkerRecords();
                 handleCancelEdit();
             } else {
                 const errorText = await response.text();
                 console.error('Error updating worker:', errorText);
-                alert(`Failed to update worker: ${errorText}`);
+                showToast('error', `Failed to update worker: ${errorText}`);
             }
         } catch (error) {
             console.error('Error updating worker:', error);
-            alert('Error updating worker. Please try again.');
+            showToast('error', 'Error updating worker. Please try again.');
         } finally {
             setSaving(false);
         }
@@ -508,8 +552,24 @@ const AlteredTaskDetailsModal: React.FC<AlteredTaskDetailsModalProps> = ({
 
     const handleSave = async () => {
         if (!taskData?.id) {
-            alert('Task data is missing');
+            showToast('error', 'Task data is missing');
             return;
+        }
+
+        // Check if user has unsaved worker form data
+        if (newWorkerId || newWorkerQuantity || newWorkerDate) {
+            const confirmProceed = window.confirm(
+                'You have unsaved worker assignment data.\n\n' +
+                '• Click "Cancel" to go back and use the + button to add the worker first.\n' +
+                '• Click "OK" to discard the worker data and proceed with status update.'
+            );
+            if (!confirmProceed) {
+                return;
+            }
+            // Clear the form if user chooses to proceed
+            setNewWorkerId('');
+            setNewWorkerQuantity('');
+            setNewWorkerDate('');
         }
 
         // If the task is ALREADY in COMPLETED stage, status is still COMPLETED, and user selects a department to send to
@@ -519,28 +579,29 @@ const AlteredTaskDetailsModal: React.FC<AlteredTaskDetailsModalProps> = ({
                 const token = localStorage.getItem('token');
 
                 if (!token) {
-                    alert('Authentication required. Please login again.');
+                    showToast('error', 'Authentication required. Please login again.');
                     return;
                 }
 
                 // Validate quantityBeingSent
                 if (!quantityBeingSent || !quantityBeingSent.trim()) {
-                    alert('Please enter the quantity you want to send to the next department');
+                    showToast('warning', 'Please enter the quantity you want to send to the next department');
                     setSaving(false);
                     return;
                 }
 
                 const quantity = parseInt(quantityBeingSent);
-                const availableQuantity = taskData.quantity_remaining ?? taskData.altered_quantity;
+                // Use quantity_received for altered items (what was sent for rework, constant value)
+                const availableQuantity = taskData.quantity_received ?? taskData.altered_quantity;
 
                 if (isNaN(quantity) || quantity <= 0) {
-                    alert('Please enter a valid quantity greater than 0');
+                    showToast('error', 'Please enter a valid quantity greater than 0');
                     setSaving(false);
                     return;
                 }
 
                 if (quantity > availableQuantity) {
-                    alert(`Cannot send ${quantity} pieces!\n\nOnly ${availableQuantity} pieces are available.\n\nPlease enter a quantity between 1 and ${availableQuantity}.`);
+                    showToast('error', `Cannot send ${quantity} pieces! Only ${availableQuantity} pieces available. Enter between 1 and ${availableQuantity}.`);
                     setSaving(false);
                     return;
                 }
@@ -571,7 +632,7 @@ const AlteredTaskDetailsModal: React.FC<AlteredTaskDetailsModalProps> = ({
                 const result = await response.json();
 
                 if (result.success) {
-                    alert('Successfully sent to department!');
+                    showToast('success', 'Successfully sent to department!');
                     onClose();
                     setSendToDepartment('');
                     setQuantityBeingSent('');
@@ -588,22 +649,35 @@ const AlteredTaskDetailsModal: React.FC<AlteredTaskDetailsModalProps> = ({
                 }
             } catch (error) {
                 console.error('Error sending to department:', error);
-                alert(`Failed to send to department: ${error instanceof Error ? error.message : 'Unknown error'}`);
+                showToast('error', `Failed to send to department: ${error instanceof Error ? error.message : 'Unknown error'}`);
             } finally {
                 setSaving(false);
             }
         } else if (taskData.status === 'COMPLETED' && status === 'COMPLETED' && !sendToDepartment) {
             // Task is already completed, status is still completed, but no department selected
-            alert('Please select a department to send this completed task to');
+            showToast('warning', 'Please select a department to send this completed task to');
             return;
         } else {
             // Normal stage update (including moving to COMPLETED for the first time OR changing status from COMPLETED to something else)
+
+            // Block changing to COMPLETED if there's remaining work
+            if (status === 'COMPLETED') {
+                const receivedQuantity = taskData.quantity_remaining ?? taskData.altered_quantity;
+                const workedQuantity = workerRecords.reduce((sum, record) => sum + (record.quantity || 0), 0);
+                const remainingWork = receivedQuantity - workedQuantity;
+
+                if (remainingWork > 0) {
+                    showToast('error', `Cannot mark as Completed! You still have ${remainingWork} pieces remaining. Please assign all ${receivedQuantity} pieces to workers.`);
+                    return;
+                }
+            }
+
             try {
                 setSaving(true);
                 const token = localStorage.getItem('token');
 
                 if (!token) {
-                    alert('Authentication required. Please login again.');
+                    showToast('error', 'Authentication required. Please login again.');
                     return;
                 }
 
@@ -630,7 +704,7 @@ const AlteredTaskDetailsModal: React.FC<AlteredTaskDetailsModalProps> = ({
                 const result = await response.json();
 
                 if (result.success) {
-                    alert('Status updated successfully!');
+                    showToast('success', 'Status updated successfully!');
                     onClose();
                     // Refresh the kanban board
                     if (onStageChange) {
@@ -641,7 +715,7 @@ const AlteredTaskDetailsModal: React.FC<AlteredTaskDetailsModalProps> = ({
                 }
             } catch (error) {
                 console.error('Error updating stage:', error);
-                alert(error instanceof Error ? error.message : 'Failed to update status. Please try again.');
+                showToast('error', error instanceof Error ? error.message : 'Failed to update status. Please try again.');
             } finally {
                 setSaving(false);
             }
@@ -651,7 +725,7 @@ const AlteredTaskDetailsModal: React.FC<AlteredTaskDetailsModalProps> = ({
     // Handle marking sub-batch as completed
     const handleMarkAsCompleted = async () => {
         if (confirmationText.toLowerCase() !== 'yes') {
-            alert('Please type "yes" to confirm marking this sub-batch as completed');
+            showToast('warning', 'Please type "yes" to confirm marking this sub-batch as completed');
             return;
         }
 
@@ -660,14 +734,14 @@ const AlteredTaskDetailsModal: React.FC<AlteredTaskDetailsModalProps> = ({
             const token = localStorage.getItem('token');
 
             if (!token) {
-                alert('Authentication required. Please login again.');
+                showToast('error', 'Authentication required. Please login again.');
                 return;
             }
 
             const subBatchId = taskData.id;
 
             if (!subBatchId) {
-                alert('Cannot mark as completed: Sub-batch ID is missing');
+                showToast('error', 'Cannot mark as completed: Sub-batch ID is missing');
                 return;
             }
 
@@ -693,7 +767,7 @@ const AlteredTaskDetailsModal: React.FC<AlteredTaskDetailsModalProps> = ({
             const result = await response.json();
 
             if (result.success) {
-                alert('Sub-batch has been marked as COMPLETED! It can no longer be moved.');
+                showToast('success', 'Sub-batch has been marked as COMPLETED! It can no longer be moved.');
                 setShowCompletionDialog(false);
                 setConfirmationText('');
                 onClose();
@@ -711,7 +785,7 @@ const AlteredTaskDetailsModal: React.FC<AlteredTaskDetailsModalProps> = ({
             }
         } catch (error: any) {
             console.error('Error marking as completed:', error);
-            alert(`Failed to mark as completed: ${error.message}`);
+            showToast('error', `Failed to mark as completed: ${error.message}`);
         } finally {
             setSaving(false);
         }
@@ -855,6 +929,7 @@ const AlteredTaskDetailsModal: React.FC<AlteredTaskDetailsModalProps> = ({
                                         )}
 
                                         {/* Show Send to Department ONLY when task is ALREADY COMPLETED in DB AND dropdown is still COMPLETED */}
+                                        {/* For ALTERED cards: Only show the source department (where it came from) - rework goes BACK */}
                                         {taskData.status === 'COMPLETED' && status === 'COMPLETED' && (
                                             <div>
                                                 <label className="text-sm font-medium text-gray-900 block mb-2">Send to Department</label>
@@ -864,18 +939,28 @@ const AlteredTaskDetailsModal: React.FC<AlteredTaskDetailsModalProps> = ({
                                                         onChange={(e) => {
                                                             setSendToDepartment(e.target.value);
                                                             // Auto-fill quantity with available quantity when department is selected
+                                                            // Use quantity_received (constant) for altered items, not quantity_remaining
                                                             if (e.target.value && !quantityBeingSent) {
-                                                                setQuantityBeingSent((taskData.quantity_remaining ?? taskData.altered_quantity).toString());
+                                                                setQuantityBeingSent((taskData.quantity_received ?? taskData.altered_quantity).toString());
                                                             }
                                                         }}
                                                         className="w-full bg-gray-50 border border-gray-200 rounded-lg px-4 py-2.5 text-sm text-gray-900 appearance-none pr-10 focus:outline-none focus:ring-2 focus:ring-blue-500"
                                                     >
                                                         <option value="">Select Department</option>
-                                                        {departments.map((dept) => (
-                                                            <option key={dept.id} value={dept.id}>
-                                                                {dept.name}
-                                                            </option>
-                                                        ))}
+                                                        {/* Show all departments EXCEPT the current one */}
+                                                        {/* After rework is completed, it should continue in the workflow to the next department */}
+                                                        {departments
+                                                            .filter((dept) => {
+                                                                // Get current department ID from localStorage
+                                                                const currentDeptId = localStorage.getItem("departmentId");
+                                                                // Exclude the current department (can't send to yourself)
+                                                                return currentDeptId ? dept.id.toString() !== currentDeptId : true;
+                                                            })
+                                                            .map((dept) => (
+                                                                <option key={dept.id} value={dept.id}>
+                                                                    {dept.name}
+                                                                </option>
+                                                            ))}
                                                     </select>
                                                     <ChevronDown size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
                                                 </div>
@@ -896,12 +981,12 @@ const AlteredTaskDetailsModal: React.FC<AlteredTaskDetailsModalProps> = ({
                                                     onChange={(e) => setQuantityBeingSent(e.target.value)}
                                                     placeholder="Enter quantity"
                                                     min="1"
-                                                    max={taskData.quantity_remaining ?? taskData.altered_quantity}
+                                                    max={taskData.quantity_received ?? taskData.altered_quantity}
                                                     className="w-full bg-white border border-gray-200 rounded-lg px-4 py-2.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
                                                     required
                                                 />
                                                 <p className="text-xs text-gray-500 mt-1">
-                                                    Available: {(taskData.quantity_remaining ?? taskData.altered_quantity).toLocaleString()} pieces
+                                                    Available: {(taskData.quantity_received ?? taskData.altered_quantity).toLocaleString()} pieces
                                                 </p>
                                             </div>
                                         </div>
@@ -981,14 +1066,14 @@ const AlteredTaskDetailsModal: React.FC<AlteredTaskDetailsModalProps> = ({
                             <div className="mb-8">
                                 <h4 className="text-lg font-semibold mb-6 text-gray-900">Production Summary</h4>
                                 <div className="flex items-start gap-12">
-                                    {/* Received */}
+                                    {/* Received - Use quantity_received (constant) or altered_quantity, NOT quantity_remaining */}
                                     <div className="flex flex-col">
                                         <div className="flex items-center gap-2 mb-2">
                                             <Inbox className="text-blue-500" size={18} />
                                             <span className="text-sm text-gray-600">Received</span>
                                         </div>
                                         <p className="text-[16px] text-center font-semibold text-gray-900">
-                                            {(taskData.quantity_remaining ?? taskData.altered_quantity).toLocaleString()}
+                                            {(taskData.quantity_received ?? taskData.altered_quantity).toLocaleString()}
                                         </p>
                                     </div>
 
@@ -1004,15 +1089,14 @@ const AlteredTaskDetailsModal: React.FC<AlteredTaskDetailsModalProps> = ({
                                         </p>
                                     </div>
 
-                                    {/* Remaining */}
+                                    {/* Remaining - Use quantity_remaining directly from backend (already calculated) */}
                                     <div className="flex flex-col">
                                         <div className="flex items-center gap-2 mb-2">
                                             <Clock className="text-blue-500" size={18} />
                                             <span className="text-sm text-gray-600">Remaining</span>
                                         </div>
                                         <p className="text-[16px] text-center font-semibold text-gray-900">
-
-                                            {((taskData.quantity_remaining ?? taskData.altered_quantity) - workerRecords.reduce((sum, record) => sum + (record.quantity || 0), 0)).toLocaleString()}
+                                            {(taskData.quantity_remaining ?? 0).toLocaleString()}
                                         </p>
                                     </div>
                                 </div>
@@ -1124,7 +1208,21 @@ const AlteredTaskDetailsModal: React.FC<AlteredTaskDetailsModalProps> = ({
                                         <label className="text-sm font-medium text-gray-900 block mb-2">Worker Name</label>
                                         <select
                                             value={newWorkerId}
-                                            onChange={(e) => setNewWorkerId(e.target.value)}
+                                            onChange={(e) => {
+                                                const selectedId = e.target.value;
+                                                setNewWorkerId(selectedId);
+                                                // Auto-fill unit_price from worker's wage_rate
+                                                if (selectedId) {
+                                                    const selectedWorker = workers.find(w => w.id === parseInt(selectedId));
+                                                    if (selectedWorker && selectedWorker.wage_rate) {
+                                                        setUnitPrice(selectedWorker.wage_rate.toString());
+                                                    } else {
+                                                        setUnitPrice('');
+                                                    }
+                                                } else {
+                                                    setUnitPrice('');
+                                                }
+                                            }}
                                             disabled={loadingWorkers || workers.length === 0}
                                             className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white disabled:bg-gray-100 disabled:cursor-not-allowed"
                                         >
@@ -1163,7 +1261,7 @@ const AlteredTaskDetailsModal: React.FC<AlteredTaskDetailsModalProps> = ({
                                             </div>
                                         )}
                                     </div>
-                                    <div className="w-32">
+                                    <div className="w-28">
                                         <label className="text-sm font-medium text-gray-900 block mb-2">
                                             Quantity <span className="text-red-500">*</span>
                                         </label>
@@ -1176,6 +1274,26 @@ const AlteredTaskDetailsModal: React.FC<AlteredTaskDetailsModalProps> = ({
                                             className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
                                             required
                                         />
+                                    </div>
+                                    <div className="w-28">
+                                        <label className="text-sm font-medium text-gray-900 block mb-2">
+                                            Unit Price <span className="text-red-500">*</span>
+                                        </label>
+                                        <input
+                                            type="number"
+                                            value={unitPrice}
+                                            onChange={(e) => setUnitPrice(e.target.value)}
+                                            placeholder="Rs."
+                                            min="0"
+                                            step="0.01"
+                                            className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                                            required
+                                        />
+                                        {newWorkerId && (
+                                            <p className="text-xs text-gray-500 mt-1">
+                                                Rate: Rs. {workers.find(w => w.id === parseInt(newWorkerId))?.wage_rate || 0}
+                                            </p>
+                                        )}
                                     </div>
                                     <div className="w-40">
                                         <label className="text-sm font-medium text-gray-900 block mb-2">Date</label>
@@ -1358,63 +1476,46 @@ const AlteredTaskDetailsModal: React.FC<AlteredTaskDetailsModalProps> = ({
                                                 (dept: any) => dept.department_name === trimmedName
                                             );
 
-                                            // Check if this department has altered sub-batches
-                                            const hasAlteredSubBatch = deptDetail?.worker_logs?.some(
-                                                (log: any) => log.altered && log.altered.length > 0
+                                            // For ALTERED cards, we show a simplified route:
+                                            // - Source department (where alteration was created) - shown in red/amber
+                                            // - Current department (where rework is happening) - shown in amber with "(Current - Altered)"
+                                            // - Other departments just show if they were part of the rework flow
+
+                                            // Get source department name from alteration_source or sent_from_department
+                                            const sourceDeptName = taskData.alteration_source?.from_department_name || taskData.sent_from_department;
+                                            const currentDeptName = taskData.department?.name;
+
+                                            // Is this the department where the alteration originated FROM?
+                                            const isSourceDepartment = trimmedName === sourceDeptName;
+
+                                            // Is this where the altered card currently IS?
+                                            const isCurrentDepartment = trimmedName === currentDeptName;
+
+                                            // Check if this department has work done on THIS altered card specifically
+                                            // by checking if there are ALTERED activity type logs
+                                            const hasAlteredWorkLogs = deptDetail?.worker_logs?.some(
+                                                (log: any) => log.activity_type === 'ALTERED'
                                             );
 
-                                            // Check if this department has rejected sub-batches
-                                            const hasRejectedSubBatch = deptDetail?.worker_logs?.some(
-                                                (log: any) => log.rejected && log.rejected.length > 0
-                                            );
-
-                                            // Check if this is the current department (where altered sub-batch currently is)
-                                            const isAlteredCurrentDepartment = trimmedName === taskData.sent_from_department;
-
-                                            // Check if this is where the main/parent sub-batch is currently at
-                                            const departmentIndex = subBatchHistory.department_details?.findIndex(
-                                                (dept: any) => dept.department_name === trimmedName
-                                            );
-                                            const nextDeptIndex = departmentIndex + 1;
-                                            const nextDept = subBatchHistory.department_details?.[nextDeptIndex];
-
-                                            // Main sub-batch location: Check for NORMAL logs (not altered, not rejected)
-                                            // Filter to only count normal/main production logs
-                                            const hasNormalLogs = deptDetail?.worker_logs?.some(
-                                                (log: any) => {
-                                                    const hasAltered = log.altered && log.altered.length > 0;
-                                                    const hasRejected = log.rejected && log.rejected.length > 0;
-                                                    // Has logs that are NOT altered or rejected (normal main production)
-                                                    return !hasAltered && !hasRejected;
-                                                }
-                                            );
-
-                                            const nextHasNormalLogs = nextDept?.worker_logs?.some(
-                                                (log: any) => {
-                                                    const hasAltered = log.altered && log.altered.length > 0;
-                                                    const hasRejected = log.rejected && log.rejected.length > 0;
-                                                    return !hasAltered && !hasRejected;
-                                                }
-                                            );
-
-                                            // Main sub-batch is at the last department with normal logs
-                                            const isMainSubBatchHere = hasNormalLogs && !nextHasNormalLogs;
-
-                                            // Determine dot color and style
+                                            // Determine dot color and style for ALTERED card view
                                             let dotClasses = 'bg-gray-300 border-gray-300'; // Default (not yet reached)
+                                            let statusLabel = '';
 
-                                            if (isAlteredCurrentDepartment) {
-                                                // Current department - show as active (yellow for altered task)
+                                            if (isCurrentDepartment) {
+                                                // Current location of altered card
                                                 dotClasses = 'bg-yellow-500 border-yellow-500';
-                                            } else if (hasRejectedSubBatch) {
-                                                // Has rejected sub-batch - red
+                                                statusLabel = '(Current - Altered)';
+                                            } else if (isSourceDepartment) {
+                                                // Where the alteration was created FROM (the requesting department)
                                                 dotClasses = 'bg-red-500 border-red-500';
-                                            } else if (hasAlteredSubBatch) {
-                                                // Has altered sub-batch - yellow
-                                                dotClasses = 'bg-yellow-500 border-yellow-500';
-                                            } else if (deptDetail) {
-                                                // Completed department (parent flow) - green
+                                                statusLabel = '(Main sub-batch)';
+                                            } else if (hasAlteredWorkLogs) {
+                                                // This department did work on the altered card
                                                 dotClasses = 'bg-green-500 border-green-500';
+                                                statusLabel = '';
+                                            } else if (deptDetail) {
+                                                // Part of the workflow but no work on this altered card yet
+                                                dotClasses = 'bg-gray-300 border-gray-300';
                                             }
 
                                             return (
@@ -1422,17 +1523,19 @@ const AlteredTaskDetailsModal: React.FC<AlteredTaskDetailsModalProps> = ({
                                                     <div className={`w-[10px] h-[10px] rounded-full border-2 z-10 ${dotClasses}`} />
                                                     <div className="flex flex-col">
                                                         <span className={`text-sm ${
-                                                            isAlteredCurrentDepartment || deptDetail
+                                                            isCurrentDepartment || isSourceDepartment
                                                                 ? 'font-medium text-gray-900'
                                                                 : 'text-gray-600'
                                                         }`}>
                                                             {trimmedName}
-                                                            {isMainSubBatchHere && !isAlteredCurrentDepartment && (
-                                                                <span className="ml-1 text-xs text-green-600 font-semibold">(Main sub-batch)</span>
+                                                            {statusLabel && (
+                                                                <span className={`ml-1 text-xs ${
+                                                                    isCurrentDepartment ? 'text-yellow-600' :
+                                                                    isSourceDepartment ? 'text-green-600 font-semibold' : ''
+                                                                }`}>
+                                                                    {statusLabel}
+                                                                </span>
                                                             )}
-                                                            {hasRejectedSubBatch && !isMainSubBatchHere && <span className="ml-1 text-xs text-red-600">(Rejected)</span>}
-                                                            {hasAlteredSubBatch && !isAlteredCurrentDepartment && !isMainSubBatchHere && <span className="ml-1 text-xs text-yellow-600">(Altered)</span>}
-                                                            {isAlteredCurrentDepartment && <span className="ml-1 text-xs text-yellow-600">(Current - Altered)</span>}
                                                         </span>
                                                     </div>
                                                 </div>
@@ -1459,8 +1562,10 @@ const AlteredTaskDetailsModal: React.FC<AlteredTaskDetailsModalProps> = ({
                                 Cancel
                             </button>
                             <div className="flex gap-3">
-                                {/* Show Mark as Completed button only when stage is COMPLETED */}
-                                {taskData.status === 'COMPLETED' && (
+                                {/* Show Mark as Completed button only when:
+                                    1. Status is COMPLETED
+                                    2. Current department is the LAST department in workflow */}
+                                {taskData.status === 'COMPLETED' && isLastDepartment && (
                                     <button
                                         onClick={() => setShowCompletionDialog(true)}
                                         disabled={saving}
@@ -1474,7 +1579,7 @@ const AlteredTaskDetailsModal: React.FC<AlteredTaskDetailsModalProps> = ({
                                     disabled={saving}
                                     className="px-8 py-2.5 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:opacity-50 font-medium"
                                 >
-                                    {saving ? 'Saving...' : 'Save'}
+                                    {saving ? 'Updating...' : 'Update Status'}
                                 </button>
                             </div>
                         </div>
