@@ -1,7 +1,7 @@
 # BlueShark - Technical Decisions Log
 
 **Purpose:** Track major technical decisions and their rationale
-**Last Updated:** December 1, 2025
+**Last Updated:** December 8, 2025
 
 ---
 
@@ -52,6 +52,22 @@
 - Easier to customize per-role features
 - Simpler permission management
 **Impact:** Some component duplication, but clearer structure
+
+---
+
+## Build & Deployment Decisions
+
+### Decision: Strict TypeScript ESLint Rules
+**Date:** December 1, 2025
+**Decision:** Maintain strict `@typescript-eslint/no-explicit-any` rule in production builds
+**Rationale:**
+- Vercel builds were failing due to `any` type usage in `BatchView.tsx`
+- Strict typing catches errors at compile time
+- Improves code quality and maintainability
+**Impact:**
+- All sorting logic must use proper type-safe implementations
+- No `any` types allowed - use proper union types or generics
+- Build failures provide early warning of type issues
 
 ---
 
@@ -241,6 +257,55 @@
 - POST /rolls - create
 - PUT /rolls/:id - update
 - DELETE /rolls/:id - delete
+
+---
+
+## Deployment Decisions
+
+### Decision: Production v1.0 Release Strategy
+**Date:** December 8, 2025
+**Decision:** Deploy clean production with single admin user for client handoff
+**Rationale:**
+- Client needs clean slate to start real data
+- Single admin account (admin@gmail.com) for initial access
+- Dev branch continues parallel development
+- Production updates via merge to main
+**Impact:**
+- Created `cleanup_production.ts` for database reset
+- Created `create_admin.ts` for admin user creation
+- `.env.production` for Vercel environment variables
+- Development model: dev branch → test → main (production)
+
+---
+
+### Decision: Vercel Environment Variables via .env.production
+**Date:** December 8, 2025
+**Decision:** Use `.env.production` file with full URLs (no variable interpolation)
+**Rationale:**
+- Vercel doesn't support `${VAR}` interpolation in environment variables
+- Each `NEXT_PUBLIC_*` variable needs complete URL
+- `.env.production` is read during Vercel build process
+**Impact:**
+- Created `.env.production` with 40+ explicit URLs
+- All URLs point to `https://edge-flow-backend.onrender.com/api`
+- Local `.env` remains for localhost development
+- Fixed "Error saving vendor" production issue
+
+---
+
+### Decision: Git Branch Strategy for Production
+**Date:** December 8, 2025
+**Decision:** Two-branch workflow: `main` (production) and `dev` (development)
+**Rationale:**
+- Clear separation of stable and experimental code
+- Safe production deployments via merge
+- Dev can be broken without affecting production
+- Vercel auto-deploys each branch to different URLs
+**Impact:**
+- `main` → edge-flow-gamma.vercel.app (production)
+- `dev` → edge-flow-git-dev-*.vercel.app (staging)
+- All new work happens on `dev` first
+- Production updates require merge to `main`
 
 ---
 
