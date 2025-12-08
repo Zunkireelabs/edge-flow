@@ -130,7 +130,8 @@
 - ✅ **UI-004 COMPLETE** - All native `alert()` calls replaced with Toast notifications in SupervisorDashboard
 
 ### What's In Progress
-- 🔄 Ready for deployment to dev and production
+- ✅ **Production Release v1.0 DEPLOYED** - Clean database, admin user ready
+- 🔄 Ready for client usage and feedback
 
 ### What's Not Working / Known Issues
 - ⚠️ Neon free tier: databases auto-suspend after 5 min inactivity (mitigated with 30s connection timeout)
@@ -146,6 +147,83 @@
 ---
 
 ## Session Entries
+
+---
+
+### Session: 2025-12-08 (Production Release v1.0)
+
+**Duration:** ~1 hour
+**Focus:** Production deployment, database cleanup, and client handoff preparation
+
+#### Goals
+1. Push all dev changes to production (main branch)
+2. Clean production database (remove all demo data)
+3. Create admin user for client access
+4. Verify production deployment
+
+#### What Was Done
+
+**1. Dev to Main Merge ✅**
+
+Merged all development changes from `dev` branch to `main`:
+- Resolved merge conflict in `BatchView.tsx` (eslint-disable comments)
+- Pushed merge commit: `48b8936` (Merge dev to main: Production Release v1.0)
+
+**2. Production Database Cleanup ✅**
+
+Created comprehensive cleanup script (`cleanup_production.ts`) that:
+- Deletes all demo data in correct dependency order (25 tables)
+- Preserves admin@gmail.com user
+- Handles missing tables gracefully (inventory_category not yet migrated)
+- Uses production Neon database URL directly
+
+**Tables Cleaned:**
+- sub_batch_rejected, sub_batch_altered
+- worker_logs, department_sub_batch_history
+- department_sub_batches, sub_batch_workflow_steps
+- sub_batch_workflows, sub_batch_size_details
+- sub_batch_attachments, sub_batches
+- batches, rolls, department_workers
+- workers, workflow_steps, workflow_templates
+- departments, supervisors, vendors
+- inventory_subtraction, inventory_addition
+- inventory, categories, clients
+
+**3. Admin User Creation ✅**
+
+Created admin user script (`create_admin.ts`):
+- Email: admin@gmail.com
+- Password: admin (bcrypt hashed)
+- Role: ADMIN
+- ID: 1
+
+**4. Production Verification ✅**
+
+Both production services confirmed working:
+- Frontend: https://edge-flow-gamma.vercel.app (Login page loads)
+- Backend: https://edge-flow-backend.onrender.com (Returns "Backend server is running!")
+
+#### Client Handoff Information
+
+**Production URLs:**
+- Frontend: https://edge-flow-gamma.vercel.app
+- Backend: https://edge-flow-backend.onrender.com
+
+**Admin Login:**
+- Email: admin@gmail.com
+- Password: admin
+
+**Going Forward:**
+- Continue development on `dev` branch
+- Push mature features to `main` (production) as updates
+- Production database is clean and ready for real data
+
+#### Scripts Created
+
+| Script | Purpose | Command |
+|--------|---------|---------|
+| `cleanup_production.ts` | Clean all demo data from production | `npx ts-node cleanup_production.ts` |
+| `create_admin.ts` | Create admin user in production | `npx ts-node create_admin.ts` |
 
 ---
 
