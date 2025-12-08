@@ -49,7 +49,7 @@ interface SizeDetail {
 }
 
 interface SubBatchInDepartment extends SubBatch {
-  id: number; // department_sub_batch_id - unique identifier from department_sub_batches table
+  id: number; // This is sub_batch.id from backend (NOT department_sub_batch_id)
   department_stage: string;
   quantity_remaining: number | null;
   quantity_received?: number | null; // For calculating worked pieces
@@ -59,7 +59,8 @@ interface SubBatchInDepartment extends SubBatch {
   attachments: Attachment[];
   createdAt: string;
   remarks: string | null; // Values: "Main", "Assigned", "Rejected", "Altered"
-  sub_batch_id: number; // Reference to parent sub_batch
+  sub_batch_id?: number; // Reference to parent sub_batch (optional since id already IS sub_batch.id)
+  department_id?: number; // Added when card is clicked - passed from parent DepartmentColumn
   // Alteration/Rejection tracking
   total_altered?: number;
   total_rejected?: number;
@@ -244,9 +245,10 @@ const ProductionView = () => {
     return visibleSubBatches.includes(subBatchId);
   };
 
-  // Handle card click
-  const handleCardClick = (task: SubBatchInDepartment) => {
-    setSelectedTask(task);
+  // Handle card click - include department_id for the modal API call
+  const handleCardClick = (task: SubBatchInDepartment, departmentId: number) => {
+    // Add department_id to the task data so modal can use it for API calls
+    setSelectedTask({ ...task, department_id: departmentId });
     setIsTaskModalOpen(true);
   };
 
@@ -464,7 +466,7 @@ const ProductionView = () => {
                           return (
                             <div
                               key={`dept-${dept.department_id}-card-${subBatchInDept.id}-${subBatchInDept.remarks || 'main'}-${cardIndex}`}
-                              onClick={() => handleCardClick(subBatchInDept)}
+                              onClick={() => handleCardClick(subBatchInDept, dept.department_id)}
                               className={`rounded-lg p-4 cursor-pointer hover:shadow-lg transition-all duration-200 group border-l-4 ${
                                 isReworkCard
                                   ? 'bg-amber-50 border-l-amber-500 border border-amber-200 hover:border-amber-300'

@@ -11,6 +11,7 @@
 import React, { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
 import NepaliDatePicker from '@/app/Components/NepaliDatePicker';
+import { useToast } from '@/app/Components/ToastContext';
 
 interface Worker {
   id: number;
@@ -45,6 +46,7 @@ const AddWorkerRecordModal: React.FC<AddWorkerRecordModalProps> = ({
   subBatch,
   mode = 'add',
 }) => {
+  const { showToast } = useToast();
 
   // Calculate remaining work from subBatch (passed from TaskDetailsModal)
   const remainingWork = subBatch?.remaining_work || 0;
@@ -101,33 +103,29 @@ const AddWorkerRecordModal: React.FC<AddWorkerRecordModalProps> = ({
   const handleSubmit = async () => {
     // Validation
     if (!formData.workerId) {
-      alert('Please select a worker');
+      showToast('warning', 'Please select a worker');
       return;
     }
 
     if (!formData.date) {
-      alert('Please select a date');
+      showToast('warning', 'Please select a date');
       return;
     }
 
     if (!formData.quantityWorked || formData.quantityWorked.trim() === '') {
-      alert('Please enter quantity worked');
+      showToast('warning', 'Please enter quantity worked');
       return;
     }
 
     const quantity = parseInt(formData.quantityWorked);
     if (isNaN(quantity) || quantity <= 0) {
-      alert('Please enter a valid quantity greater than 0');
+      showToast('warning', 'Please enter a valid quantity greater than 0');
       return;
     }
 
     // Validate against remaining work
     if (quantity > remainingWork) {
-      alert(
-        `Cannot assign ${quantity.toLocaleString()} pieces!\n\n` +
-        `Only ${remainingWork.toLocaleString()} pieces remaining to assign.\n\n` +
-        `Please enter a quantity between 1 and ${remainingWork.toLocaleString()}.`
-      );
+      showToast('warning', `Cannot assign ${quantity.toLocaleString()} pieces! Only ${remainingWork.toLocaleString()} pieces remaining to assign.`);
       return;
     }
 
@@ -136,7 +134,7 @@ const AddWorkerRecordModal: React.FC<AddWorkerRecordModalProps> = ({
     if (formData.unitPrice && formData.unitPrice.trim() !== '') {
       unitPrice = parseFloat(formData.unitPrice);
       if (isNaN(unitPrice) || unitPrice <= 0) {
-        alert('Please enter a valid unit price greater than 0 (or leave blank)');
+        showToast('warning', 'Please enter a valid unit price greater than 0 (or leave blank)');
         return;
       }
     }
@@ -171,17 +169,17 @@ const AddWorkerRecordModal: React.FC<AddWorkerRecordModalProps> = ({
       });
 
       if (response.ok) {
-        alert('Worker assigned successfully!');
+        showToast('success', 'Worker assigned successfully!');
         // Call onSave to trigger parent refresh
         onSave({} as any); // Parent will refresh data from API
         onClose();
       } else {
         const errorData = await response.json().catch(() => ({}));
-        alert(`Failed to assign worker: ${errorData.message || 'Unknown error'}`);
+        showToast('error', `Failed to assign worker: ${errorData.message || 'Unknown error'}`);
       }
     } catch (e) {
       console.error('Error:', e);
-      alert('Error assigning worker. Please try again.');
+      showToast('error', 'Error assigning worker. Please try again.');
     } finally {
       setIsSubmitting(false);
     }

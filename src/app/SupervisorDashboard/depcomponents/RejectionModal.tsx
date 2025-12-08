@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
+import { useToast } from '@/app/Components/ToastContext';
 
 interface RejectionModalProps {
   isOpen: boolean;
@@ -34,6 +35,7 @@ const RejectionModal: React.FC<RejectionModalProps> = ({
   subBatchName,
   workerRecords,
 }) => {
+  const { showToast } = useToast();
   const [formData, setFormData] = useState({
     workerId: '',
     quantity: '',
@@ -59,23 +61,23 @@ const RejectionModal: React.FC<RejectionModalProps> = ({
 
     // Validation
     if (!formData.workerId) {
-      alert('Please select a worker');
+      showToast('warning', 'Please select a worker');
       return;
     }
 
     const quantity = parseInt(formData.quantity);
     if (isNaN(quantity) || quantity <= 0) {
-      alert('Please enter a valid quantity greater than 0');
+      showToast('warning', 'Please enter a valid quantity greater than 0');
       return;
     }
 
     if (quantity > maxQuantity) {
-      alert(`Cannot reject ${quantity} pieces!\n\nOnly ${maxQuantity} pieces available for this worker.`);
+      showToast('warning', `Cannot reject ${quantity} pieces! Only ${maxQuantity} pieces available for this worker.`);
       return;
     }
 
     if (!formData.reason.trim()) {
-      alert('Please enter a reason for rejection');
+      showToast('warning', 'Please enter a reason for rejection');
       return;
     }
 
@@ -101,15 +103,15 @@ const RejectionModal: React.FC<RejectionModalProps> = ({
       const result = await response.json();
 
       if (response.ok && result.success) {
-        alert(`Successfully rejected ${quantity} pieces!`);
+        showToast('success', `Successfully rejected ${quantity} pieces!`);
         onSuccess();
         onClose();
       } else {
-        alert(`Failed to reject items: ${result.message || 'Unknown error'}`);
+        showToast('error', `Failed to reject items: ${result.message || 'Unknown error'}`);
       }
     } catch (error: unknown) {
       console.error('Error rejecting items:', error);
-      alert(`Error: ${error instanceof Error ? error.message : 'Failed to reject items'}`);
+      showToast('error', `Error: ${error instanceof Error ? error.message : 'Failed to reject items'}`);
     } finally {
       setLoading(false);
     }

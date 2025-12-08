@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, Edit, Trash2, Users } from 'lucide-react';
 import AddWorkerModal from '../../depcomponents/AddWorkerModal';
+import { useToast } from '@/app/Components/ToastContext';
 
 interface Worker {
   id: number;
@@ -19,6 +20,7 @@ interface Worker {
 }
 
 const Worker = () => {
+  const { showToast, showConfirm } = useToast();
   const [workers, setWorkers] = useState<Worker[]>([]);
   const [loading, setLoading] = useState(false);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -54,11 +56,11 @@ const Worker = () => {
         console.error('❌ Worker View: API returned error status:', res.status);
         const errorText = await res.text();
         console.error('❌ Worker View: Error response:', errorText);
-        alert('Failed to fetch workers for your department');
+        showToast('error', 'Failed to fetch workers for your department');
       }
     } catch (e) {
       console.error('❌ Worker View: Exception:', e);
-      alert('Error fetching workers');
+      showToast('error', 'Error fetching workers');
     } finally {
       setLoading(false);
     }
@@ -73,7 +75,14 @@ const Worker = () => {
   }, [supervisorDepartmentId]);
 
   const handleDelete = async (id: number) => {
-    if (!confirm('Are you sure you want to delete this worker?')) return;
+    const confirmed = await showConfirm({
+      title: 'Delete Worker',
+      message: 'Are you sure you want to delete this worker? This action cannot be undone.',
+      confirmText: 'Delete',
+      cancelText: 'Cancel',
+      type: 'danger',
+    });
+    if (!confirmed) return;
 
     try {
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/workers/${id}`, {
@@ -81,15 +90,15 @@ const Worker = () => {
       });
 
       if (res.ok) {
-        alert('Worker deleted successfully');
+        showToast('success', 'Worker deleted successfully');
         fetchWorkers();
       } else {
         const err = await res.json().catch(() => ({}));
-        alert(`Failed to delete worker: ${err.message || 'Unknown error'}`);
+        showToast('error', `Failed to delete worker: ${err.message || 'Unknown error'}`);
       }
     } catch (e) {
       console.error(e);
-      alert('Error deleting worker');
+      showToast('error', 'Error deleting worker');
     }
   };
 

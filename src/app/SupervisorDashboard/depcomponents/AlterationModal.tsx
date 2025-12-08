@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
+import { useToast } from '@/app/Components/ToastContext';
 
 interface AlterationModalProps {
   isOpen: boolean;
@@ -38,6 +39,7 @@ const AlterationModal: React.FC<AlterationModalProps> = ({
   currentDepartmentName,
   workerRecords,
 }) => {
+  const { showToast } = useToast();
   const [formData, setFormData] = useState({
     workerId: '',
     quantity: '',
@@ -110,33 +112,33 @@ const AlterationModal: React.FC<AlterationModalProps> = ({
 
     // Validation
     if (!formData.workerId) {
-      alert('Please select a worker');
+      showToast('warning', 'Please select a worker');
       return;
     }
 
     const quantity = parseInt(formData.quantity);
     if (isNaN(quantity) || quantity <= 0) {
-      alert('Please enter a valid quantity greater than 0');
+      showToast('warning', 'Please enter a valid quantity greater than 0');
       return;
     }
 
     if (quantity > maxQuantity) {
-      alert(`Cannot send ${quantity} pieces for alteration!\n\nOnly ${maxQuantity} pieces available for this worker.`);
+      showToast('warning', `Cannot send ${quantity} pieces for alteration! Only ${maxQuantity} pieces available for this worker.`);
       return;
     }
 
     if (!formData.note.trim()) {
-      alert('Please enter a reason for alteration');
+      showToast('warning', 'Please enter a reason for alteration');
       return;
     }
 
     if (!formData.returnToDepartmentId) {
-      alert('Please select a department to send items to');
+      showToast('warning', 'Please select a department to send items to');
       return;
     }
 
     if (parseInt(formData.returnToDepartmentId) === departmentId) {
-      alert('Cannot send to the same department. Please select a different department.');
+      showToast('warning', 'Cannot send to the same department. Please select a different department.');
       return;
     }
 
@@ -163,15 +165,15 @@ const AlterationModal: React.FC<AlterationModalProps> = ({
       const result = await response.json();
 
       if (response.ok && result.success) {
-        alert(`Successfully sent ${quantity} pieces for alteration!`);
+        showToast('success', `Successfully sent ${quantity} pieces for alteration!`);
         onSuccess();
         onClose();
       } else {
-        alert(`Failed to send for alteration: ${result.message || 'Unknown error'}`);
+        showToast('error', `Failed to send for alteration: ${result.message || 'Unknown error'}`);
       }
     } catch (error: unknown) {
       console.error('Error sending for alteration:', error);
-      alert(`Error: ${error instanceof Error ? error.message : 'Failed to send for alteration'}`);
+      showToast('error', `Error: ${error instanceof Error ? error.message : 'Failed to send for alteration'}`);
     } finally {
       setLoading(false);
     }

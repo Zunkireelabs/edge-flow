@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
 import NepaliDatePicker from '@/app/Components/NepaliDatePicker';
+import { useToast } from '@/app/Components/ToastContext';
 
 interface WorkerRecord {
   id: number;
@@ -42,6 +43,7 @@ interface EditRecordModalProps {
 }
 
 const EditRecordModal: React.FC<EditRecordModalProps> = ({ isOpen, onClose, record, onSave }) => {
+  const { showToast } = useToast();
   const [formData, setFormData] = useState({
     workerId: '',
     workerName: '',
@@ -120,11 +122,11 @@ const EditRecordModal: React.FC<EditRecordModalProps> = ({ isOpen, onClose, reco
         setWorkers(workersData);
       } else {
         console.error('Failed to fetch workers');
-        alert('Failed to load workers. Please try again.');
+        showToast('error', 'Failed to load workers. Please try again.');
       }
     } catch (error) {
       console.error('Error fetching workers:', error);
-      alert('Error loading workers. Please check your connection.');
+      showToast('error', 'Error loading workers. Please check your connection.');
     } finally {
       setLoading(false);
     }
@@ -168,7 +170,7 @@ const EditRecordModal: React.FC<EditRecordModalProps> = ({ isOpen, onClose, reco
   const handleSave = async () => {
     // Basic validation
     if (!formData.workerId || !formData.date) {
-      alert('Worker and date are required');
+      showToast('warning', 'Worker and date are required');
       return;
     }
 
@@ -222,15 +224,15 @@ const EditRecordModal: React.FC<EditRecordModalProps> = ({ isOpen, onClose, reco
         };
 
         onSave(updatedRecord);
-        alert('Worker log updated successfully!');
+        showToast('success', 'Worker log updated successfully!');
         onClose();
       } else {
         const errorData = await response.json().catch(() => ({}));
-        alert(`Failed to update worker log: ${errorData.message || 'Unknown error'}`);
+        showToast('error', `Failed to update worker log: ${errorData.message || 'Unknown error'}`);
       }
     } catch (error) {
       console.error('Error updating worker log:', error);
-      alert('Error updating worker log. Please check your connection and try again.');
+      showToast('error', 'Error updating worker log. Please check your connection and try again.');
     } finally {
       setIsSubmitting(false);
     }
