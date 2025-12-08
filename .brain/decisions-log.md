@@ -309,6 +309,21 @@
 
 ---
 
+### Decision: Production Push Protection (Password: DEPLOY)
+**Date:** December 8, 2025
+**Decision:** Require password confirmation before any push to `main` branch
+**Rationale:**
+- Prevent accidental production deployments
+- Give user control over when production changes go live
+- Safety measure for client-facing production environment
+**Impact:**
+- Claude must ask for confirmation before `git push origin main`
+- User must respond with "DEPLOY" to authorize
+- Applies to: direct pushes, force pushes, and merges to main
+- Rule stored in `CLAUDE.md` for persistence across sessions
+
+---
+
 ## Future Considerations
 
 ### Pending Decision: Multi-Tenant Architecture
