@@ -32,6 +32,9 @@ const AuthPage: React.FC = () => {
         localStorage.setItem("token", data.token);
         localStorage.setItem("role", data.user.role);
         localStorage.setItem("departmentId", "");
+        localStorage.setItem("userId", data.user.id?.toString() || "");
+        localStorage.setItem("userName", data.user.name || "Admin");
+        localStorage.setItem("userEmail", email);
         window.location.href = "/Dashboard";
         return;
       }
@@ -51,6 +54,9 @@ const AuthPage: React.FC = () => {
         localStorage.setItem("token", data.token);
         localStorage.setItem("role", data.supervisor.role);
         localStorage.setItem("departmentId", String(data.supervisor.departmentId));
+        localStorage.setItem("userId", data.supervisor.id?.toString() || "");
+        localStorage.setItem("userName", data.supervisor.name || "Supervisor");
+        localStorage.setItem("userEmail", email);
         window.location.href = "/SupervisorDashboard";
         return;
       }
