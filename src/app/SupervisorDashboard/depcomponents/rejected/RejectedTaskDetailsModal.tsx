@@ -22,6 +22,7 @@ interface RejectedTaskData {
     attachments?: { name: string; count: number }[];
     quantity_remaining?: number;
     sub_batch?: any;  // Add sub_batch object for accessing ID
+    department?: { name: string };  // Department info for isLastDepartment check
 }
 
 interface RejectedTaskDetailsModalProps {

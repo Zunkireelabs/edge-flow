@@ -1,12 +1,12 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import LeftSidebar from "./components/layout/LeftSidebar";
 import RightContent from "./components/layout/RightContent";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
-const AdminPage = () => {
+const AdminPageContent = () => {
   const searchParams = useSearchParams();
   const router = useRouter();
 
@@ -71,6 +71,14 @@ const AdminPage = () => {
         <RightContent activeView={activeView} onViewChange={handleViewChange} />
       </div>
     </div>
+  );
+};
+
+const AdminPage = () => {
+  return (
+    <Suspense fallback={<div className="flex h-screen items-center justify-center">Loading...</div>}>
+      <AdminPageContent />
+    </Suspense>
   );
 };
 

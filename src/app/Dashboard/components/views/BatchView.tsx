@@ -261,7 +261,9 @@ const BatchView = () => {
 
     // Step 2: Sort
     filtered = [...filtered].sort((a, b) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       let aVal: any = a[sortColumn as keyof Batch];
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       let bVal: any = b[sortColumn as keyof Batch];
       if (aVal == null) aVal = "";
       if (bVal == null) bVal = "";
