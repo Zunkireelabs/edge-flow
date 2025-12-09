@@ -766,58 +766,76 @@ const Inventory = () => {
 
   // ============== RENDER ==============
   return (
-    <div className="p-8 bg-white min-h-full">
+    <div className="p-4 md:p-6 lg:p-8 bg-white min-h-full">
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">Inventory</h2>
-          <p className="text-gray-500 text-sm">Manage your inventory items and track stock levels</p>
-        </div>
-        <div className="flex items-center gap-3">
-          {lowStockCount > 0 && (
+      <div className="mb-6">
+        {/* Desktop: Single row | Tablet/Mobile: Two rows */}
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3 lg:gap-4">
+          {/* Title section */}
+          <div className="flex items-start justify-between lg:justify-start">
+            <div>
+              <h2 className="text-xl font-semibold text-gray-900">Inventory</h2>
+              <p className="text-gray-500 text-sm">Manage your inventory items and track stock levels</p>
+            </div>
+            {/* Mobile/Tablet: Add button next to title */}
             <button
-              onClick={() => {
-                setShowLowStockOnly(!showLowStockOnly);
-                setCurrentPage(1);
-              }}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg border transition-colors ${
-                showLowStockOnly
-                  ? "border-amber-500 bg-amber-50 text-amber-700"
-                  : "border-amber-300 text-amber-600 hover:bg-amber-50"
-              }`}
+              onClick={handleAddNew}
+              className="lg:hidden flex items-center gap-1.5 bg-[#2272B4] text-white px-3 py-2 rounded-xl font-semibold shadow-md hover:bg-[#1a5a8a] transition-all duration-200 text-sm flex-shrink-0"
             >
-              <AlertTriangle className="w-4 h-4" />
-              {lowStockCount} Low Stock
+              <Plus className="w-4 h-4" />
+              <span className="hidden sm:inline">Add Item</span>
+              <span className="sm:hidden">Add</span>
             </button>
-          )}
-          <button
-            onClick={() => setShowCategoryModal(true)}
-            className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
-          >
-            <Settings className="w-4 h-4" />
-            Categories
-          </button>
-          <button
-            onClick={() => handleOpenStockModal("in")}
-            className="flex items-center gap-2 px-4 py-2.5 border-2 border-green-500 text-green-600 rounded-xl font-semibold hover:bg-green-50 transition-all duration-200"
-          >
-            <TrendingUp className="w-4 h-4" />
-            Stock In
-          </button>
-          <button
-            onClick={() => handleOpenStockModal("out")}
-            className="flex items-center gap-2 px-4 py-2.5 border-2 border-red-500 text-red-600 rounded-xl font-semibold hover:bg-red-50 transition-all duration-200"
-          >
-            <TrendingDown className="w-4 h-4" />
-            Stock Out
-          </button>
-          <button
-            onClick={handleAddNew}
-            className="flex items-center gap-2 bg-[#2272B4] text-white px-5 py-2.5 rounded-xl font-semibold shadow-md hover:bg-[#1a5a8a] hover:shadow-lg transition-all duration-200 hover:scale-105"
-          >
-            <Plus className="w-4 h-4" />
-            Add Item
-          </button>
+          </div>
+
+          {/* Action buttons */}
+          <div className="flex items-center gap-2 flex-wrap">
+            {lowStockCount > 0 && (
+              <button
+                onClick={() => {
+                  setShowLowStockOnly(!showLowStockOnly);
+                  setCurrentPage(1);
+                }}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border transition-colors text-sm ${
+                  showLowStockOnly
+                    ? "border-amber-500 bg-amber-50 text-amber-700"
+                    : "border-amber-300 text-amber-600 hover:bg-amber-50"
+                }`}
+              >
+                <AlertTriangle className="w-4 h-4" />
+                <span className="hidden sm:inline">{lowStockCount}</span> Low Stock
+              </button>
+            )}
+            <button
+              onClick={() => setShowCategoryModal(true)}
+              className="flex items-center gap-1.5 px-3 py-1.5 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors text-sm"
+            >
+              <Settings className="w-4 h-4" />
+              <span className="hidden sm:inline">Categories</span>
+            </button>
+            <button
+              onClick={() => handleOpenStockModal("in")}
+              className="flex items-center gap-1.5 px-3 py-1.5 border-2 border-green-500 text-green-600 rounded-lg font-medium hover:bg-green-50 transition-all duration-200 text-sm"
+            >
+              <TrendingUp className="w-4 h-4" />
+              <span className="hidden sm:inline">Stock</span> In
+            </button>
+            <button
+              onClick={() => handleOpenStockModal("out")}
+              className="flex items-center gap-1.5 px-3 py-1.5 border-2 border-red-500 text-red-600 rounded-lg font-medium hover:bg-red-50 transition-all duration-200 text-sm"
+            >
+              <TrendingDown className="w-4 h-4" />
+              <span className="hidden sm:inline">Stock</span> Out
+            </button>
+            {/* Desktop: Add button in the row */}
+            <button
+              onClick={handleAddNew}
+              className="hidden lg:flex items-center gap-1.5 bg-[#2272B4] text-white px-4 py-2 rounded-xl font-semibold shadow-md hover:bg-[#1a5a8a] hover:shadow-lg transition-all duration-200 text-sm"
+            >
+              <Plus className="w-4 h-4" />
+              Add Item
+            </button>
+          </div>
         </div>
       </div>
 
@@ -1153,44 +1171,51 @@ const Inventory = () => {
 
       {/* Right Sliding Drawer */}
       {isDrawerOpen && (
-        <div className="fixed inset-0 z-50 flex">
+        <>
+          {/* Backdrop - Fixed full screen */}
           <div
-            className="absolute inset-0 bg-white/30 transition-opacity duration-300"
+            className="fixed inset-0 bg-black/20 z-[9998]"
             style={{ backdropFilter: "blur(4px)" }}
             onClick={closeDrawer}
           />
-          <div
-            className={`ml-auto w-full max-w-xl bg-white shadow-lg p-4 relative h-screen overflow-y-auto transition-transform duration-300 ease-in-out ${
-              isDrawerOpen ? "translate-x-0" : "translate-x-full"
-            }`}
-          >
-            {/* Close Button */}
-            <button
-              className="absolute top-4 right-4 text-gray-500 hover:text-gray-700"
-              onClick={closeDrawer}
-            >
-              <X size={20} />
-            </button>
 
-            {/* Drawer Header */}
-            <div className="border-b border-gray-200 pb-3 mb-4">
-              <div className="flex items-center gap-3">
-                <Package size={24} className="text-[#2272B4]" />
-                <h3 className="text-xl font-bold text-gray-900">
-                  {drawerMode === "add" && "Add New Item"}
-                  {drawerMode === "edit" && "Edit Item"}
-                  {drawerMode === "adjust" && `Adjust Stock - ${editingItem?.name}`}
-                  {drawerMode === "preview" && "Item Details"}
-                </h3>
+          {/* Drawer Container - Using flexbox for layout */}
+          <div
+            className="fixed inset-y-0 right-0 w-full max-w-xl bg-white shadow-lg z-[9999] flex flex-col"
+          >
+            {/* Fixed Header */}
+            <div className="flex-shrink-0 p-4 border-b border-gray-200 bg-white">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <Package size={24} className="text-[#2272B4]" />
+                  <div>
+                    <h3 className="text-xl font-bold text-gray-900">
+                      {drawerMode === "add" && "Add New Item"}
+                      {drawerMode === "edit" && "Edit Item"}
+                      {drawerMode === "adjust" && "Adjust Stock"}
+                      {drawerMode === "preview" && "Item Details"}
+                    </h3>
+                    {drawerMode === "adjust" && editingItem && (
+                      <p className="text-sm text-gray-500">
+                        {editingItem.name} • Current: {editingItem.quantity} {editingItem.unit}
+                      </p>
+                    )}
+                  </div>
+                </div>
+                <button
+                  className="p-2 rounded-lg hover:bg-gray-100 text-gray-500 hover:text-gray-700 transition-colors"
+                  onClick={closeDrawer}
+                >
+                  <X size={20} />
+                </button>
               </div>
-              {drawerMode === "adjust" && editingItem && (
-                <p className="text-sm text-gray-500 mt-2">
-                  Current Stock: {editingItem.quantity} {editingItem.unit}
-                </p>
-              )}
             </div>
 
-            {/* Drawer Content */}
+            {/* Scrollable Content Area */}
+            <div
+              className="flex-1 overflow-y-auto p-4"
+              style={{ WebkitOverflowScrolling: 'touch', overscrollBehavior: 'contain' }}
+            >
             {drawerMode === "preview" && editingItem ? (
               /* Preview Mode */
               <div className="space-y-6">
@@ -1404,22 +1429,6 @@ const Inventory = () => {
                         className="w-full border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm resize-none"
                       />
                     </div>
-
-                    <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
-                      <button
-                        onClick={() => setAdjustmentType(null)}
-                        className="px-6 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 font-medium transition-colors"
-                      >
-                        Back
-                      </button>
-                      <button
-                        onClick={handleAdjustmentSubmit}
-                        disabled={saveLoading}
-                        className="px-6 py-2 rounded-lg bg-[#2272B4] text-white hover:bg-[#1a5a8a] disabled:opacity-50 font-medium transition-colors"
-                      >
-                        {saveLoading ? "Saving..." : "Save"}
-                      </button>
-                    </div>
                   </div>
                 )}
               </div>
@@ -1558,28 +1567,50 @@ const Inventory = () => {
                     className="w-full border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm resize-none"
                   />
                 </div>
+              </div>
+            )}
+            </div>
 
-                {/* Footer */}
-                <div className="flex justify-end gap-3 mt-4 pt-4 border-t border-gray-200 sticky bottom-0 bg-white">
+            {/* Fixed Footer */}
+            <div className="flex-shrink-0 p-4 border-t border-gray-200 bg-white flex items-center justify-end gap-3">
+              {(drawerMode === "add" || drawerMode === "edit") && (
+                <>
                   <button
                     onClick={closeDrawer}
                     disabled={saveLoading}
-                    className="px-6 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 font-medium transition-colors"
+                    className="px-6 py-2.5 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 font-medium transition-colors"
                   >
                     Cancel
                   </button>
                   <button
                     onClick={handleSubmit}
                     disabled={saveLoading}
-                    className="px-6 py-2 rounded-lg bg-[#2272B4] text-white hover:bg-[#1a5a8a] disabled:opacity-50 font-medium transition-colors shadow-sm"
+                    className="px-6 py-2.5 rounded-lg bg-[#2272B4] text-white hover:bg-[#1a5a8a] disabled:opacity-50 font-medium transition-colors shadow-sm"
                   >
                     {saveLoading ? "Saving..." : drawerMode === "edit" ? "Update Item" : "Save Item"}
                   </button>
-                </div>
-              </div>
-            )}
+                </>
+              )}
+              {drawerMode === "adjust" && adjustmentType !== null && (
+                <>
+                  <button
+                    onClick={() => setAdjustmentType(null)}
+                    className="px-6 py-2.5 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 font-medium transition-colors"
+                  >
+                    Back
+                  </button>
+                  <button
+                    onClick={handleAdjustmentSubmit}
+                    disabled={saveLoading}
+                    className="px-6 py-2.5 rounded-lg bg-[#2272B4] text-white hover:bg-[#1a5a8a] disabled:opacity-50 font-medium transition-colors shadow-sm"
+                  >
+                    {saveLoading ? "Saving..." : "Save"}
+                  </button>
+                </>
+              )}
+            </div>
           </div>
-        </div>
+        </>
       )}
 
       {/* Category Management Modal */}
