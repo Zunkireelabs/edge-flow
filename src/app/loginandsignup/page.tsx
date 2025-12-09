@@ -3,6 +3,13 @@
 import React, { useState } from "react";
 import { Check, Loader2 } from "lucide-react";
 
+// Helper function to set cookies
+const setCookie = (name: string, value: string, days: number = 7) => {
+  const expires = new Date();
+  expires.setTime(expires.getTime() + days * 24 * 60 * 60 * 1000);
+  document.cookie = `${name}=${value};expires=${expires.toUTCString()};path=/;SameSite=Lax`;
+};
+
 const AuthPage: React.FC = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -29,6 +36,10 @@ const AuthPage: React.FC = () => {
 
       if (res.ok) {
         data = await res.json();
+        // Set cookie for middleware authentication
+        setCookie("token", data.token, 7);
+        setCookie("role", data.user.role, 7);
+        // Also keep localStorage for client-side access
         localStorage.setItem("token", data.token);
         localStorage.setItem("role", data.user.role);
         localStorage.setItem("departmentId", "");
@@ -51,6 +62,10 @@ const AuthPage: React.FC = () => {
 
       if (res.ok) {
         data = await res.json();
+        // Set cookie for middleware authentication
+        setCookie("token", data.token, 7);
+        setCookie("role", data.supervisor.role, 7);
+        // Also keep localStorage for client-side access
         localStorage.setItem("token", data.token);
         localStorage.setItem("role", data.supervisor.role);
         localStorage.setItem("departmentId", String(data.supervisor.departmentId));

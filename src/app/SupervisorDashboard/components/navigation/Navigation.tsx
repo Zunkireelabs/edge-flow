@@ -29,6 +29,13 @@ const Navigation: React.FC<NavigationProps> = ({ activeView, onViewChange, items
     localStorage.removeItem("token");
     localStorage.removeItem("role");
     localStorage.removeItem("departmentId");
+    localStorage.removeItem("userId");
+    localStorage.removeItem("userName");
+    localStorage.removeItem("userEmail");
+
+    // Clear cookies for middleware authentication
+    document.cookie = "token=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/";
+    document.cookie = "role=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/";
 
     // Redirect to login page
     router.push("/loginandsignup");
