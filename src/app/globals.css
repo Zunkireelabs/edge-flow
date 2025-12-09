@@ -71,3 +71,23 @@ button:disabled,
 .animate-spin-reverse-slow {
   animation: spin-reverse-slow 4s linear infinite;
 }
+
+/* Drawer/Modal responsive height fix for tablets and mobile */
+.drawer-fullheight {
+  height: 100vh;
+  height: 100dvh; /* Dynamic viewport height - accounts for mobile browser UI */
+  height: -webkit-fill-available; /* Safari fallback */
+}
+
+/* Ensure proper touch scrolling on iOS */
+.touch-scroll {
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+}
+
+/* Fix for iOS Safari viewport height issues */
+@supports (-webkit-touch-callout: none) {
+  .drawer-fullheight {
+    height: -webkit-fill-available;
+  }
+}

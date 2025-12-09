@@ -81,12 +81,89 @@
 
 <!-- Add new feedback items here using the template above -->
 
+### FB-003: Inventory modal not scrollable on tablet devices
+**Date:** 2025-12-09
+**Reported By:** Khum
+**Type:** UI/UX
+**Priority:** Medium
+**Status:** Investigating
+
+**Description:**
+Client using the software on a tablet device reports that the "Add New Item" modal in Inventory view is not scrollable. They cannot see the Save button or any CTA at the bottom of the modal.
+
+**Steps to Reproduce:**
+1. Open the app on a tablet device (or Chrome DevTools iPad Pro 1024x1366)
+2. Go to Inventory page
+3. Click "Add Item" button
+4. Modal opens but footer with Save/Cancel buttons is cut off
+5. Cannot scroll to see the buttons
+
+**Expected vs Actual:**
+- Expected: Modal should be scrollable, footer with Save/Cancel buttons should be visible
+- Actual: Modal content extends beyond viewport, footer is not visible, cannot scroll
+
+**Screenshots/Videos:** `temp_ss/image copy 3.png`, `temp_ss/image copy 4.png`, `temp_ss/image copy 5.png`
+
+**Resolution:**
+- [ ] Added to BACKLOG
+- [ ] Fixed in commit [hash]
+- [ ] Deployed on [date]
+- [ ] Client notified
+
+**Notes:**
+Multiple fix attempts made:
+- Flexbox layout with flex-shrink-0/flex-1/overflow-y-auto
+- CSS Grid with auto/1fr/auto
+- Absolute positioning with explicit pixel heights
+- React Portal to escape overflow constraints
+- Various viewport height units (100vh, 100dvh, -webkit-fill-available)
+- inset-y-0 for full viewport height
+
+All approaches work on desktop but fail on tablet simulation. Issue deferred for further investigation.
+
+### FB-002: Failed to fetch inventory items
+**Date:** 2025-12-08
+**Reported By:** Khum
+**Type:** Bug
+**Priority:** High
+**Status:** Fixed
+
+**Description:**
+Inventory page shows "Failed to fetch inventory items" error. Other pages (Batch View, Sub Batch View) are now working after FB-001 fix.
+
+**Steps to Reproduce:**
+1. Go to https://edge-flow-gamma.vercel.app
+2. Login as admin
+3. Go to Inventory page
+4. See error toast "Failed to fetch inventory items"
+
+**Expected vs Actual:**
+- Expected: Inventory items load
+- Actual: "Failed to fetch inventory items" error, 0 results
+
+**Screenshots/Videos:** `temp_ss/image copy 27.png`
+
+**Resolution:**
+- [x] Root cause identified: `inventory_category` and `inventory` tables missing from production database
+- [x] Fixed via `npx prisma db push` against production Neon database
+- [x] Fixed on 2025-12-08
+- [ ] Client notified
+
+**Notes:**
+Root cause: Production Neon database was missing the inventory-related tables (`inventory_category`, `inventory`, `inventory_addition`, `inventory_subtraction`).
+
+Fix: Ran `npx prisma db push` locally with production DATABASE_URL to sync schema.
+
+---
+
+## Resolved Feedback
+
 ### FB-001: Failed to fetch data on Dashboard, Batch View, Sub Batch View
 **Date:** 2025-12-08
 **Reported By:** Khum
 **Type:** Bug
 **Priority:** Critical
-**Status:** Investigating
+**Status:** Deployed
 
 **Description:**
 Client reports that when accessing the app, Batch View and Sub Batch View show "Failed to fetch" errors. Dashboard shows multiple error toasts: "Failed to fetch batches", "Failed to fetch rolls", "Failed to fetch vendors".
@@ -104,23 +181,15 @@ Client reports that when accessing the app, Batch View and Sub Batch View show "
 **Screenshots/Videos:** `temp_ss/image copy 25.png`
 
 **Resolution:**
-- [ ] Root cause identified
-- [ ] Fixed in commit [pending]
-- [ ] Deployed on [date]
+- [x] Root cause identified: `.env.production` was missing, frontend using localhost URLs
+- [x] Fixed in commit `4c99130` (dev) → `d172954` (main)
+- [x] Deployed on 2025-12-08
 - [ ] Client notified
 
 **Notes:**
-Likely causes:
-1. Backend server down/sleeping (Render free tier)
-2. API endpoint misconfiguration
-3. CORS issue
-4. Database connection issue
+Root cause: The `.env.production` file was missing from the repository. Vercel was falling back to `.env` which had localhost:5000 URLs instead of the production backend URL (edge-flow-backend.onrender.com).
 
----
-
-## Resolved Feedback
-
-<!-- Move resolved items here with resolution details -->
+Fix: Created `.env.production` with all 40+ environment variables pointing to production backend.
 
 ---
 
@@ -128,7 +197,9 @@ Likely causes:
 
 | ID | Title | Type | Priority | Status | Date |
 |----|-------|------|----------|--------|------|
-| FB-001 | Example entry | Bug | Medium | New | 2025-12-08 |
+| FB-003 | Modal not scrollable on tablet | UI/UX | Medium | Investigating | 2025-12-09 |
+| FB-002 | Failed to fetch inventory | Bug | High | Fixed | 2025-12-08 |
+| FB-001 | Failed to fetch data | Bug | Critical | Deployed | 2025-12-08 |
 
 ---
 
@@ -163,4 +234,4 @@ Likely causes:
 
 ---
 
-**Last Updated:** 2025-12-08
+**Last Updated:** 2025-12-09
