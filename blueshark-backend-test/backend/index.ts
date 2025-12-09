@@ -40,7 +40,11 @@ const app = express();
 app.use(securityHeaders);
 app.use(cors({
   origin: process.env.NODE_ENV === "production"
-    ? ["https://edge-flow-gamma.vercel.app", "https://edge-flow-git-dev-sthasadins-projects.vercel.app"]
+    ? [
+        "https://edge-flow-gamma.vercel.app",
+        "https://edge-flow-git-dev-sthasadins-projects.vercel.app",
+        "https://blueshark-gaamma.zunkireelabs.com"
+      ]
     : "*",
   credentials: true,
 }));
