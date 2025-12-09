@@ -509,110 +509,115 @@ const VendorView = () => {
             style={{ backdropFilter: 'blur(4px)' }}
             onClick={closeDrawer}
           />
-          <div className="ml-auto w-full max-w-xl bg-white shadow-lg p-4 relative h-screen overflow-y-auto">
-            <button
-              className="absolute top-4 right-4 text-gray-500 hover:text-gray-700"
-              onClick={closeDrawer}
-            >
-              <X size={20} />
-            </button>
-
+          <div className="ml-auto w-full max-w-xl bg-white shadow-lg h-screen flex flex-col">
             {/* Header */}
-            <div className="border-b border-gray-200 pb-3 mb-4">
-              <h3 className="text-xl font-bold text-gray-900 flex items-center gap-2">
-                <Building2 size={20} className="text-blue-600" />
-                {isPreview
-                  ? "Vendor Details"
-                  : editingVendor
-                  ? "Edit Vendor"
-                  : "Add New Vendor"}
-              </h3>
-            </div>
-
-            <div className="space-y-4">
-              {/* Vendor Name */}
-              <div>
-                <label className="block text-sm font-semibold text-gray-900 mb-1.5">
-                  Name <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  name="name"
-                  placeholder="Enter vendor name"
-                  value={formData.name}
-                  onChange={handleChange}
-                  readOnly={isPreview}
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
-                  required
-                />
-              </div>
-
-              {/* VAT/PAN */}
-              <div>
-                <label className="block text-sm font-semibold text-gray-900 mb-1.5">
-                  VAT/PAN
-                </label>
-                <input
-                  type="text"
-                  name="vat_pan"
-                  placeholder="Enter VAT/PAN number"
-                  value={formData.vat_pan}
-                  onChange={handleChange}
-                  readOnly={isPreview}
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
-                />
-              </div>
-
-              {/* Address */}
-              <div>
-                <label className="block text-sm font-semibold text-gray-900 mb-1.5">
-                  Address
-                </label>
-                <input
-                  type="text"
-                  name="address"
-                  placeholder="Enter address"
-                  value={formData.address}
-                  onChange={handleChange}
-                  readOnly={isPreview}
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
-                />
-              </div>
-
-              {/* Phone */}
-              <div>
-                <label className="block text-sm font-semibold text-gray-900 mb-1.5">
-                  Phone
-                </label>
-                <input
-                  type="text"
-                  name="phone"
-                  placeholder="Enter phone number"
-                  value={formData.phone}
-                  onChange={handleChange}
-                  readOnly={isPreview}
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
-                />
-              </div>
-
-              {/* Comment */}
-              <div>
-                <label className="block text-sm font-semibold text-gray-900 mb-1.5">
-                  Comment
-                </label>
-                <textarea
-                  name="comment"
-                  placeholder="Optional comments"
-                  value={formData.comment}
-                  onChange={handleChange}
-                  readOnly={isPreview}
-                  rows={3}
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm resize-none"
-                />
+            <div className="flex-shrink-0 p-4 border-b border-gray-200">
+              <div className="flex items-center justify-between">
+                <h3 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+                  <Building2 size={20} className="text-blue-600" />
+                  {isPreview
+                    ? "Vendor Details"
+                    : editingVendor
+                    ? "Edit Vendor"
+                    : "Add New Vendor"}
+                </h3>
+                <button
+                  className="text-gray-500 hover:text-gray-700"
+                  onClick={closeDrawer}
+                >
+                  <X size={20} />
+                </button>
               </div>
             </div>
 
-            <div className="flex justify-end gap-3 mt-4 pt-4 border-t border-gray-200 sticky bottom-0 bg-white">
+            {/* Scrollable Content */}
+            <div className="flex-1 overflow-y-auto p-4">
+              <div className="space-y-4">
+                {/* Vendor Name */}
+                <div>
+                  <label className="block text-sm font-semibold text-gray-900 mb-1.5">
+                    Name <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    name="name"
+                    placeholder="Enter vendor name"
+                    value={formData.name}
+                    onChange={handleChange}
+                    readOnly={isPreview}
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                    required
+                  />
+                </div>
+
+                {/* VAT/PAN */}
+                <div>
+                  <label className="block text-sm font-semibold text-gray-900 mb-1.5">
+                    VAT/PAN
+                  </label>
+                  <input
+                    type="text"
+                    name="vat_pan"
+                    placeholder="Enter VAT/PAN number"
+                    value={formData.vat_pan}
+                    onChange={handleChange}
+                    readOnly={isPreview}
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                  />
+                </div>
+
+                {/* Address */}
+                <div>
+                  <label className="block text-sm font-semibold text-gray-900 mb-1.5">
+                    Address
+                  </label>
+                  <input
+                    type="text"
+                    name="address"
+                    placeholder="Enter address"
+                    value={formData.address}
+                    onChange={handleChange}
+                    readOnly={isPreview}
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                  />
+                </div>
+
+                {/* Phone */}
+                <div>
+                  <label className="block text-sm font-semibold text-gray-900 mb-1.5">
+                    Phone
+                  </label>
+                  <input
+                    type="text"
+                    name="phone"
+                    placeholder="Enter phone number"
+                    value={formData.phone}
+                    onChange={handleChange}
+                    readOnly={isPreview}
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                  />
+                </div>
+
+                {/* Comment */}
+                <div>
+                  <label className="block text-sm font-semibold text-gray-900 mb-1.5">
+                    Comment
+                  </label>
+                  <textarea
+                    name="comment"
+                    placeholder="Optional comments"
+                    value={formData.comment}
+                    onChange={handleChange}
+                    readOnly={isPreview}
+                    rows={3}
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm resize-none"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="flex-shrink-0 p-4 border-t border-gray-200 bg-white flex justify-end gap-3">
               <button
                 className="px-6 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 font-medium transition-colors"
                 onClick={closeDrawer}
