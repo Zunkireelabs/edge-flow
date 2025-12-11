@@ -505,11 +505,10 @@ const VendorView = () => {
       {isDrawerOpen && (
         <div className="fixed inset-0 z-50 flex">
           <div
-            className="absolute inset-0 bg-white/30 transition-opacity duration-300"
-            style={{ backdropFilter: 'blur(4px)' }}
+            className="absolute inset-0 bg-black/20 transition-opacity duration-300"
             onClick={closeDrawer}
           />
-          <div className="ml-auto w-full max-w-xl bg-white shadow-lg h-screen flex flex-col">
+          <div className="ml-auto w-full max-w-xl bg-white shadow-2xl h-screen flex flex-col relative z-10">
             {/* Header */}
             <div className="flex-shrink-0 p-4 border-b border-gray-200">
               <div className="flex items-center justify-between">
