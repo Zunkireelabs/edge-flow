@@ -1,5 +1,14 @@
 # Claude Development History - BlueShark Frontend
 
+## IMPORTANT: Git Commit Rules
+**DO NOT include the following in commit messages:**
+- "🤖 Generated with [Claude Code]"
+- "Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>"
+
+All commits should appear as authored by **Zunkireelabs** only. No Claude/AI attribution in commits.
+
+---
+
 ## Session Date: 2025-11-13
 
 ### Overview
