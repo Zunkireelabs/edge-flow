@@ -1,0 +1,280 @@
+%%{ init: { 'theme': 'base', 'themeVariables': { 'primaryColor': '#2272B4', 'secondaryColor': '#f4f4f4', 'tertiaryColor': '#fff' } } }%%
+
+%% ============================================
+%% BLUESHARK UX FLOW DIAGRAMS
+%% Part 1: Business View
+%% Import into diagrams.net: Arrange > Insert > Advanced > Mermaid
+%% ============================================
+
+%% DIAGRAM 1: System Overview - Two User Portals
+%% Copy this section and paste in diagrams.net
+graph TB
+    subgraph BLUESHARK["BLUESHARK PRODUCTION MANAGEMENT"]
+        subgraph ADMIN["ADMIN PORTAL /Dashboard"]
+            A1[Full system access]
+            A2[Create materials/batches]
+            A3[Configure departments]
+            A4[Manage all workers]
+            A5[View production kanban]
+            A6[Calculate wages]
+            A7[Manage inventory]
+        end
+
+        subgraph SUPERVISOR["SUPERVISOR PORTAL /SupervisorDashboard"]
+            S1[Department-only access]
+            S2[View assigned tasks]
+            S3[Assign workers]
+            S4[Report quality issues]
+            S5[Advance completed work]
+            S6[Manage dept workers]
+        end
+    end
+
+    LOGIN[Login Page] --> |Admin Login| ADMIN
+    LOGIN --> |Supervisor Login| SUPERVISOR
+
+---
+
+%% DIAGRAM 2: Admin Dashboard Module Map
+%% Copy this section and paste in diagrams.net
+graph TB
+    subgraph ADMIN_MODULES["ADMIN DASHBOARD MODULES"]
+        D[Dashboard<br/>Overview] --> RV[Roll View<br/>Raw Materials]
+        D --> BV[Batch View<br/>Production Lots]
+
+        RV --> SBV[Sub-Batch View<br/>Work Orders]
+        BV --> SBV
+
+        SBV --> PV[Production View<br/>All Departments]
+        SBV --> DK[Dept Kanban<br/>Single Dept]
+
+        D --> INV[Inventory<br/>Stock Tracking]
+        D --> WC[Wage Calculation<br/>Worker Wages]
+
+        subgraph SETTINGS["Settings"]
+            VEN[Vendors]
+            WRK[Workers]
+            DEP[Departments]
+            SUP[Supervisors]
+        end
+
+        D --> SETTINGS
+    end
+
+---
+
+%% DIAGRAM 3: Supervisor Dashboard Module Map
+%% Copy this section and paste in diagrams.net
+graph TB
+    subgraph SUP_MODULES["SUPERVISOR DASHBOARD MODULES"]
+        SD[Dashboard<br/>Overview]
+        TM[Task Management<br/>Kanban Board]
+        WM[Workers<br/>Dept Workers]
+
+        SD --> |View Tasks| TM
+        SD --> |Manage| WM
+
+        subgraph KANBAN["Kanban Board"]
+            NEW[New Arrivals]
+            PROG[In Progress]
+            DONE[Completed]
+        end
+
+        TM --> KANBAN
+
+        NEW --> |Click Card| MODAL[Task Modal]
+        PROG --> |Click Card| MODAL
+        DONE --> |Click Card| MODAL
+    end
+
+---
+
+%% DIAGRAM 4: Production Flow - End to End
+%% Copy this section and paste in diagrams.net
+graph TB
+    subgraph ADMIN_ACTIONS["ADMIN ACTIONS"]
+        R[Create Roll<br/>Raw Material] --> B[Create Batch<br/>from Roll]
+        B --> SB[Create Sub-Batch<br/>Work Order]
+        SB --> WF[Define Department<br/>Workflow]
+        WF --> SEND[Send to Production]
+    end
+
+    SEND --> |Status: DRAFT -> IN_PRODUCTION| D1
+
+    subgraph DEPT1["Department 1: CUTTING"]
+        D1[New Arrival<br/>500 pcs] --> |Assign Workers| D1P[In Progress]
+        D1P --> |Work Complete| D1C[Completed]
+    end
+
+    D1C --> |Send 450 pcs| D2
+
+    subgraph DEPT2["Department 2: STITCHING"]
+        D2[New Arrival<br/>450 pcs] --> |Assign Workers| D2P[In Progress]
+        D2P --> |Work Complete| D2C[Completed]
+    end
+
+    D2C --> |Send 430 pcs| D3
+
+    subgraph DEPT3["Department 3: QC"]
+        D3[New Arrival<br/>430 pcs] --> |Quality Check| D3P[In Progress]
+        D3P --> |Issues Found| QC{Quality Issues?}
+        QC --> |No| D3C[Completed<br/>400 pcs]
+        QC --> |Alteration 20 pcs| ALT[Altered Card]
+        QC --> |Rejection 10 pcs| REJ[Rejected Card]
+    end
+
+    ALT --> |Rework| D2
+    REJ --> |Return| D1
+
+    D3C --> |Send 400 pcs| D4
+
+    subgraph DEPT4["Department 4: PACKAGING - FINAL"]
+        D4[New Arrival<br/>400 pcs] --> |Assign Workers| D4P[In Progress]
+        D4P --> |Work Complete| D4C[Completed]
+        D4C --> FINAL[Mark Sub-batch<br/>as Completed]
+    end
+
+    FINAL --> |Status: COMPLETED| DONE_ALL[Production Complete<br/>Ready for Wage Calc]
+
+---
+
+%% DIAGRAM 5: Quality Control - Alteration Flow
+%% Copy this section and paste in diagrams.net
+graph TB
+    subgraph ALTERATION_FLOW["ALTERATION WORKFLOW"]
+        MAIN[Main Card<br/>In Progress] --> |Quality Issue Found| CHECK{Issue Type?}
+
+        CHECK --> |Needs Rework| ALT_MODAL[Alteration Modal]
+
+        ALT_MODAL --> |Select Worker| W[Worker Selection]
+        W --> |Enter Qty| Q[Quantity: 20 pcs]
+        Q --> |Enter Reason| R[Reason: Stitching incorrect]
+        R --> |Select Dept| SD[Send to: Stitching]
+        SD --> |Submit| CREATE[Create Alteration Card]
+
+        CREATE --> PREV_DEPT[Previous Department<br/>Receives ALTERED Card]
+
+        PREV_DEPT --> |Assign Workers| FIX[Workers Fix Issue]
+        FIX --> |Complete| SEND_BACK[Send Back to QC]
+        SEND_BACK --> MAIN
+    end
+
+    style ALT_MODAL fill:#FEF3C7
+    style PREV_DEPT fill:#FEF3C7
+
+---
+
+%% DIAGRAM 6: Quality Control - Rejection Flow
+%% Copy this section and paste in diagrams.net
+graph TB
+    subgraph REJECTION_FLOW["REJECTION WORKFLOW"]
+        MAIN[Main Card<br/>In Progress] --> |Defective Found| CHECK{Defective?}
+
+        CHECK --> |Yes| REJ_MODAL[Rejection Modal]
+
+        REJ_MODAL --> |Select Worker| W[Worker Selection]
+        W --> |Enter Qty| Q[Quantity: 10 pcs]
+        Q --> |Enter Reason| R[Reason: Fabric tear]
+        R --> |Submit| CREATE[Create Rejection Card]
+
+        CREATE --> TRACK[Track Accountability]
+        TRACK --> |Can Fix?| FIX{Fixable?}
+
+        FIX --> |Yes| REPAIR[Repair & Return]
+        FIX --> |No| WRITEOFF[Write-off Loss]
+
+        REPAIR --> MAIN
+    end
+
+    style REJ_MODAL fill:#FEE2E2
+    style TRACK fill:#FEE2E2
+
+---
+
+%% DIAGRAM 7: Wage Calculation Flow
+%% Copy this section and paste in diagrams.net
+graph TB
+    subgraph WAGE_CALC["WAGE CALCULATION FLOW"]
+        START[Open Wage Calculation] --> SELECT[Select Parameters]
+
+        SELECT --> W[Worker Selection<br/>All or Specific]
+        SELECT --> D[Department Filter<br/>Optional]
+        SELECT --> DR[Date Range<br/>Start to End]
+        SELECT --> B[Billable Filter<br/>Yes/No]
+
+        W --> CALC[Calculate Wages]
+        D --> CALC
+        DR --> CALC
+        B --> CALC
+
+        CALC --> SUMMARY[Wage Summary<br/>Total/Billable/Non-Billable]
+
+        SUMMARY --> DETAIL[Detailed Breakdown<br/>Worker | Date | SubBatch | Qty | Rate | Amount]
+
+        DETAIL --> EXPORT[Export Options]
+        EXPORT --> CSV[Export CSV]
+        EXPORT --> PRINT[Print Report]
+    end
+
+---
+
+%% DIAGRAM 8: Inventory Management Flow
+%% Copy this section and paste in diagrams.net
+graph TB
+    subgraph INVENTORY["INVENTORY MANAGEMENT FLOW"]
+        CAT[Create Category<br/>e.g., Buttons] --> ITEM[Add Inventory Item<br/>Red Button 12mm]
+
+        ITEM --> ADD[Add Stock<br/>Qty: 500, Price: Rs.5/pc]
+        ADD --> |Current: 0 -> 500| STOCK[Stock Available]
+
+        STOCK --> USE{Production Use?}
+
+        USE --> |Yes| SUB[Subtract Stock<br/>Qty: 100, Reason: Production]
+        SUB --> |Current: 500 -> 400| STOCK
+
+        USE --> |Check Level| ALERT{Below Min?}
+        ALERT --> |Yes| LOW[LOW STOCK WARNING]
+        ALERT --> |No| OK[Stock OK]
+
+        LOW --> REORDER[Reorder from Vendor]
+        REORDER --> ADD
+    end
+
+    style LOW fill:#FEE2E2
+    style OK fill:#D1FAE5
+
+---
+
+%% DIAGRAM 9: Card Status Types
+%% Copy this section and paste in diagrams.net
+graph LR
+    subgraph CARD_TYPES["KANBAN CARD STATUS TYPES"]
+        MAIN[Main<br/>Gray] --> |Workers Assigned| ASSIGNED[Assigned<br/>Blue]
+
+        MAIN --> |Quality Issue| ALTERED[Altered<br/>Yellow]
+        MAIN --> |Defective| REJECTED[Rejected<br/>Red]
+
+        ALTERED --> |Workers Assigned| REWORK[Rework<br/>Amber]
+    end
+
+    style MAIN fill:#E5E7EB
+    style ASSIGNED fill:#DBEAFE
+    style ALTERED fill:#FEF3C7
+    style REJECTED fill:#FEE2E2
+    style REWORK fill:#FED7AA
+
+---
+
+%% DIAGRAM 10: Status Transitions
+%% Copy this section and paste in diagrams.net
+graph TB
+    subgraph SUB_BATCH_STATUS["SUB-BATCH STATUS"]
+        DRAFT[DRAFT] --> |Send to Production| IN_PROD[IN_PRODUCTION]
+        IN_PROD --> |Mark Complete| COMPLETED[COMPLETED]
+        IN_PROD --> |Cancel| CANCELLED[CANCELLED]
+    end
+
+    subgraph DEPT_STATUS["DEPARTMENT_SUB_BATCH STATUS"]
+        NEW[NEW_ARRIVAL] --> |First Worker Assigned| PROG[IN_PROGRESS]
+        PROG --> |All Work Done + Sent| COMP[COMPLETED]
+    end
