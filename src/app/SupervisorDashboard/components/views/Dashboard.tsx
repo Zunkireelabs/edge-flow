@@ -204,7 +204,11 @@ const Dashboard = () => {
           <p className="text-3xl font-bold text-gray-900 mt-2">
             {loading ? "..." : stats.activeWorkers}
           </p>
-          <p className="text-xs text-gray-500 mt-2">Workers in your department</p>
+          <p className="text-xs text-gray-500 mt-2">
+            {isSuperSupervisor && selectedDepartmentId === "all"
+              ? "Workers across all departments"
+              : "Workers in your department"}
+          </p>
         </div>
       </div>
 

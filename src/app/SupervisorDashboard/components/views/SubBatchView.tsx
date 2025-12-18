@@ -10,7 +10,6 @@ import {
   CheckCircle,
   AlertCircle,
   Send,
-  Eye,
   Building2,
   ChevronDown,
   ChevronUp,

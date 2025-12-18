@@ -7,7 +7,6 @@ import axios from "axios";
 
 interface HeaderProps {
   activeView: string;
-  navigationItems: unknown[];
 }
 
 interface SearchResult {

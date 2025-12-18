@@ -31,7 +31,7 @@ export const createBatch = async (data: BatchData) => {
 
   if (data.order_name) batchData.order_name = data.order_name;
   if (data.unit) batchData.unit = data.unit;
-  if (data.unit_count) batchData.unit_count = data.unit_count;
+  if (data.unit_count !== undefined) batchData.unit_count = data.unit_count;
   if (data.color) batchData.color = data.color;
   if (data.roll_id) batchData.roll = { connect: { id: data.roll_id } };
   if (data.vendor_id) batchData.vendor = { connect: { id: data.vendor_id } };

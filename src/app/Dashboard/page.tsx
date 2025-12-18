@@ -4,7 +4,7 @@ import React, { useState, useEffect, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import LeftSidebar from "./components/layout/LeftSidebar";
 import RightContent from "./components/layout/RightContent";
-import { Menu, ChevronRight } from "lucide-react";
+import { ChevronRight } from "lucide-react";
 
 const AdminPageContent = () => {
   const searchParams = useSearchParams();

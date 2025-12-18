@@ -231,9 +231,13 @@ const CreateSupervisor = () => {
       if (res.ok) {
         const data = await res.json();
         setDepartments(data || []);
+      } else {
+        console.error("Failed to fetch departments:", res.status);
+        showToast("warning", "Could not load departments");
       }
     } catch (err) {
       console.error("Error fetching departments:", err);
+      showToast("warning", "Could not load departments");
     }
   };
 

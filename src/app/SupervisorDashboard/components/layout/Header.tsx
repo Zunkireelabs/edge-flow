@@ -154,7 +154,7 @@ const Header: React.FC<HeaderProps> = ({ activeView }) => {
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-semibold text-gray-900 truncate">{supervisorName}</p>
-                    <p className="text-xs text-gray-500 truncate">{userEmail || 'supervisor@blueshark.com'}</p>
+                    {userEmail && <p className="text-xs text-gray-500 truncate">{userEmail}</p>}
                     <span className={`inline-block mt-1 text-xs px-2 py-0.5 rounded-full font-medium ${isSuperSupervisor ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'}`}>
                       {userRole}
                     </span>

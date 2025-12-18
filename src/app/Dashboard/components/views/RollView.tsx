@@ -326,7 +326,10 @@ const RollView = () => {
   const fetchRolls = async () => {
     try {
       setLoading(true);
-      const res = await fetch(GET_ROLLS!);
+      if (!GET_ROLLS) {
+        throw new Error("GET_ROLLS environment variable is not configured");
+      }
+      const res = await fetch(GET_ROLLS);
       if (!res.ok) throw new Error("Failed to fetch rolls");
       const data = await res.json();
       setRolls(data);
@@ -341,7 +344,10 @@ const RollView = () => {
   // Fetch vendors
   const fetchVendors = async () => {
     try {
-      const res = await fetch(GET_VENDORS!);
+      if (!GET_VENDORS) {
+        throw new Error("GET_VENDORS environment variable is not configured");
+      }
+      const res = await fetch(GET_VENDORS);
       if (!res.ok) throw new Error("Failed to fetch vendors");
       const data = await res.json();
       setVendors(data);
@@ -436,6 +442,9 @@ const RollView = () => {
       let response;
 
       if (editingRoll) {
+        if (!UPDATE_ROLL) {
+          throw new Error("UPDATE_ROLL environment variable is not configured");
+        }
         console.log("🔄 Updating roll with ID:", editingRoll.id);
         response = await fetch(`${UPDATE_ROLL}/${editingRoll.id}`, {
           method: "PUT",
@@ -446,8 +455,11 @@ const RollView = () => {
           body: JSON.stringify(payload),
         });
       } else {
+        if (!CREATE_ROLLS) {
+          throw new Error("CREATE_ROLLS environment variable is not configured");
+        }
         console.log("➕ Creating new roll");
-        response = await fetch(CREATE_ROLLS!, {
+        response = await fetch(CREATE_ROLLS, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -530,6 +542,9 @@ const RollView = () => {
     if (!confirmed) return;
 
     try {
+      if (!DELETE_ROLL) {
+        throw new Error("DELETE_ROLL environment variable is not configured");
+      }
       const res = await fetch(`${DELETE_ROLL}/${id}`, { method: "DELETE" });
       if (!res.ok) throw new Error("Failed to delete roll");
       await fetchRolls();
@@ -585,7 +600,10 @@ const RollView = () => {
         comment: vendorFormData.comment.trim() || null,
       };
 
-      const response = await fetch(GET_VENDORS!, {
+      if (!GET_VENDORS) {
+        throw new Error("GET_VENDORS environment variable is not configured");
+      }
+      const response = await fetch(GET_VENDORS, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

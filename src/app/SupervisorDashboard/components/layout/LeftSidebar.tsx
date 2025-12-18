@@ -10,7 +10,6 @@ import {
 } from "lucide-react";
 
 import { NavigationItem } from "../../types/navigation";
-import { useDepartment } from "../../contexts/DepartmentContext";
 
 interface LeftSidebarProps {
   activeView: string;
@@ -19,8 +18,6 @@ interface LeftSidebarProps {
 }
 
 const LeftSidebar: React.FC<LeftSidebarProps> = ({ activeView, onViewChange, onToggleSidebar }) => {
-  const { isSuperSupervisor } = useDepartment();
-
   // Build navigation items - SubBatchView is available for all supervisors
   const navItems: NavigationItem[] = useMemo(() => {
     const items: NavigationItem[] = [
