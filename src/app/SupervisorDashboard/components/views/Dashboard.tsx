@@ -1,10 +1,12 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { PackageOpen, Clock, CheckCircle2, Users2 } from "lucide-react";
+import { PackageOpen, Clock, CheckCircle2, Users2, Building2 } from "lucide-react";
 import axios from "axios";
+import { useDepartment } from "../../contexts/DepartmentContext";
 
 const Dashboard = () => {
+  const { selectedDepartmentId, isSuperSupervisor, departments } = useDepartment();
   const [stats, setStats] = useState({
     newArrivals: 0,
     inProgress: 0,
@@ -19,33 +21,88 @@ const Dashboard = () => {
     const fetchStats = async () => {
       try {
         const token = localStorage.getItem("token");
-        const departmentId = localStorage.getItem("departmentId");
+        const storedDepartmentId = localStorage.getItem("departmentId");
 
-        if (!token || !departmentId) return;
+        if (!token) return;
 
-        // Fetch kanban data for this department
-        const kanbanResponse = await axios.get(
-          `${API}/departments/${departmentId}/sub-batches`,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          }
-        );
+        // Determine which department(s) to fetch
+        const targetDeptId = isSuperSupervisor
+          ? (typeof selectedDepartmentId === 'number' ? selectedDepartmentId : null)
+          : storedDepartmentId;
 
-        const kanbanData = kanbanResponse.data.data;
+        // For SUPER_SUPERVISOR with "all" selected - aggregate across all departments
+        if (isSuperSupervisor && selectedDepartmentId === "all") {
+          let totalNewArrivals = 0;
+          let totalInProgress = 0;
+          let totalCompleted = 0;
+          let totalWorkers = 0;
 
-        // Fetch workers for this department
-        const workersResponse = await axios.get(
-          `${API}/workers/department/${departmentId}`
-        );
+          // Fetch stats from all departments
+          const departmentPromises = departments.map(async (dept) => {
+            try {
+              const kanbanResponse = await axios.get(
+                `${API}/departments/${dept.id}/sub-batches`,
+                {
+                  headers: { Authorization: `Bearer ${token}` },
+                }
+              );
+              const kanbanData = kanbanResponse.data.data;
 
-        setStats({
-          newArrivals: kanbanData.newArrival?.length || 0,
-          inProgress: kanbanData.inProgress?.length || 0,
-          completed: kanbanData.completed?.length || 0,
-          activeWorkers: workersResponse.data?.length || 0
-        });
+              const workersResponse = await axios.get(
+                `${API}/workers/department/${dept.id}`
+              );
+
+              return {
+                newArrivals: kanbanData?.newArrival?.length || 0,
+                inProgress: kanbanData?.inProgress?.length || 0,
+                completed: kanbanData?.completed?.length || 0,
+                workers: workersResponse.data?.length || 0
+              };
+            } catch (err) {
+              console.error(`Error fetching stats for department ${dept.id}:`, err);
+              return { newArrivals: 0, inProgress: 0, completed: 0, workers: 0 };
+            }
+          });
+
+          const results = await Promise.all(departmentPromises);
+          results.forEach(result => {
+            totalNewArrivals += result.newArrivals;
+            totalInProgress += result.inProgress;
+            totalCompleted += result.completed;
+            totalWorkers += result.workers;
+          });
+
+          setStats({
+            newArrivals: totalNewArrivals,
+            inProgress: totalInProgress,
+            completed: totalCompleted,
+            activeWorkers: totalWorkers
+          });
+        } else if (targetDeptId) {
+          // Fetch kanban data for specific department
+          const kanbanResponse = await axios.get(
+            `${API}/departments/${targetDeptId}/sub-batches`,
+            {
+              headers: {
+                Authorization: `Bearer ${token}`,
+              },
+            }
+          );
+
+          const kanbanData = kanbanResponse.data.data;
+
+          // Fetch workers for this department
+          const workersResponse = await axios.get(
+            `${API}/workers/department/${targetDeptId}`
+          );
+
+          setStats({
+            newArrivals: kanbanData?.newArrival?.length || 0,
+            inProgress: kanbanData?.inProgress?.length || 0,
+            completed: kanbanData?.completed?.length || 0,
+            activeWorkers: workersResponse.data?.length || 0
+          });
+        }
       } catch (error) {
         console.error("Error fetching dashboard stats:", error);
       } finally {
@@ -54,15 +111,43 @@ const Dashboard = () => {
     };
 
     fetchStats();
-  }, [API]);
+  }, [API, isSuperSupervisor, selectedDepartmentId, departments]);
+
+  // Get department name for display
+  const getDepartmentLabel = () => {
+    if (isSuperSupervisor) {
+      if (selectedDepartmentId === "all") {
+        return "All Departments";
+      }
+      const dept = departments.find(d => d.id === selectedDepartmentId);
+      return dept?.name || "Selected Department";
+    }
+    return "your department";
+  };
 
   return (
     <div className="p-8 bg-gray-50 min-h-full">
       {/* Header */}
       <div className="mb-8">
         <h2 className="text-3xl font-bold text-gray-900">Dashboard Overview</h2>
-        <p className="text-gray-600 mt-2">Monitor your department&apos;s production progress and team performance</p>
+        <p className="text-gray-600 mt-2">
+          {isSuperSupervisor && selectedDepartmentId === "all"
+            ? "Aggregated production stats across all departments"
+            : `Monitor ${getDepartmentLabel()}'s production progress and team performance`
+          }
+        </p>
       </div>
+
+      {/* All Departments Banner for SUPER_SUPERVISOR */}
+      {isSuperSupervisor && selectedDepartmentId === "all" && (
+        <div className="mb-6 bg-purple-50 border border-purple-200 rounded-xl p-4 flex items-center gap-3">
+          <Building2 className="w-5 h-5 text-purple-600" />
+          <div>
+            <p className="text-sm font-medium text-purple-900">Viewing All Departments</p>
+            <p className="text-xs text-purple-700">Stats shown are aggregated across {departments.length} departments</p>
+          </div>
+        </div>
+      )}
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">

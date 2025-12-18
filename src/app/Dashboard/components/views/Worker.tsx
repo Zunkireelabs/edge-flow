@@ -176,6 +176,10 @@ const WorkerPage = () => {
         wage_rate_input: "",
     });
 
+    // Modal dropdown states
+    const [showWageTypeDropdown, setShowWageTypeDropdown] = useState(false);
+    const wageTypeDropdownRef = useRef<HTMLDivElement>(null);
+
     // Fetch workers
     const fetchWorkers = useCallback(async () => {
         try {
@@ -193,6 +197,23 @@ const WorkerPage = () => {
     useEffect(() => {
         fetchWorkers();
     }, [fetchWorkers]);
+
+    // Handle click outside for modal dropdown
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (wageTypeDropdownRef.current && !wageTypeDropdownRef.current.contains(event.target as Node)) {
+                setShowWageTypeDropdown(false);
+            }
+        };
+
+        if (showWageTypeDropdown) {
+            document.addEventListener('mousedown', handleClickOutside);
+        }
+
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+        };
+    }, [showWageTypeDropdown]);
 
     // Get unique values for filters
     const uniqueWageTypes = Array.from(new Set(workers.map(w => w.wage_type).filter(Boolean)));
@@ -360,7 +381,7 @@ const WorkerPage = () => {
                     <p className="text-gray-500 text-sm">Manage workers, wages and details</p>
                 </div>
                 <button
-                    className="flex items-center gap-2 bg-[#2272B4] text-white px-5 py-2.5 rounded font-semibold shadow-md hover:bg-[#0E538B] hover:shadow-lg transition-all duration-200 hover:scale-105"
+                    className="flex items-center gap-2 bg-[#2272B4] text-white px-5 py-2.5 rounded font-medium hover:bg-[#1a5a8a]"
                     onClick={() => { closeDrawer(); setIsDrawerOpen(true); }}
                 >
                     <Plus size={18} /> Add Worker
@@ -451,37 +472,37 @@ const WorkerPage = () => {
                             <table className="w-full min-w-full">
                                 <thead>
                                     <tr className="border-b border-gray-200 bg-gray-50">
-                                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100" onClick={() => handleSort("id")}>
+                                        <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100" onClick={() => handleSort("id")}>
                                             <div className="flex items-center gap-1">ID {sortColumn === "id" && (sortDirection === "asc" ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)}</div>
                                         </th>
-                                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100" onClick={() => handleSort("name")}>
+                                        <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100" onClick={() => handleSort("name")}>
                                             <div className="flex items-center gap-1">Name {sortColumn === "name" && (sortDirection === "asc" ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)}</div>
                                         </th>
-                                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100" onClick={() => handleSort("pan")}>
+                                        <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100" onClick={() => handleSort("pan")}>
                                             <div className="flex items-center gap-1">PAN {sortColumn === "pan" && (sortDirection === "asc" ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)}</div>
                                         </th>
-                                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100" onClick={() => handleSort("address")}>
+                                        <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100" onClick={() => handleSort("address")}>
                                             <div className="flex items-center gap-1">Address {sortColumn === "address" && (sortDirection === "asc" ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)}</div>
                                         </th>
-                                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Wage Type</th>
-                                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100" onClick={() => handleSort("wage_rate")}>
+                                        <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Wage Type</th>
+                                        <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100" onClick={() => handleSort("wage_rate")}>
                                             <div className="flex items-center gap-1">Wage Rate {sortColumn === "wage_rate" && (sortDirection === "asc" ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)}</div>
                                         </th>
-                                        <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                                        <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-gray-200">
                                     {paginatedWorkers.map((worker) => (
                                         <tr key={worker.id} className="hover:bg-gray-50 transition-colors">
-                                            <td className="px-4 py-3 text-sm text-gray-500">W{String(worker.id).padStart(3, '0')}</td>
-                                            <td className="px-4 py-3">
+                                            <td className="px-4 py-2 text-sm text-gray-500">W{String(worker.id).padStart(3, '0')}</td>
+                                            <td className="px-4 py-2">
                                                 <span className="text-sm font-medium text-[#2272B4] hover:underline cursor-pointer">{worker.name}</span>
                                             </td>
-                                            <td className="px-4 py-3 text-sm text-gray-600">{worker.pan}</td>
-                                            <td className="px-4 py-3 text-sm text-gray-600">{worker.address}</td>
-                                            <td className="px-4 py-3 text-sm text-gray-600">{worker.wage_type}</td>
-                                            <td className="px-4 py-3 text-sm text-gray-600">{worker.wage_rate}</td>
-                                            <td className="px-4 py-3 text-right">
+                                            <td className="px-4 py-2 text-sm text-gray-600">{worker.pan}</td>
+                                            <td className="px-4 py-2 text-sm text-gray-600">{worker.address}</td>
+                                            <td className="px-4 py-2 text-sm text-gray-600">{worker.wage_type}</td>
+                                            <td className="px-4 py-2 text-sm text-gray-600">{worker.wage_rate}</td>
+                                            <td className="px-4 py-2 text-right">
                                                 <div className="flex items-center justify-end gap-1">
                                                     <button
                                                         onClick={() => handlePreview(worker)}
@@ -561,7 +582,7 @@ const WorkerPage = () => {
 
                         {/* Header */}
                         <div className="border-b border-gray-200 pb-3 mb-4">
-                            <h3 className="text-xl font-bold text-gray-900 flex gap-2 items-center">
+                            <h3 className="text-lg font-semibold text-gray-900 flex gap-2 items-center">
                                 <Shell size={20} className="text-blue-600" />
                                 {isPreview ? "Worker Details" : editingWorker ? "Edit Worker" : "Add New Worker"}
                             </h3>
@@ -570,7 +591,7 @@ const WorkerPage = () => {
                         {/* Worker ID */}
                         {editingWorker && (
                             <div className="mb-4">
-                                <label className="block text-sm font-semibold text-gray-900 mb-1.5">
+                                <label className="block text-sm font-medium text-gray-900 mb-1.5">
                                     Worker ID
                                 </label>
                                 <input
@@ -586,7 +607,7 @@ const WorkerPage = () => {
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             {/* Name */}
                             <div>
-                                <label className="block text-sm font-semibold text-gray-900 mb-1.5">
+                                <label className="block text-sm font-medium text-gray-900 mb-1.5">
                                     Name <span className="text-red-500">*</span>
                                 </label>
                                 <input
@@ -602,7 +623,7 @@ const WorkerPage = () => {
 
                             {/* PAN */}
                             <div>
-                                <label className="block text-sm font-semibold text-gray-900 mb-1.5">
+                                <label className="block text-sm font-medium text-gray-900 mb-1.5">
                                     PAN <span className="text-red-500">*</span>
                                 </label>
                                 <input
@@ -618,7 +639,7 @@ const WorkerPage = () => {
 
                             {/* Address */}
                             <div className="sm:col-span-2">
-                                <label className="block text-sm font-semibold text-gray-900 mb-1.5">
+                                <label className="block text-sm font-medium text-gray-900 mb-1.5">
                                     Address <span className="text-red-500">*</span>
                                 </label>
                                 <input
@@ -633,25 +654,59 @@ const WorkerPage = () => {
                             </div>
 
                             {/* Wage Type */}
-                            <div>
-                                <label className="block text-sm font-semibold text-gray-900 mb-1.5">
+                            <div className="relative" ref={wageTypeDropdownRef}>
+                                <label className="block text-sm font-medium text-gray-900 mb-1.5">
                                     Wage Type
                                 </label>
-                                <select
-                                    name="wage_type"
-                                    value={formData.wage_type}
-                                    onChange={handleChange}
+                                <button
+                                    type="button"
+                                    onClick={() => !isPreview && setShowWageTypeDropdown(!showWageTypeDropdown)}
                                     disabled={isPreview}
-                                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                    className={`w-full border border-gray-200 rounded-lg px-3 py-2 text-left text-sm flex items-center justify-between ${
+                                        isPreview ? 'bg-gray-100 cursor-not-allowed' : 'bg-white hover:border-gray-300'
+                                    }`}
                                 >
-                                    <option value="HOURLY">HOURLY</option>
-                                    <option value="SALARY">SALARY</option>
-                                </select>
+                                    <span className="text-gray-900">{formData.wage_type}</span>
+                                    <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform ${showWageTypeDropdown ? 'rotate-180' : ''}`} />
+                                </button>
+
+                                {showWageTypeDropdown && (
+                                    <div className="absolute top-full left-0 mt-1 w-full bg-white rounded-lg shadow-lg border border-gray-200 z-50 overflow-hidden">
+                                        {[
+                                            { value: 'HOURLY', label: 'Hourly', description: 'Paid per hour worked' },
+                                            { value: 'SALARY', label: 'Salary', description: 'Fixed monthly payment' },
+                                        ].map((option) => (
+                                            <button
+                                                key={option.value}
+                                                type="button"
+                                                onClick={() => {
+                                                    setFormData({ ...formData, wage_type: option.value });
+                                                    setShowWageTypeDropdown(false);
+                                                }}
+                                                className={`w-full px-3 py-2.5 text-left hover:bg-gray-50 transition-colors flex items-start gap-3 ${
+                                                    formData.wage_type === option.value ? 'bg-blue-50' : ''
+                                                }`}
+                                            >
+                                                <div className={`mt-0.5 w-4 h-4 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${
+                                                    formData.wage_type === option.value ? 'border-[#2272B4] bg-[#2272B4]' : 'border-gray-300'
+                                                }`}>
+                                                    {formData.wage_type === option.value && <Check className="w-2.5 h-2.5 text-white" />}
+                                                </div>
+                                                <div className="flex-1 min-w-0">
+                                                    <div className={`text-sm font-medium ${formData.wage_type === option.value ? 'text-[#2272B4]' : 'text-gray-900'}`}>
+                                                        {option.label}
+                                                    </div>
+                                                    <div className="text-xs text-gray-500">{option.description}</div>
+                                                </div>
+                                            </button>
+                                        ))}
+                                    </div>
+                                )}
                             </div>
 
                             {/* Wage Rate */}
                             <div>
-                                <label className="block text-sm font-semibold text-gray-900 mb-1.5">
+                                <label className="block text-sm font-medium text-gray-900 mb-1.5">
                                     Wage Rate <span className="text-red-500">*</span>
                                 </label>
                                 <input

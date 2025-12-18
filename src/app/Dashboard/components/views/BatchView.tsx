@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import axios from "axios";
-import { Plus, X, Edit2, Trash2, Package, Eye, ChevronDown, ChevronUp, SlidersHorizontal, ChevronLeft, ChevronRight, ArrowUpDown, Search, Check } from "lucide-react";
+import { Plus, X, Edit2, Trash2, Package, Eye, ChevronDown, ChevronUp, SlidersHorizontal, ChevronLeft, ChevronRight, ArrowUpDown, Search, Check, PlusCircle } from "lucide-react";
 import Loader from "@/app/Components/Loader";
 import Select from "react-select";
 import { useToast } from "@/app/Components/ToastContext";
@@ -146,6 +146,7 @@ type Roll = {
   id: number;
   name: string;
   quantity: number;
+  remaining_quantity?: number; // Calculated: quantity - sum of batch quantities
   unit: string;
   color: string;
   vendor: Vendor | null;
@@ -155,8 +156,10 @@ type Batch = {
   id: number;
   roll_id: number | null;
   name: string;
+  order_name?: string;  // Order Name
   quantity: number;
   unit: string;
+  unit_count?: number;  // Number of fabric pieces
   color: string;
   vendor_id: number | null;
   roll: Roll | null;
@@ -198,8 +201,10 @@ const BatchView = () => {
 
   const [formData, setFormData] = useState({
     name: "",
+    order_name: "",
     quantity: 0,
     unit: "Kilogram",
+    unit_count: "" as string | number,
     color: "",
     roll_id: null as number | null,
     vendor_id: null as number | null,
@@ -207,6 +212,13 @@ const BatchView = () => {
 
   const [openMenuId, setOpenMenuId] = useState<number | null>(null);
   const API = process.env.NEXT_PUBLIC_API_URL;
+
+  // Modal dropdown states
+  const [showUnitDropdown, setShowUnitDropdown] = useState(false);
+  const [showVendorDropdown, setShowVendorDropdown] = useState(false);
+  const [vendorSearchQuery, setVendorSearchQuery] = useState("");
+  const unitDropdownRef = useRef<HTMLDivElement>(null);
+  const vendorDropdownRef = useRef<HTMLDivElement>(null);
 
   // Helper function to get vendor initials
   const getVendorInitials = (name: string) => {
@@ -320,8 +332,10 @@ const BatchView = () => {
   const resetFormData = () => {
     setFormData({
       name: "",
+      order_name: "",
       quantity: 0,
       unit: "Kilogram",
+      unit_count: "",
       color: "",
       roll_id: null,
       vendor_id: null,
@@ -392,6 +406,27 @@ const BatchView = () => {
     };
   }, [openMenuId]);
 
+  // Handle click outside for modal dropdowns
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (unitDropdownRef.current && !unitDropdownRef.current.contains(event.target as Node)) {
+        setShowUnitDropdown(false);
+      }
+      if (vendorDropdownRef.current && !vendorDropdownRef.current.contains(event.target as Node)) {
+        setShowVendorDropdown(false);
+        setVendorSearchQuery("");
+      }
+    };
+
+    if (showUnitDropdown || showVendorDropdown) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showUnitDropdown, showVendorDropdown]);
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     let value: string | number | null = e.target.value;
 
@@ -432,6 +467,23 @@ const BatchView = () => {
         return;
       }
 
+      // Validate quantity against roll's available quantity
+      if (formData.roll_id) {
+        const selectedRoll = rolls.find(r => r.id === formData.roll_id);
+        if (selectedRoll) {
+          const available = selectedRoll.remaining_quantity ?? selectedRoll.quantity;
+          // For editing, add back the current batch's quantity to available
+          const adjustedAvailable = editingBatch && editingBatch.roll_id === formData.roll_id
+            ? available + editingBatch.quantity
+            : available;
+
+          if (Number(formData.quantity) > adjustedAvailable) {
+            showToast("error", `Quantity exceeds available roll quantity! Available: ${adjustedAvailable} ${selectedRoll.unit}`);
+            return;
+          }
+        }
+      }
+
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const payload: any = {
         name: formData.name.trim(),
@@ -439,6 +491,16 @@ const BatchView = () => {
         unit: formData.unit,
         color: formData.color.trim(),
       };
+
+      // Add order_name if provided
+      if (formData.order_name && formData.order_name.trim()) {
+        payload.order_name = formData.order_name.trim();
+      }
+
+      // Add unit_count if provided
+      if (formData.unit_count && Number(formData.unit_count) > 0) {
+        payload.unit_count = Number(formData.unit_count);
+      }
 
       // Only include roll_id and vendor_id if they have values
       if (formData.roll_id !== null) {
@@ -466,10 +528,15 @@ const BatchView = () => {
       setIsPreview(false);
       resetFormData();
       await fetchBatches();
+      await fetchRolls(); // Refresh rolls to update remaining_quantity
 
-    } catch (err) {
+    } catch (err: unknown) {
       console.error("Save error:", err);
-      showToast("error", `Error ${editingBatch ? 'updating' : 'creating'} batch. Please try again.`);
+      // Check if it's an axios error with a response message
+      const axiosError = err as { response?: { data?: { error?: string } } };
+      const errorMessage = axiosError?.response?.data?.error ||
+        `Error ${editingBatch ? 'updating' : 'creating'} batch. Please try again.`;
+      showToast("error", errorMessage);
     } finally {
       setSaveLoading(false);
     }
@@ -480,8 +547,10 @@ const BatchView = () => {
     setEditingBatch(batch);
     setFormData({
       name: batch.name,
+      order_name: batch.order_name || "",
       quantity: batch.quantity,
       unit: batch.unit,
+      unit_count: batch.unit_count || "",
       color: batch.color,
       roll_id: batch.roll_id,
       vendor_id: batch.vendor_id,
@@ -495,8 +564,10 @@ const BatchView = () => {
     setEditingBatch(batch);
     setFormData({
       name: batch.name,
+      order_name: batch.order_name || "",
       quantity: batch.quantity,
       unit: batch.unit,
+      unit_count: batch.unit_count || "",
       color: batch.color,
       roll_id: batch.roll_id,
       vendor_id: batch.vendor_id,
@@ -520,6 +591,7 @@ const BatchView = () => {
     try {
       await axios.delete(`${API}/batches/${id}`);
       await fetchBatches();
+      await fetchRolls(); // Refresh rolls to update remaining_quantity
       showToast("success", "Batch deleted successfully!");
     } catch (err) {
       console.error("Delete error:", err);
@@ -599,6 +671,7 @@ const BatchView = () => {
 
       // Success - refresh and reset
       await fetchBatches();
+      await fetchRolls(); // Refresh rolls to update remaining_quantity
       setSelectedRows(new Set());
       setShowDeleteConfirm(false);
       setDeleteConfirmText("");
@@ -635,11 +708,11 @@ const BatchView = () => {
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">Batch View</h2>
-          <p className="text-gray-500 text-sm">Manage production batches and track progress</p>
+          <h2 className="text-xl font-semibold text-gray-900">Fabric View (Batch)</h2>
+          <p className="text-gray-500 text-sm">Manage production fabrics and track progress</p>
         </div>
         <button
-          className="flex items-center gap-2 bg-[#2272B4] text-white px-5 py-2.5 rounded font-semibold shadow-md hover:bg-[#0E538B] hover:shadow-lg transition-all duration-200 hover:scale-105"
+          className="flex items-center gap-2 bg-[#2272B4] text-white px-5 py-2.5 rounded font-medium hover:bg-[#1a5a8a]"
           onClick={() => {
             resetFormData();
             setIsDrawerOpen(true);
@@ -766,7 +839,7 @@ const BatchView = () => {
               <table className="w-full min-w-full">
                 <thead>
                   <tr className="border-b border-gray-200 bg-gray-50">
-                    <th className="px-4 py-3 text-left w-12">
+                    <th className="px-4 py-2 text-left w-12">
                       <input
                         type="checkbox"
                         checked={paginatedBatches.length > 0 && paginatedBatches.every(b => selectedRows.has(b.id))}
@@ -774,36 +847,36 @@ const BatchView = () => {
                         className="w-4 h-4 rounded border-gray-300 text-[#2272B4] focus:ring-[#2272B4]"
                       />
                     </th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100" onClick={() => handleSort("id")}>
+                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100" onClick={() => handleSort("id")}>
                       <div className="flex items-center gap-1">ID {sortColumn === "id" && (sortDirection === "asc" ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)}</div>
                     </th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100" onClick={() => handleSort("name")}>
+                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100" onClick={() => handleSort("name")}>
                       <div className="flex items-center gap-1">Name {sortColumn === "name" && (sortDirection === "asc" ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)}</div>
                     </th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100" onClick={() => handleSort("quantity")}>
+                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100" onClick={() => handleSort("quantity")}>
                       <div className="flex items-center gap-1">Quantity {sortColumn === "quantity" && (sortDirection === "asc" ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)}</div>
                     </th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Unit</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Color</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Roll</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Vendor</th>
-                    <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Unit</th>
+                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Color</th>
+                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Roll</th>
+                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Vendor</th>
+                    <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200">
                   {paginatedBatches.map((batch) => (
                     <tr key={batch.id} className={`transition-colors ${selectedRows.has(batch.id) ? 'bg-blue-50' : 'hover:bg-gray-50'}`}>
-                      <td className="px-4 py-3">
+                      <td className="px-4 py-2">
                         <input type="checkbox" checked={selectedRows.has(batch.id)} onChange={() => toggleRowSelection(batch.id)} className="w-4 h-4 rounded border-gray-300 text-[#2272B4] focus:ring-[#2272B4]" />
                       </td>
-                      <td className="px-4 py-3 text-sm text-gray-500">B{String(batch.id).padStart(3, '0')}</td>
-                      <td className="px-4 py-3"><span className="text-sm font-medium text-[#2272B4] hover:underline cursor-pointer">{batch.name}</span></td>
-                      <td className="px-4 py-3 text-sm text-gray-600">{batch.quantity}</td>
-                      <td className="px-4 py-3 text-sm text-gray-600">{batch.unit}</td>
-                      <td className="px-4 py-3 text-sm text-gray-600">{batch.color}</td>
-                      <td className="px-4 py-3 text-sm text-gray-600">{batch.roll?.name || <span className="text-gray-400">—</span>}</td>
-                      <td className="px-4 py-3 text-sm text-gray-600">{batch.vendor ? batch.vendor.name : <span className="text-gray-400">—</span>}</td>
-                      <td className="px-4 py-3 text-right">
+                      <td className="px-4 py-2 text-sm text-gray-500">B{String(batch.id).padStart(3, '0')}</td>
+                      <td className="px-4 py-2"><span className="text-sm font-medium text-[#2272B4] hover:underline cursor-pointer">{batch.name}</span></td>
+                      <td className="px-4 py-2 text-sm text-gray-600">{batch.quantity}</td>
+                      <td className="px-4 py-2 text-sm text-gray-600">{batch.unit}</td>
+                      <td className="px-4 py-2 text-sm text-gray-600">{batch.color}</td>
+                      <td className="px-4 py-2 text-sm text-gray-600">{batch.roll?.name || <span className="text-gray-400">—</span>}</td>
+                      <td className="px-4 py-2 text-sm text-gray-600">{batch.vendor ? batch.vendor.name : <span className="text-gray-400">—</span>}</td>
+                      <td className="px-4 py-2 text-right">
                         <div className="flex items-center justify-end gap-1">
                           <button onClick={() => handlePreview(batch)} className="p-1.5 rounded hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors" title="Preview"><Eye size={16} /></button>
                           <button onClick={() => handleEdit(batch)} className="p-1.5 rounded hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors" title="Edit"><Edit2 size={16} /></button>
@@ -864,7 +937,7 @@ const BatchView = () => {
             {isPreview ? (
               // Preview Layout
               <>
-                <h3 className="text-lg font-semibold mb-6 flex items-center gap-2">
+                <h3 className="text-lg font-semibold text-gray-900 mb-5 flex items-center gap-2">
                   <Package size={20} className="text-blue-600" />
                   Batch Details
                 </h3>
@@ -872,37 +945,37 @@ const BatchView = () => {
                 <div className="space-y-4">
                   {/* ID */}
                   <div className="flex justify-between items-center py-2 border-b border-gray-100">
-                    <span className="font-semibold text-black">ID</span>
+                    <span className="font-medium text-black">ID</span>
                     <span className="text-sm text-gray-500">BA00{editingBatch?.id}</span>
                   </div>
 
                   {/* Roll */}
                   <div className="flex justify-between items-center py-2 border-b border-gray-100">
-                    <span className="font-semibold text-black">Roll</span>
+                    <span className="font-medium text-black">Roll</span>
                     <span className="text-sm text-gray-500">{editingBatch?.roll?.name || "-"}</span>
                   </div>
 
                   {/* Name */}
                   <div className="flex justify-between items-center py-2 border-b border-gray-100">
-                    <span className="font-semibold text-black">Name</span>
+                    <span className="font-medium text-black">Name</span>
                     <span className="text-sm text-gray-500">{formData.name}</span>
                   </div>
 
                   {/* Quantity */}
                   <div className="flex justify-between items-center py-2 border-b border-gray-100">
-                    <span className="font-semibold text-black">Quantity</span>
+                    <span className="font-medium text-black">Quantity</span>
                     <span className="text-sm text-gray-500">{formData.quantity} {formData.unit}</span>
                   </div>
 
                   {/* Color */}
                   <div className="flex justify-between items-center py-2 border-b border-gray-100">
-                    <span className="font-semibold text-black">Color</span>
+                    <span className="font-medium text-black">Color</span>
                     <span className="text-sm text-gray-500">{formData.color || "-"}</span>
                   </div>
 
                   {/* Vendor */}
                   <div className="flex justify-between items-center py-2 border-b border-gray-100">
-                    <span className="font-semibold text-black">Vendor</span>
+                    <span className="font-medium text-black">Vendor</span>
                     <span className="text-sm text-gray-500">{editingBatch?.vendor?.name || "-"}</span>
                   </div>
                 </div>
@@ -912,37 +985,23 @@ const BatchView = () => {
             ) : (
               // Edit/Add Layout
               <>
-                {/* Modern Header with Step Indicator */}
-                <div className="border-b border-gray-200 pb-3 mb-4">
-                  <div className="flex items-center justify-between mb-2">
-                    <h3 className="text-xl font-bold text-gray-900" style={{ letterSpacing: '-0.01em' }}>
-                      {editingBatch ? "Edit Batch" : "Add New Batch"}
-                    </h3>
-                    <span className="text-sm text-gray-500">Step 1 of 1</span>
-                  </div>
-
-                  {/* Progress Stepper */}
-                  <div className="mt-3 flex items-center gap-4">
-                    <div className="flex items-center gap-2">
-                      <div className="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center text-sm font-semibold">
-                        1
-                      </div>
-                      <span className="text-sm font-medium text-gray-900">Basic Info</span>
-                    </div>
-                    <div className="flex-1 h-[2px] bg-gray-200"></div>
-                  </div>
+                {/* Modal Header */}
+                <div className="mb-5">
+                  <h3 className="text-lg font-semibold text-gray-900">
+                    {editingBatch ? "Edit Batch" : "Add New Batch"}
+                  </h3>
                 </div>
 
-                <div className="space-y-3">
-              {/* Batch Name */}
+                <div className="space-y-4">
+              {/* Fabric Name (was Batch Name) */}
               <div>
-                <label className="block text-sm font-semibold text-gray-900 mb-1.5">
-                  Batch Name <span className="text-red-500">*</span>
+                <label className="block text-sm font-medium text-gray-900 mb-1.5">
+                  Fabric Name <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="text"
                   name="name"
-                  placeholder="Enter batch name"
+                  placeholder="Enter fabric name"
                   value={formData.name}
                   onChange={handleChange}
                   readOnly={isPreview}
@@ -951,9 +1010,25 @@ const BatchView = () => {
                 />
               </div>
 
+              {/* Order Name - NEW FIELD */}
+              <div>
+                <label className="block text-sm font-medium text-gray-900 mb-1.5">
+                  Order Name
+                </label>
+                <input
+                  type="text"
+                  name="order_name"
+                  placeholder="Enter order name"
+                  value={formData.order_name}
+                  onChange={handleChange}
+                  readOnly={isPreview}
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                />
+              </div>
+
               {/* Roll - Moved up for better auto-fill UX */}
               <div>
-                <label className="block text-sm font-semibold text-gray-900 mb-1.5">
+                <label className="block text-sm font-medium text-gray-900 mb-1.5">
                   Roll
                 </label>
                 <Select
@@ -980,14 +1055,19 @@ const BatchView = () => {
                       roll_id: rollId,
                       color: selectedRoll?.color || "",
                       vendor_id: selectedRoll?.vendor?.id || null,
+                      unit: selectedRoll?.unit || formData.unit, // Auto-fill unit from Roll
                     });
                   }}
                   options={[...rolls]
                     .sort((a, b) => b.id - a.id) // Sort by ID descending (newest first)
-                    .map((roll) => ({
-                      value: roll.id,
-                      label: `${roll.name} (R${String(roll.id).padStart(3, '0')}) | Qty: ${roll.quantity} ${roll.unit} | Color: ${roll.color || 'N/A'} | Vendor: ${roll.vendor?.name || 'No Vendor'}`
-                    }))}
+                    .map((roll) => {
+                      const remaining = roll.remaining_quantity ?? roll.quantity;
+                      return {
+                        value: roll.id,
+                        label: `${roll.name} (R${String(roll.id).padStart(3, '0')}) | Available: ${remaining} ${roll.unit} | Color: ${roll.color || 'N/A'}`,
+                        isDisabled: remaining <= 0 // Disable if no quantity available
+                      };
+                    })}
                   isDisabled={isPreview}
                   isClearable
                   placeholder="Select Roll"
@@ -1026,11 +1106,11 @@ const BatchView = () => {
               {/* Quantity + Unit */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-sm font-semibold text-gray-900 mb-1.5">
+                  <label className="block text-sm font-medium text-gray-900 mb-1.5">
                     Quantity <span className="text-red-500">*</span>
                   </label>
                   <input
-                    type="string"
+                    type="number"
                     name="quantity"
                     placeholder="Enter quantity"
                     value={formData.quantity}
@@ -1038,31 +1118,120 @@ const BatchView = () => {
                     readOnly={isPreview}
                     min="0"
                     step="0.01"
-                    className="w-full border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                    className={`w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm ${
+                      formData.roll_id && (() => {
+                        const selectedRoll = rolls.find(r => r.id === formData.roll_id);
+                        const available = selectedRoll?.remaining_quantity ?? selectedRoll?.quantity ?? 0;
+                        // For editing, add back the current batch's quantity
+                        const adjustedAvailable = editingBatch && editingBatch.roll_id === formData.roll_id
+                          ? available + editingBatch.quantity
+                          : available;
+                        return Number(formData.quantity) > adjustedAvailable ? 'border-red-500' : 'border-gray-200';
+                      })() || 'border-gray-200'
+                    }`}
                     required
                   />
+                  {formData.roll_id && (() => {
+                    const selectedRoll = rolls.find(r => r.id === formData.roll_id);
+                    const available = selectedRoll?.remaining_quantity ?? selectedRoll?.quantity ?? 0;
+                    // For editing, add back the current batch's quantity
+                    const adjustedAvailable = editingBatch && editingBatch.roll_id === formData.roll_id
+                      ? available + editingBatch.quantity
+                      : available;
+                    const isOverLimit = Number(formData.quantity) > adjustedAvailable;
+                    return (
+                      <p className={`text-xs mt-1 ${isOverLimit ? 'text-red-500' : 'text-gray-500'}`}>
+                        Available from roll: <span className="font-medium">{adjustedAvailable} {selectedRoll?.unit}</span>
+                        {isOverLimit && <span className="ml-1">(Exceeds available!)</span>}
+                      </p>
+                    );
+                  })()}
                 </div>
-                <div>
-                  <label className="block text-sm font-semibold text-gray-900 mb-1.5">
-                    Unit
+                <div className="relative" ref={unitDropdownRef}>
+                  <label className="block text-sm font-medium text-gray-900 mb-1.5">
+                    Unit {formData.roll_id && <span className="text-xs text-gray-500 font-normal">(Auto-filled from Roll)</span>}
                   </label>
-                  <select
-                    name="unit"
-                    value={formData.unit}
-                    onChange={handleChange}
-                    disabled={isPreview}
-                    className="w-full border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm bg-white"
-                  >
-                    <option value="Kilogram">Kilogram</option>
-                    <option value="Meter">Meter</option>
-                    <option value="Piece">Piece</option>
-                  </select>
+                  {formData.roll_id ? (
+                    // Disabled state when Roll is selected - Unit inherited from Roll
+                    <div className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm bg-gray-100 text-gray-700 cursor-not-allowed">
+                      {formData.unit || 'No unit'}
+                    </div>
+                  ) : (
+                    // Editable dropdown when no Roll is selected
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => !isPreview && setShowUnitDropdown(!showUnitDropdown)}
+                        disabled={isPreview}
+                        className={`w-full border border-gray-200 rounded-lg px-3 py-2 text-left text-sm flex items-center justify-between ${
+                          isPreview ? 'bg-gray-100 cursor-not-allowed' : 'bg-white hover:border-gray-300'
+                        }`}
+                      >
+                        <span className={formData.unit ? 'text-gray-900' : 'text-gray-400'}>
+                          {formData.unit || 'Select unit...'}
+                        </span>
+                        <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform ${showUnitDropdown ? 'rotate-180' : ''}`} />
+                      </button>
+
+                      {showUnitDropdown && (
+                        <div className="absolute top-full left-0 mt-1 w-full bg-white rounded-lg shadow-lg border border-gray-200 z-50 overflow-hidden">
+                          {[
+                            { value: 'Kilogram', label: 'Kilogram', description: 'Weight measurement (kg)' },
+                            { value: 'Meter', label: 'Meter', description: 'Length measurement (m)' },
+                            { value: 'Piece', label: 'Piece', description: 'Count of items (pcs)' },
+                          ].map((option) => (
+                            <button
+                              key={option.value}
+                              type="button"
+                              onClick={() => {
+                                setFormData({ ...formData, unit: option.value });
+                                setShowUnitDropdown(false);
+                              }}
+                              className={`w-full px-3 py-2.5 text-left hover:bg-gray-50 transition-colors flex items-start gap-3 ${
+                                formData.unit === option.value ? 'bg-blue-50' : ''
+                              }`}
+                            >
+                              <div className={`mt-0.5 w-4 h-4 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${
+                                formData.unit === option.value ? 'border-[#2272B4] bg-[#2272B4]' : 'border-gray-300'
+                              }`}>
+                                {formData.unit === option.value && <Check className="w-2.5 h-2.5 text-white" />}
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <div className={`text-sm font-medium ${formData.unit === option.value ? 'text-[#2272B4]' : 'text-gray-900'}`}>
+                                  {option.label}
+                                </div>
+                                <div className="text-xs text-gray-500">{option.description}</div>
+                              </div>
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </>
+                  )}
                 </div>
+              </div>
+
+              {/* No of Unit (Fabric piece count) - NEW FIELD */}
+              <div>
+                <label className="block text-sm font-medium text-gray-900 mb-1.5">
+                  No of Unit
+                </label>
+                <input
+                  type="number"
+                  name="unit_count"
+                  placeholder="e.g., 15 pieces"
+                  value={formData.unit_count}
+                  onChange={handleChange}
+                  readOnly={isPreview}
+                  min="0"
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                />
+                <p className="text-xs text-gray-500 mt-1">Number of fabric pieces (separate from weight/length)</p>
               </div>
 
               {/* Color - Auto-filled from Roll */}
               <div>
-                <label className="block text-sm font-semibold text-gray-900 mb-1.5">
+                <label className="block text-sm font-medium text-gray-900 mb-1.5">
                   Color {formData.roll_id && <span className="text-xs text-gray-500 font-normal">(Auto-filled from Roll)</span>}
                 </label>
                 <input
@@ -1071,30 +1240,122 @@ const BatchView = () => {
                   placeholder="Enter color"
                   value={formData.color}
                   onChange={handleChange}
-                  readOnly={isPreview}
-                  className={`w-full border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm ${formData.roll_id ? 'bg-blue-50' : ''}`}
+                  readOnly={isPreview || !!formData.roll_id}
+                  className={`w-full border border-gray-200 rounded-lg px-3 py-2 text-sm ${
+                    formData.roll_id
+                      ? 'bg-gray-100 text-gray-700 cursor-not-allowed'
+                      : 'focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent'
+                  }`}
                 />
               </div>
 
               {/* Vendor */}
-              <div>
-                <label className="block text-sm font-semibold text-gray-900 mb-1.5">
+              <div className="relative" ref={vendorDropdownRef}>
+                <label className="block text-sm font-medium text-gray-900 mb-1.5">
                   Vendor {formData.roll_id && <span className="text-xs text-gray-500 font-normal">(Auto-filled from Roll)</span>}
                 </label>
-                <select
-                  name="vendor_id"
-                  value={formData.vendor_id ?? ""}
-                  onChange={handleChange}
-                  disabled={isPreview}
-                  className={`w-full border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm bg-white ${formData.roll_id ? 'bg-blue-50' : ''}`}
-                >
-                  <option value="">Select Vendor</option>
-                  {vendors.map((vendor) => (
-                    <option key={vendor.id} value={vendor.id}>
-                      {vendor.name}
-                    </option>
-                  ))}
-                </select>
+                {formData.roll_id ? (
+                  // Disabled state when Roll is selected - Vendor inherited from Roll
+                  <div className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm bg-gray-100 text-gray-700 cursor-not-allowed">
+                    {formData.vendor_id ? vendors.find(v => v.id === formData.vendor_id)?.name || 'No vendor' : 'No vendor'}
+                  </div>
+                ) : (
+                  // Editable dropdown when no Roll is selected
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => !isPreview && setShowVendorDropdown(!showVendorDropdown)}
+                      disabled={isPreview}
+                      className={`w-full border border-gray-200 rounded-lg px-3 py-2 text-left text-sm flex items-center justify-between ${
+                        isPreview ? 'bg-gray-100 cursor-not-allowed' : 'bg-white hover:border-gray-300'
+                      }`}
+                    >
+                      <span className={formData.vendor_id ? 'text-gray-900' : 'text-gray-400'}>
+                        {formData.vendor_id ? vendors.find(v => v.id === formData.vendor_id)?.name || 'Select vendor...' : 'Select vendor...'}
+                      </span>
+                      <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform ${showVendorDropdown ? 'rotate-180' : ''}`} />
+                    </button>
+
+                {showVendorDropdown && (
+                  <div className="absolute top-full left-0 mt-1 w-full bg-white rounded-lg shadow-lg border border-gray-200 z-50 overflow-hidden">
+                    {/* Search */}
+                    <div className="p-2 border-b border-gray-100">
+                      <div className="relative">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                        <input
+                          type="text"
+                          placeholder="Search vendors..."
+                          value={vendorSearchQuery}
+                          onChange={(e) => setVendorSearchQuery(e.target.value)}
+                          className="w-full pl-9 pr-3 py-2 text-sm border border-gray-200 rounded-full focus:outline-none focus:ring-2 focus:ring-[#2272B4]"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Options */}
+                    <div className="max-h-48 overflow-y-auto">
+                      {/* Clear selection option */}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setFormData({ ...formData, vendor_id: null });
+                          setShowVendorDropdown(false);
+                          setVendorSearchQuery("");
+                        }}
+                        className={`w-full px-3 py-2.5 text-left hover:bg-gray-50 transition-colors flex items-start gap-3 ${
+                          formData.vendor_id === null ? 'bg-blue-50' : ''
+                        }`}
+                      >
+                        <div className={`mt-0.5 w-4 h-4 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${
+                          formData.vendor_id === null ? 'border-[#2272B4] bg-[#2272B4]' : 'border-gray-300'
+                        }`}>
+                          {formData.vendor_id === null && <Check className="w-2.5 h-2.5 text-white" />}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className={`text-sm font-medium ${formData.vendor_id === null ? 'text-[#2272B4]' : 'text-gray-900'}`}>
+                            No Vendor
+                          </div>
+                          <div className="text-xs text-gray-500">Clear vendor selection</div>
+                        </div>
+                      </button>
+
+                      {vendors
+                        .filter(v => v.name.toLowerCase().includes(vendorSearchQuery.toLowerCase()))
+                        .map((vendor) => (
+                          <button
+                            key={vendor.id}
+                            type="button"
+                            onClick={() => {
+                              setFormData({ ...formData, vendor_id: vendor.id });
+                              setShowVendorDropdown(false);
+                              setVendorSearchQuery("");
+                            }}
+                            className={`w-full px-3 py-2.5 text-left hover:bg-gray-50 transition-colors flex items-start gap-3 ${
+                              formData.vendor_id === vendor.id ? 'bg-blue-50' : ''
+                            }`}
+                          >
+                            <div className={`mt-0.5 w-4 h-4 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${
+                              formData.vendor_id === vendor.id ? 'border-[#2272B4] bg-[#2272B4]' : 'border-gray-300'
+                            }`}>
+                              {formData.vendor_id === vendor.id && <Check className="w-2.5 h-2.5 text-white" />}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className={`text-sm font-medium ${formData.vendor_id === vendor.id ? 'text-[#2272B4]' : 'text-gray-900'}`}>
+                                {vendor.name}
+                              </div>
+                              <div className="text-xs text-gray-500">{vendor.address || 'No address'}</div>
+                            </div>
+                          </button>
+                        ))}
+
+                      {vendors.filter(v => v.name.toLowerCase().includes(vendorSearchQuery.toLowerCase())).length === 0 && (
+                        <div className="px-3 py-4 text-sm text-gray-500 text-center">No vendors found</div>
+                      )}
+                    </div>
+                  </div>
+                )}
+                  </>
+                )}
               </div>
             </div>
 

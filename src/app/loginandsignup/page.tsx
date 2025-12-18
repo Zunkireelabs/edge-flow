@@ -62,15 +62,18 @@ const AuthPage: React.FC = () => {
 
       if (res.ok) {
         data = await res.json();
+        const isSuperSupervisor = data.supervisor.role === "SUPER_SUPERVISOR";
+
         // Set cookie for middleware authentication
         setCookie("token", data.token, 7);
         setCookie("role", data.supervisor.role, 7);
         // Also keep localStorage for client-side access
         localStorage.setItem("token", data.token);
         localStorage.setItem("role", data.supervisor.role);
-        localStorage.setItem("departmentId", String(data.supervisor.departmentId));
+        // SUPER_SUPERVISOR has no departmentId (can view all departments)
+        localStorage.setItem("departmentId", isSuperSupervisor ? "" : String(data.supervisor.departmentId || ""));
         localStorage.setItem("userId", data.supervisor.id?.toString() || "");
-        localStorage.setItem("userName", data.supervisor.name || "Supervisor");
+        localStorage.setItem("userName", data.supervisor.name || (isSuperSupervisor ? "Super Supervisor" : "Supervisor"));
         localStorage.setItem("userEmail", email);
         window.location.href = "/SupervisorDashboard";
         return;

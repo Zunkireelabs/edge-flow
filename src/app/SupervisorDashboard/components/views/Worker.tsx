@@ -1,9 +1,10 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
-import { Plus, Edit, Trash2, Users } from 'lucide-react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { Plus, Edit, Trash2, Users, Building2 } from 'lucide-react';
 import AddWorkerModal from '../../depcomponents/AddWorkerModal';
 import { useToast } from '@/app/Components/ToastContext';
+import { useDepartment } from '../../contexts/DepartmentContext';
 
 interface Worker {
   id: number;
@@ -21,6 +22,7 @@ interface Worker {
 
 const Worker = () => {
   const { showToast, showConfirm } = useToast();
+  const { selectedDepartmentId, isSuperSupervisor, departments } = useDepartment();
   const [workers, setWorkers] = useState<Worker[]>([]);
   const [loading, setLoading] = useState(false);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -34,29 +36,61 @@ const Worker = () => {
     }
   }, []);
 
-  const fetchWorkers = async () => {
-    if (!supervisorDepartmentId) {
-      console.log('❌ Worker View: No supervisorDepartmentId found');
+  const fetchWorkers = useCallback(async () => {
+    // Determine target department ID
+    const targetDeptId = isSuperSupervisor
+      ? (typeof selectedDepartmentId === 'number' ? selectedDepartmentId : null)
+      : supervisorDepartmentId;
+
+    // For SUPER_SUPERVISOR with "all" selected - fetch workers from all departments
+    if (isSuperSupervisor && selectedDepartmentId === "all") {
+      try {
+        setLoading(true);
+        // Fetch workers from all departments in parallel
+        const departmentPromises = departments.map(async (dept) => {
+          try {
+            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/workers/department/${dept.id}`);
+            if (res.ok) {
+              return await res.json();
+            }
+            return [];
+          } catch (err) {
+            console.error(`Error fetching workers for department ${dept.id}:`, err);
+            return [];
+          }
+        });
+
+        const results = await Promise.all(departmentPromises);
+        const allWorkers = results.flat();
+        setWorkers(allWorkers);
+      } catch (e) {
+        console.error('❌ Worker View: Exception:', e);
+        showToast('error', 'Error fetching workers');
+      } finally {
+        setLoading(false);
+      }
+      return;
+    }
+
+    // Fetch workers for a specific department
+    if (!targetDeptId) {
+      console.log('❌ Worker View: No department ID found');
       return;
     }
 
     try {
       setLoading(true);
-      const url = `${process.env.NEXT_PUBLIC_API_URL}/workers/department/${supervisorDepartmentId}`;
+      const url = `${process.env.NEXT_PUBLIC_API_URL}/workers/department/${targetDeptId}`;
       console.log('🔍 Worker View: Fetching workers from:', url);
-      console.log('📋 Worker View: Department ID:', supervisorDepartmentId);
 
       const res = await fetch(url);
       if (res.ok) {
         const data = await res.json();
         console.log('✅ Worker View: Received workers:', data);
-        console.log('📊 Worker View: Number of workers:', data.length);
         setWorkers(data);
       } else {
         console.error('❌ Worker View: API returned error status:', res.status);
-        const errorText = await res.text();
-        console.error('❌ Worker View: Error response:', errorText);
-        showToast('error', 'Failed to fetch workers for your department');
+        showToast('error', 'Failed to fetch workers for this department');
       }
     } catch (e) {
       console.error('❌ Worker View: Exception:', e);
@@ -64,15 +98,18 @@ const Worker = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [isSuperSupervisor, selectedDepartmentId, supervisorDepartmentId, departments, showToast]);
 
-  // Fetch workers when department ID is available
+  // Fetch workers when department ID is available or selection changes
   useEffect(() => {
-    if (supervisorDepartmentId) {
+    if (isSuperSupervisor) {
+      // For SUPER_SUPERVISOR, always fetch based on selection
+      fetchWorkers();
+    } else if (supervisorDepartmentId) {
+      // For regular SUPERVISOR, fetch when department ID is set
       fetchWorkers();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [supervisorDepartmentId]);
+  }, [isSuperSupervisor, selectedDepartmentId, supervisorDepartmentId, fetchWorkers]);
 
   const handleDelete = async (id: number) => {
     const confirmed = await showConfirm({
@@ -106,6 +143,18 @@ const Worker = () => {
     fetchWorkers();
   };
 
+  // Get department label for display
+  const getDepartmentLabel = () => {
+    if (isSuperSupervisor) {
+      if (selectedDepartmentId === "all") {
+        return "all departments";
+      }
+      const dept = departments.find(d => d.id === selectedDepartmentId);
+      return dept?.name || "selected department";
+    }
+    return "your department";
+  };
+
   return (
     <div className="p-6 bg-gray-50 min-h-screen">
       {/* Header */}
@@ -114,7 +163,7 @@ const Worker = () => {
           <Users className="text-blue-600" size={32} />
           <div>
             <h1 className="text-2xl font-bold text-gray-800">Worker Management</h1>
-            <p className="text-sm text-gray-500">Manage workers in your department</p>
+            <p className="text-sm text-gray-500">Manage workers in {getDepartmentLabel()}</p>
           </div>
         </div>
         <button
@@ -125,6 +174,17 @@ const Worker = () => {
           Add Worker
         </button>
       </div>
+
+      {/* All Departments Banner for SUPER_SUPERVISOR */}
+      {isSuperSupervisor && selectedDepartmentId === "all" && (
+        <div className="mb-6 bg-purple-50 border border-purple-200 rounded-xl p-4 flex items-center gap-3">
+          <Building2 className="w-5 h-5 text-purple-600" />
+          <div>
+            <p className="text-sm font-medium text-purple-900">Viewing All Departments</p>
+            <p className="text-xs text-purple-700">Showing workers across {departments.length} departments ({workers.length} total workers)</p>
+          </div>
+        </div>
+      )}
 
       
 

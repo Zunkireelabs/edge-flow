@@ -1,11 +1,11 @@
 import { Request, Response, NextFunction } from "express";
-import { verifyToken } from "../utils/jwt";
+import { verifyToken, UserRole } from "../utils/jwt";
 
 export interface AuthRequest extends Request {
   user?: {
     userId: number;
-    role: "ADMIN" | "SUPERVISOR";
-    departmentId?: number;
+    role: UserRole;
+    departmentId?: number | null;
   };
 }
 
@@ -32,10 +32,15 @@ export const authMiddleware = (
   }
 };
 
-// Role-based guard
-export const requireRole = (role: "ADMIN" | "SUPERVISOR") => {
+// Role-based guard - accepts single role or array of roles
+export const requireRole = (roles: UserRole | UserRole[]) => {
   return (req: AuthRequest, res: Response, next: NextFunction) => {
-    if (!req.user || req.user.role !== role) {
+    if (!req.user) {
+      return res.status(403).json({ success: false, message: "Forbidden" });
+    }
+
+    const allowedRoles = Array.isArray(roles) ? roles : [roles];
+    if (!allowedRoles.includes(req.user.role)) {
       return res.status(403).json({ success: false, message: "Forbidden" });
     }
     next();

@@ -934,7 +934,7 @@ const Inventory = () => {
             <table className="w-full">
               <thead>
                 <tr className="border-b border-gray-200 bg-gray-50">
-                  <th className="px-4 py-3 text-left w-12">
+                  <th className="px-4 py-2 text-left w-12">
                     <input
                       type="checkbox"
                       checked={selectedRows.size === paginatedItems.length && paginatedItems.length > 0}
@@ -943,7 +943,7 @@ const Inventory = () => {
                     />
                   </th>
                   <th
-                    className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                    className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
                     onClick={() => handleSort("id")}
                   >
                     <div className="flex items-center gap-1">
@@ -954,7 +954,7 @@ const Inventory = () => {
                     </div>
                   </th>
                   <th
-                    className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                    className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
                     onClick={() => handleSort("name")}
                   >
                     <div className="flex items-center gap-1">
@@ -965,7 +965,7 @@ const Inventory = () => {
                     </div>
                   </th>
                   <th
-                    className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                    className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
                     onClick={() => handleSort("quantity")}
                   >
                     <div className="flex items-center gap-1">
@@ -976,7 +976,7 @@ const Inventory = () => {
                     </div>
                   </th>
                   <th
-                    className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                    className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
                     onClick={() => handleSort("category")}
                   >
                     <div className="flex items-center gap-1">
@@ -986,10 +986,10 @@ const Inventory = () => {
                       )}
                     </div>
                   </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Vendor
                   </th>
-                  <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Actions
                   </th>
                 </tr>
@@ -1006,7 +1006,7 @@ const Inventory = () => {
                         : "hover:bg-gray-50"
                     }`}
                   >
-                    <td className="px-4 py-3">
+                    <td className="px-4 py-2">
                       <input
                         type="checkbox"
                         checked={selectedRows.has(item.id)}
@@ -1014,10 +1014,10 @@ const Inventory = () => {
                         className="w-4 h-4 rounded border-gray-300 text-[#2272B4] focus:ring-[#2272B4]"
                       />
                     </td>
-                    <td className="px-4 py-3 text-sm text-gray-500">
+                    <td className="px-4 py-2 text-sm text-gray-500">
                       {formatInventoryId(item.id)}
                     </td>
-                    <td className="px-4 py-3">
+                    <td className="px-4 py-2">
                       <div className="flex items-center gap-2">
                         <span
                           className="text-sm font-medium text-[#2272B4] hover:underline cursor-pointer"
@@ -1033,19 +1033,19 @@ const Inventory = () => {
                         )}
                       </div>
                     </td>
-                    <td className="px-4 py-3 text-sm text-gray-600">
+                    <td className="px-4 py-2 text-sm text-gray-600">
                       {item.quantity} {item.unit}
                       {item.min_quantity && item.min_quantity > 0 && (
                         <span className="text-xs text-gray-400 ml-1">(min: {item.min_quantity})</span>
                       )}
                     </td>
-                    <td className="px-4 py-3 text-sm text-gray-600">
+                    <td className="px-4 py-2 text-sm text-gray-600">
                       {item.category?.name || <span className="text-gray-400">-</span>}
                     </td>
-                    <td className="px-4 py-3 text-sm text-gray-600">
+                    <td className="px-4 py-2 text-sm text-gray-600">
                       {item.vendor || <span className="text-gray-400">-</span>}
                     </td>
-                    <td className="px-4 py-3 text-right">
+                    <td className="px-4 py-2 text-right">
                       <div className="flex items-center justify-end gap-1">
                         <button
                           onClick={() => handlePreview(item)}
@@ -1186,21 +1186,18 @@ const Inventory = () => {
             {/* Fixed Header */}
             <div className="flex-shrink-0 p-4 border-b border-gray-200 bg-white">
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <Package size={24} className="text-[#2272B4]" />
-                  <div>
-                    <h3 className="text-xl font-bold text-gray-900">
-                      {drawerMode === "add" && "Add New Item"}
-                      {drawerMode === "edit" && "Edit Item"}
-                      {drawerMode === "adjust" && "Adjust Stock"}
-                      {drawerMode === "preview" && "Item Details"}
-                    </h3>
-                    {drawerMode === "adjust" && editingItem && (
-                      <p className="text-sm text-gray-500">
-                        {editingItem.name} • Current: {editingItem.quantity} {editingItem.unit}
-                      </p>
-                    )}
-                  </div>
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900">
+                    {drawerMode === "add" && "Add New Item"}
+                    {drawerMode === "edit" && "Edit Item"}
+                    {drawerMode === "adjust" && "Adjust Stock"}
+                    {drawerMode === "preview" && "Item Details"}
+                  </h3>
+                  {drawerMode === "adjust" && editingItem && (
+                    <p className="text-sm text-gray-500">
+                      {editingItem.name} • Current: {editingItem.quantity} {editingItem.unit}
+                    </p>
+                  )}
                 </div>
                 <button
                   className="p-2 rounded-lg hover:bg-gray-100 text-gray-500 hover:text-gray-700 transition-colors"
@@ -1365,7 +1362,7 @@ const Inventory = () => {
 
                     <div className="grid grid-cols-2 gap-3">
                       <div>
-                        <label className="block text-sm font-semibold text-gray-900 mb-1.5">
+                        <label className="block text-sm font-medium text-gray-900 mb-1.5">
                           Date <span className="text-red-500">*</span>
                         </label>
                         <NepaliDatePicker
@@ -1377,7 +1374,7 @@ const Inventory = () => {
                         />
                       </div>
                       <div>
-                        <label className="block text-sm font-semibold text-gray-900 mb-1.5">
+                        <label className="block text-sm font-medium text-gray-900 mb-1.5">
                           Quantity <span className="text-red-500">*</span>
                         </label>
                         <input
@@ -1395,7 +1392,7 @@ const Inventory = () => {
 
                     {adjustmentType === "subtract" && (
                       <div>
-                        <label className="block text-sm font-semibold text-gray-900 mb-1.5">
+                        <label className="block text-sm font-medium text-gray-900 mb-1.5">
                           Reason <span className="text-red-500">*</span>
                         </label>
                         <select
@@ -1416,7 +1413,7 @@ const Inventory = () => {
                     )}
 
                     <div>
-                      <label className="block text-sm font-semibold text-gray-900 mb-1.5">
+                      <label className="block text-sm font-medium text-gray-900 mb-1.5">
                         Remarks
                       </label>
                       <textarea
@@ -1436,7 +1433,7 @@ const Inventory = () => {
               /* Add/Edit Form */
               <div className="space-y-3">
                 <div>
-                  <label className="block text-sm font-semibold text-gray-900 mb-1.5">
+                  <label className="block text-sm font-medium text-gray-900 mb-1.5">
                     Item Name <span className="text-red-500">*</span>
                   </label>
                   <input
@@ -1450,7 +1447,7 @@ const Inventory = () => {
 
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-sm font-semibold text-gray-900 mb-1.5">
+                    <label className="block text-sm font-medium text-gray-900 mb-1.5">
                       Quantity <span className="text-red-500">*</span>
                     </label>
                     <input
@@ -1463,7 +1460,7 @@ const Inventory = () => {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-semibold text-gray-900 mb-1.5">
+                    <label className="block text-sm font-medium text-gray-900 mb-1.5">
                       Unit <span className="text-red-500">*</span>
                     </label>
                     <select
@@ -1482,7 +1479,7 @@ const Inventory = () => {
 
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-sm font-semibold text-gray-900 mb-1.5">
+                    <label className="block text-sm font-medium text-gray-900 mb-1.5">
                       Category
                     </label>
                     <select
@@ -1499,7 +1496,7 @@ const Inventory = () => {
                     </select>
                   </div>
                   <div>
-                    <label className="block text-sm font-semibold text-gray-900 mb-1.5">
+                    <label className="block text-sm font-medium text-gray-900 mb-1.5">
                       Min Quantity
                       <span className="text-xs text-gray-400 ml-1">(Low stock alert)</span>
                     </label>
@@ -1515,7 +1512,7 @@ const Inventory = () => {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-semibold text-gray-900 mb-1.5">
+                  <label className="block text-sm font-medium text-gray-900 mb-1.5">
                     Price
                   </label>
                   <input
@@ -1530,7 +1527,7 @@ const Inventory = () => {
 
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-sm font-semibold text-gray-900 mb-1.5">
+                    <label className="block text-sm font-medium text-gray-900 mb-1.5">
                       Vendor
                     </label>
                     <input
@@ -1542,7 +1539,7 @@ const Inventory = () => {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-semibold text-gray-900 mb-1.5">
+                    <label className="block text-sm font-medium text-gray-900 mb-1.5">
                       Phone
                     </label>
                     <input
@@ -1556,7 +1553,7 @@ const Inventory = () => {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-semibold text-gray-900 mb-1.5">
+                  <label className="block text-sm font-medium text-gray-900 mb-1.5">
                     Remarks
                   </label>
                   <textarea

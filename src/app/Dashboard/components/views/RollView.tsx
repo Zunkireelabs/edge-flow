@@ -16,6 +16,7 @@ import {
   ArrowUpDown,
   Search,
   Check,
+  Building2,
 } from "lucide-react";
 import Loader from "@/app/Components/Loader";
 import { useToast } from "@/app/Components/ToastContext";
@@ -159,6 +160,8 @@ interface Roll {
   id: number | string;
   name: string;
   quantity: number;
+  remaining_quantity?: number;  // Calculated: quantity - sum of batch quantities
+  roll_unit_count?: number;  // Number of physical roll pieces
   unit: string;
   color: string;
   vendor: Vendor | null;
@@ -199,12 +202,31 @@ const RollView = () => {
     id: "",
     name: "",
     quantity: "",
+    roll_unit_count: "" as string | number,
     unit: "Kilogram",
     color: "",
     vendorId: "",
   });
 
   const [openMenuId, setOpenMenuId] = useState<number | string | null>(null);
+
+  // Vendor Modal State
+  const [showVendorModal, setShowVendorModal] = useState(false);
+  const [vendorFormData, setVendorFormData] = useState({
+    name: "",
+    vat_pan: "",
+    address: "",
+    phone: "",
+    comment: "",
+  });
+  const [saveVendorLoading, setSaveVendorLoading] = useState(false);
+
+  // Form dropdown states
+  const [showUnitDropdown, setShowUnitDropdown] = useState(false);
+  const [showVendorDropdown, setShowVendorDropdown] = useState(false);
+  const [vendorSearchQuery, setVendorSearchQuery] = useState("");
+  const unitDropdownRef = useRef<HTMLDivElement>(null);
+  const vendorDropdownRef = useRef<HTMLDivElement>(null);
 
   // Toggle row selection
   const toggleRowSelection = (id: number | string) => {
@@ -293,6 +315,7 @@ const RollView = () => {
       id: "",
       name: "",
       quantity: "",
+      roll_unit_count: "",
       unit: "Kilogram",
       color: "",
       vendorId: "",
@@ -354,6 +377,22 @@ const RollView = () => {
     };
   }, [openMenuId]);
 
+  // Close form dropdowns when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (unitDropdownRef.current && !unitDropdownRef.current.contains(event.target as Node)) {
+        setShowUnitDropdown(false);
+      }
+      if (vendorDropdownRef.current && !vendorDropdownRef.current.contains(event.target as Node)) {
+        setShowVendorDropdown(false);
+        setVendorSearchQuery("");
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
   // Form change
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
@@ -378,13 +417,19 @@ const RollView = () => {
       }
 
       // Prepare payload - DON'T include 'id' field for backend
-      const payload = {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const payload: any = {
         name: formData.name.trim(),
         quantity: Number(formData.quantity),
         unit: formData.unit,
         color: formData.color.trim(),
         vendor_id: formData.vendorId ? Number(formData.vendorId) : null,
       };
+
+      // Add roll_unit_count if provided
+      if (formData.roll_unit_count && Number(formData.roll_unit_count) > 0) {
+        payload.roll_unit_count = Number(formData.roll_unit_count);
+      }
 
       console.log("🔥 Payload going to backend:", payload);
 
@@ -447,6 +492,7 @@ const RollView = () => {
       id: roll.id.toString(),
       name: roll.name,
       quantity: String(roll.quantity),
+      roll_unit_count: roll.roll_unit_count || "",
       unit: roll.unit,
       color: roll.color,
       vendorId: roll.vendor?.id.toString() || "",
@@ -462,6 +508,7 @@ const RollView = () => {
       id: roll.id.toString(),
       name: roll.name,
       quantity: String(roll.quantity),
+      roll_unit_count: roll.roll_unit_count || "",
       unit: roll.unit,
       color: roll.color,
       vendorId: roll.vendor?.id.toString() || "",
@@ -502,6 +549,85 @@ const RollView = () => {
     resetFormData();
   };
 
+  // Vendor Modal Handlers
+  const resetVendorFormData = () => {
+    setVendorFormData({
+      name: "",
+      vat_pan: "",
+      address: "",
+      phone: "",
+      comment: "",
+    });
+  };
+
+  const handleVendorFormChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+  ) => {
+    const { name, value } = e.target;
+    setVendorFormData((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleSaveVendor = async () => {
+    try {
+      setSaveVendorLoading(true);
+
+      // Validation
+      if (!vendorFormData.name.trim()) {
+        showToast("warning", "Vendor name is required");
+        return;
+      }
+
+      const payload = {
+        name: vendorFormData.name.trim(),
+        vat_pan: vendorFormData.vat_pan.trim() || null,
+        address: vendorFormData.address.trim() || null,
+        phone: vendorFormData.phone.trim() || null,
+        comment: vendorFormData.comment.trim() || null,
+      };
+
+      const response = await fetch(GET_VENDORS!, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Accept": "application/json"
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to create vendor");
+      }
+
+      const newVendor = await response.json();
+      console.log("✅ New vendor created:", newVendor);
+
+      // Refresh vendors list
+      await fetchVendors();
+
+      // Auto-select the new vendor
+      setFormData((prev) => ({
+        ...prev,
+        vendorId: newVendor.id.toString(),
+      }));
+
+      // Close modal and show success
+      setShowVendorModal(false);
+      resetVendorFormData();
+      showToast("success", "Vendor created successfully!");
+
+    } catch (err) {
+      console.error("Save vendor error:", err);
+      showToast("error", "Failed to create vendor. Please try again.");
+    } finally {
+      setSaveVendorLoading(false);
+    }
+  };
+
+  const closeVendorModal = () => {
+    setShowVendorModal(false);
+    resetVendorFormData();
+  };
+
   return (
     <div className="p-8 bg-white min-h-screen">
       {/* Header */}
@@ -511,7 +637,7 @@ const RollView = () => {
           <p className="text-gray-500 text-sm">Manage production rolls and track progress</p>
         </div>
         <button
-          className="flex items-center gap-2 bg-[#2272B4] text-white px-5 py-2.5 rounded font-semibold shadow-md hover:bg-[#0E538B] hover:shadow-lg transition-all duration-200 hover:scale-105"
+          className="flex items-center gap-2 bg-[#2272B4] text-white px-5 py-2.5 rounded font-medium hover:bg-[#1a5a8a]"
           onClick={() => {
             resetFormData();
             setIsDrawerOpen(true);
@@ -637,7 +763,7 @@ const RollView = () => {
               <table className="w-full min-w-full">
                 <thead>
                   <tr className="border-b border-gray-200 bg-gray-50">
-                    <th className="px-4 py-3 text-left w-12">
+                    <th className="px-4 py-2 text-left w-12">
                       <input
                         type="checkbox"
                         checked={paginatedRolls.length > 0 && paginatedRolls.every(r => selectedRows.has(r.id))}
@@ -645,34 +771,51 @@ const RollView = () => {
                         className="w-4 h-4 rounded border-gray-300 text-[#2272B4] focus:ring-[#2272B4]"
                       />
                     </th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100" onClick={() => handleSort("id")}>
+                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100" onClick={() => handleSort("id")}>
                       <div className="flex items-center gap-1">ID {sortColumn === "id" && (sortDirection === "asc" ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)}</div>
                     </th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100" onClick={() => handleSort("name")}>
+                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100" onClick={() => handleSort("name")}>
                       <div className="flex items-center gap-1">Name {sortColumn === "name" && (sortDirection === "asc" ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)}</div>
                     </th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100" onClick={() => handleSort("quantity")}>
-                      <div className="flex items-center gap-1">Quantity {sortColumn === "quantity" && (sortDirection === "asc" ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)}</div>
+                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100" onClick={() => handleSort("quantity")}>
+                      <div className="flex items-center gap-1">Total Qty {sortColumn === "quantity" && (sortDirection === "asc" ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)}</div>
                     </th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Unit</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Color</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Vendor</th>
-                    <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <div className="flex items-center gap-1">Remaining</div>
+                    </th>
+                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Unit</th>
+                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Roll Units</th>
+                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Color</th>
+                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Vendor</th>
+                    <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200">
                   {paginatedRolls.map((roll) => (
                     <tr key={roll.id} className={`transition-colors ${selectedRows.has(roll.id) ? 'bg-blue-50' : 'hover:bg-gray-50'}`}>
-                      <td className="px-4 py-3">
+                      <td className="px-4 py-2">
                         <input type="checkbox" checked={selectedRows.has(roll.id)} onChange={() => toggleRowSelection(roll.id)} className="w-4 h-4 rounded border-gray-300 text-[#2272B4] focus:ring-[#2272B4]" />
                       </td>
-                      <td className="px-4 py-3 text-sm text-gray-500">R{String(roll.id).padStart(3, '0')}</td>
-                      <td className="px-4 py-3"><span className="text-sm font-medium text-[#2272B4] hover:underline cursor-pointer">{roll.name}</span></td>
-                      <td className="px-4 py-3 text-sm text-gray-600">{roll.quantity}</td>
-                      <td className="px-4 py-3 text-sm text-gray-600">{roll.unit}</td>
-                      <td className="px-4 py-3 text-sm text-gray-600">{roll.color}</td>
-                      <td className="px-4 py-3 text-sm text-gray-600">{roll.vendor ? roll.vendor.name : <span className="text-gray-400">—</span>}</td>
-                      <td className="px-4 py-3 text-right">
+                      <td className="px-4 py-2 text-sm text-gray-500">R{String(roll.id).padStart(3, '0')}</td>
+                      <td className="px-4 py-2"><span className="text-sm font-medium text-[#2272B4] hover:underline cursor-pointer">{roll.name}</span></td>
+                      <td className="px-4 py-2 text-sm text-gray-600">{roll.quantity}</td>
+                      <td className="px-4 py-2 text-sm">
+                        {(() => {
+                          const remaining = roll.remaining_quantity ?? roll.quantity;
+                          const isLow = remaining < roll.quantity * 0.2; // Less than 20% remaining
+                          const isEmpty = remaining <= 0;
+                          return (
+                            <span className={`font-medium ${isEmpty ? 'text-red-600' : isLow ? 'text-amber-600' : 'text-green-600'}`}>
+                              {remaining.toFixed(2)}
+                            </span>
+                          );
+                        })()}
+                      </td>
+                      <td className="px-4 py-2 text-sm text-gray-600">{roll.unit}</td>
+                      <td className="px-4 py-2 text-sm text-gray-600">{roll.roll_unit_count || <span className="text-gray-400">—</span>}</td>
+                      <td className="px-4 py-2 text-sm text-gray-600">{roll.color}</td>
+                      <td className="px-4 py-2 text-sm text-gray-600">{roll.vendor ? roll.vendor.name : <span className="text-gray-400">—</span>}</td>
+                      <td className="px-4 py-2 text-right">
                         <div className="flex items-center justify-end gap-1">
                           <button onClick={() => handlePreview(roll)} className="p-1.5 rounded hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors" title="Preview"><Eye size={16} /></button>
                           <button onClick={() => handleEdit(roll)} className="p-1.5 rounded hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors" title="Edit"><Edit2 size={16} /></button>
@@ -732,7 +875,7 @@ const RollView = () => {
             {isPreview ? (
               // Preview Layout
               <>
-                <h3 className="text-lg font-semibold mb-6 flex items-center gap-2">
+                <h3 className="text-lg font-semibold text-gray-900 mb-5 flex items-center gap-2">
                   <Package size={20} className="text-blue-600" />
                   Roll Details
                 </h3>
@@ -740,31 +883,37 @@ const RollView = () => {
                 <div className="space-y-4">
                   {/* ID */}
                   <div className="flex justify-between items-center py-2 border-b border-gray-100">
-                    <span className="font-semibold text-black">ID</span>
+                    <span className="font-medium text-black">ID</span>
                     <span className="text-sm text-gray-500">R00{formData.id}</span>
                   </div>
 
                   {/* Name */}
                   <div className="flex justify-between items-center py-2 border-b border-gray-100">
-                    <span className="font-semibold text-black">Name</span>
+                    <span className="font-medium text-black">Name</span>
                     <span className="text-sm text-gray-500">{formData.name}</span>
                   </div>
 
                   {/* Quantity */}
                   <div className="flex justify-between items-center py-2 border-b border-gray-100">
-                    <span className="font-semibold text-black">Quantity</span>
+                    <span className="font-medium text-black">Quantity</span>
                     <span className="text-sm text-gray-500">{formData.quantity} {formData.unit}</span>
+                  </div>
+
+                  {/* Roll Units */}
+                  <div className="flex justify-between items-center py-2 border-b border-gray-100">
+                    <span className="font-medium text-black">Roll Units</span>
+                    <span className="text-sm text-gray-500">{formData.roll_unit_count || "-"}</span>
                   </div>
 
                   {/* Color */}
                   <div className="flex justify-between items-center py-2 border-b border-gray-100">
-                    <span className="font-semibold text-black">Color</span>
+                    <span className="font-medium text-black">Color</span>
                     <span className="text-sm text-gray-500">{formData.color || "-"}</span>
                   </div>
 
                   {/* Vendor */}
                   <div className="flex justify-between items-center py-2 border-b border-gray-100">
-                    <span className="font-semibold text-black">Vendor</span>
+                    <span className="font-medium text-black">Vendor</span>
                     <span className="text-sm text-gray-500">
                       {vendors.find(v => v.id.toString() === formData.vendorId)?.name || "-"}
                     </span>
@@ -776,45 +925,31 @@ const RollView = () => {
             ) : (
               // Edit/Add Layout
               <>
-                {/* Modern Header with Step Indicator */}
-                <div className="border-b border-gray-200 pb-3 mb-4">
-                  <div className="flex items-center justify-between mb-2">
-                    <h3 className="text-xl font-bold text-gray-900" style={{ letterSpacing: '-0.01em' }}>
-                      {editingRoll ? "Edit Roll" : "Add New Roll"}
-                    </h3>
-                    <span className="text-sm text-gray-500">Step 1 of 1</span>
-                  </div>
-
-                  {/* Progress Stepper */}
-                  <div className="mt-3 flex items-center gap-4">
-                    <div className="flex items-center gap-2">
-                      <div className="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center text-sm font-semibold">
-                        1
-                      </div>
-                      <span className="text-sm font-medium text-gray-900">Basic Info</span>
-                    </div>
-                    <div className="flex-1 h-[2px] bg-gray-200"></div>
-                  </div>
+                {/* Modal Header */}
+                <div className="mb-5">
+                  <h3 className="text-lg font-semibold text-gray-900">
+                    {editingRoll ? "Edit Roll" : "Add New Roll"}
+                  </h3>
                 </div>
 
-                <div className="space-y-3">
+                <div className="space-y-4">
               {/* ID field - Show only for existing rolls */}
               {editingRoll && (
-                <>
-                  <p className="text-black font-semibold mb-1"># ID</p>
+                <div>
+                  <label className="block text-sm font-medium text-gray-900 mb-1.5">ID</label>
                   <input
                     type="text"
                     name="id"
-                    value={`BO${formData.id}`}
+                    value={`R${String(formData.id).padStart(3, '0')}`}
                     readOnly
-                    className="w-full border border-gray-300 rounded-[10px] px-3 py-2 bg-gray-100 cursor-not-allowed"
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm bg-gray-50 text-gray-500 cursor-not-allowed"
                   />
-                </>
+                </div>
               )}
 
               {/* Roll Name */}
               <div>
-                <label className="block text-sm font-semibold text-gray-900 mb-1.5">
+                <label className="block text-sm font-medium text-gray-900 mb-1.5">
                   Roll Name <span className="text-red-500">*</span>
                 </label>
                 <input
@@ -832,7 +967,7 @@ const RollView = () => {
               {/* Quantity + Unit */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-sm font-semibold text-gray-900 mb-1.5">
+                  <label className="block text-sm font-medium text-gray-900 mb-1.5">
                     Quantity <span className="text-red-500">*</span>
                   </label>
                   <input
@@ -849,25 +984,81 @@ const RollView = () => {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-semibold text-gray-900 mb-1.5">
+                  <label className="block text-sm font-medium text-gray-900 mb-1.5">
                     Unit
                   </label>
-                  <select
-                    name="unit"
-                    value={formData.unit}
-                    onChange={handleChange}
-                    disabled={isPreview}
-                    className="w-full border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm bg-white"
-                  >
-                    <option value="Kilogram">Kilogram</option>
-                    <option value="Meter">Meter</option>
-                  </select>
+                  {isPreview ? (
+                    <div className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm bg-gray-50 text-gray-700">
+                      {formData.unit}
+                    </div>
+                  ) : (
+                    <div className="relative" ref={unitDropdownRef}>
+                      <button
+                        type="button"
+                        onClick={() => setShowUnitDropdown(!showUnitDropdown)}
+                        className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white text-left flex items-center justify-between focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      >
+                        <span>{formData.unit || "Select Unit"}</span>
+                        <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform ${showUnitDropdown ? 'rotate-180' : ''}`} />
+                      </button>
+                      {showUnitDropdown && (
+                        <div className="absolute top-full left-0 right-0 mt-1 bg-white rounded-lg shadow-lg border border-gray-200 z-50 overflow-hidden">
+                          {[
+                            { value: "Kilogram", label: "Kilogram", description: "Weight measurement (kg)" },
+                            { value: "Meter", label: "Meter", description: "Length measurement (m)" },
+                          ].map((option) => (
+                            <button
+                              key={option.value}
+                              type="button"
+                              onClick={() => {
+                                setFormData(prev => ({ ...prev, unit: option.value }));
+                                setShowUnitDropdown(false);
+                              }}
+                              className={`w-full px-3 py-2.5 text-left hover:bg-gray-50 transition-colors flex items-start gap-3 ${
+                                formData.unit === option.value ? "bg-blue-50" : ""
+                              }`}
+                            >
+                              <div className={`mt-0.5 w-4 h-4 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${
+                                formData.unit === option.value ? "border-[#2272B4] bg-[#2272B4]" : "border-gray-300"
+                              }`}>
+                                {formData.unit === option.value && <Check className="w-2.5 h-2.5 text-white" />}
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <div className={`text-sm font-medium ${formData.unit === option.value ? "text-[#2272B4]" : "text-gray-900"}`}>
+                                  {option.label}
+                                </div>
+                                <div className="text-xs text-gray-500">{option.description}</div>
+                              </div>
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
+              </div>
+
+              {/* Total no of Roll Unit - NEW FIELD */}
+              <div>
+                <label className="block text-sm font-medium text-gray-900 mb-1.5">
+                  Total no of Roll Unit
+                </label>
+                <input
+                  type="number"
+                  name="roll_unit_count"
+                  placeholder="e.g., 15 rolls"
+                  value={formData.roll_unit_count}
+                  onChange={handleChange}
+                  readOnly={isPreview}
+                  min="0"
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                />
+                <p className="text-xs text-gray-500 mt-1">Number of physical roll pieces (e.g., 15 rolls vs 350 kg weight)</p>
               </div>
 
               {/* Color */}
               <div>
-                <label className="block text-sm font-semibold text-gray-900 mb-1.5">
+                <label className="block text-sm font-medium text-gray-900 mb-1.5">
                   Color
                 </label>
                 <input
@@ -883,23 +1074,121 @@ const RollView = () => {
 
               {/* Vendor */}
               <div>
-                <label className="block text-sm font-semibold text-gray-900 mb-1.5">
+                <label className="block text-sm font-medium text-gray-900 mb-1.5">
                   Vendor
                 </label>
-                <select
-                  name="vendorId"
-                  value={formData.vendorId}
-                  onChange={handleChange}
-                  disabled={isPreview}
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm bg-white"
-                >
-                  <option value="">Select Vendor</option>
-                  {vendors.map((v) => (
-                    <option key={v.id} value={v.id}>
-                      {v.name}
-                    </option>
-                  ))}
-                </select>
+                <div className="flex gap-2">
+                  {isPreview ? (
+                    <div className="flex-1 border border-gray-200 rounded-lg px-3 py-2 text-sm bg-gray-50 text-gray-700">
+                      {vendors.find(v => v.id.toString() === formData.vendorId)?.name || "No vendor selected"}
+                    </div>
+                  ) : (
+                    <div className="flex-1 relative" ref={vendorDropdownRef}>
+                      <button
+                        type="button"
+                        onClick={() => setShowVendorDropdown(!showVendorDropdown)}
+                        className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white text-left flex items-center justify-between focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      >
+                        <span className={formData.vendorId ? "text-gray-900" : "text-gray-500"}>
+                          {formData.vendorId
+                            ? vendors.find(v => v.id.toString() === formData.vendorId)?.name
+                            : "Select Vendor"}
+                        </span>
+                        <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform ${showVendorDropdown ? 'rotate-180' : ''}`} />
+                      </button>
+                      {showVendorDropdown && (
+                        <div className="absolute top-full left-0 right-0 mt-1 bg-white rounded-lg shadow-lg border border-gray-200 z-50 overflow-hidden">
+                          {/* Search Input */}
+                          <div className="p-2 border-b border-gray-100">
+                            <div className="relative">
+                              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                              <input
+                                type="text"
+                                placeholder="Search vendors..."
+                                value={vendorSearchQuery}
+                                onChange={(e) => setVendorSearchQuery(e.target.value)}
+                                className="w-full pl-9 pr-3 py-2 text-sm border border-gray-200 rounded-full focus:outline-none focus:ring-2 focus:ring-[#2272B4] focus:border-transparent"
+                                autoFocus
+                              />
+                            </div>
+                          </div>
+                          {/* Options */}
+                          <div className="max-h-48 overflow-y-auto">
+                            {/* No Vendor Option */}
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setFormData(prev => ({ ...prev, vendorId: "" }));
+                                setShowVendorDropdown(false);
+                                setVendorSearchQuery("");
+                              }}
+                              className={`w-full px-3 py-2.5 text-left hover:bg-gray-50 transition-colors flex items-start gap-3 ${
+                                !formData.vendorId ? "bg-blue-50" : ""
+                              }`}
+                            >
+                              <div className={`mt-0.5 w-4 h-4 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${
+                                !formData.vendorId ? "border-[#2272B4] bg-[#2272B4]" : "border-gray-300"
+                              }`}>
+                                {!formData.vendorId && <Check className="w-2.5 h-2.5 text-white" />}
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <div className={`text-sm font-medium ${!formData.vendorId ? "text-[#2272B4]" : "text-gray-900"}`}>
+                                  No Vendor
+                                </div>
+                                <div className="text-xs text-gray-500">Leave vendor unassigned</div>
+                              </div>
+                            </button>
+                            {/* Vendor Options */}
+                            {vendors
+                              .filter(v => v.name.toLowerCase().includes(vendorSearchQuery.toLowerCase()))
+                              .map((vendor) => (
+                                <button
+                                  key={vendor.id}
+                                  type="button"
+                                  onClick={() => {
+                                    setFormData(prev => ({ ...prev, vendorId: vendor.id.toString() }));
+                                    setShowVendorDropdown(false);
+                                    setVendorSearchQuery("");
+                                  }}
+                                  className={`w-full px-3 py-2.5 text-left hover:bg-gray-50 transition-colors flex items-start gap-3 ${
+                                    formData.vendorId === vendor.id.toString() ? "bg-blue-50" : ""
+                                  }`}
+                                >
+                                  <div className={`mt-0.5 w-4 h-4 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${
+                                    formData.vendorId === vendor.id.toString() ? "border-[#2272B4] bg-[#2272B4]" : "border-gray-300"
+                                  }`}>
+                                    {formData.vendorId === vendor.id.toString() && <Check className="w-2.5 h-2.5 text-white" />}
+                                  </div>
+                                  <div className="flex-1 min-w-0">
+                                    <div className={`text-sm font-medium ${formData.vendorId === vendor.id.toString() ? "text-[#2272B4]" : "text-gray-900"}`}>
+                                      {vendor.name}
+                                    </div>
+                                    <div className="text-xs text-gray-500">{vendor.address || "No address"}</div>
+                                  </div>
+                                </button>
+                              ))}
+                            {vendors.filter(v => v.name.toLowerCase().includes(vendorSearchQuery.toLowerCase())).length === 0 && (
+                              <div className="px-3 py-4 text-sm text-gray-500 text-center">
+                                No vendors found
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                  {!isPreview && (
+                    <button
+                      type="button"
+                      onClick={() => setShowVendorModal(true)}
+                      className="px-3 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-sm font-medium transition-colors flex items-center gap-1"
+                      title="Add New Vendor"
+                    >
+                      <Plus size={16} />
+                      Add New
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
 
@@ -923,6 +1212,129 @@ const RollView = () => {
           </>
         )}
         </div>
+        </div>
+      )}
+
+      {/* Vendor Modal */}
+      {showVendorModal && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center">
+          <div
+            className="absolute inset-0 bg-black/40 transition-opacity duration-300"
+            onClick={closeVendorModal}
+          />
+          <div className="relative bg-white rounded-xl shadow-2xl w-full max-w-md mx-4 overflow-hidden">
+            {/* Header */}
+            <div className="flex items-center justify-between p-4 border-b border-gray-200">
+              <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+                <Building2 size={20} className="text-blue-600" />
+                Add New Vendor
+              </h3>
+              <button
+                className="text-gray-500 hover:text-gray-700 p-1 rounded-lg hover:bg-gray-100 transition-colors"
+                onClick={closeVendorModal}
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            {/* Form Content */}
+            <div className="p-4 space-y-4 max-h-[60vh] overflow-y-auto">
+              {/* Vendor Name */}
+              <div>
+                <label className="block text-sm font-semibold text-gray-900 mb-1.5">
+                  Name <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  name="name"
+                  placeholder="Enter vendor name"
+                  value={vendorFormData.name}
+                  onChange={handleVendorFormChange}
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                  required
+                  autoFocus
+                />
+              </div>
+
+              {/* VAT/PAN */}
+              <div>
+                <label className="block text-sm font-semibold text-gray-900 mb-1.5">
+                  VAT/PAN
+                </label>
+                <input
+                  type="text"
+                  name="vat_pan"
+                  placeholder="Enter VAT/PAN number"
+                  value={vendorFormData.vat_pan}
+                  onChange={handleVendorFormChange}
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                />
+              </div>
+
+              {/* Address */}
+              <div>
+                <label className="block text-sm font-semibold text-gray-900 mb-1.5">
+                  Address
+                </label>
+                <input
+                  type="text"
+                  name="address"
+                  placeholder="Enter address"
+                  value={vendorFormData.address}
+                  onChange={handleVendorFormChange}
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                />
+              </div>
+
+              {/* Phone */}
+              <div>
+                <label className="block text-sm font-semibold text-gray-900 mb-1.5">
+                  Phone
+                </label>
+                <input
+                  type="text"
+                  name="phone"
+                  placeholder="Enter phone number"
+                  value={vendorFormData.phone}
+                  onChange={handleVendorFormChange}
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                />
+              </div>
+
+              {/* Comment */}
+              <div>
+                <label className="block text-sm font-semibold text-gray-900 mb-1.5">
+                  Comment
+                </label>
+                <textarea
+                  name="comment"
+                  placeholder="Optional comments"
+                  value={vendorFormData.comment}
+                  onChange={handleVendorFormChange}
+                  rows={3}
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm resize-none"
+                />
+              </div>
+            </div>
+
+            {/* Footer Buttons */}
+            <div className="flex justify-end gap-3 p-4 border-t border-gray-200 bg-gray-50">
+              <button
+                className="px-4 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-100 font-medium transition-colors text-sm"
+                onClick={closeVendorModal}
+                disabled={saveVendorLoading}
+              >
+                Cancel
+              </button>
+              <button
+                className="px-4 py-2 rounded-lg bg-[#2272B4] text-white hover:bg-[#1b5a8a] disabled:opacity-50 font-medium transition-colors text-sm shadow-sm"
+                onClick={handleSaveVendor}
+                disabled={saveVendorLoading}
+              >
+                {saveVendorLoading ? "Saving..." : "Save Vendor"}
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

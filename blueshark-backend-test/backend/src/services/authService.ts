@@ -35,7 +35,7 @@ export const loginUser = async (email: string, password: string) => {
   return { user: { ...user, role: user.role as "ADMIN" }, token };
 };
 
-// Supervisor Login
+// Supervisor Login (handles both SUPERVISOR and SUPER_SUPERVISOR)
 export const loginSupervisor = async (email: string, password: string) => {
   const supervisor = await prisma.supervisor.findUnique({ where: { email } });
   if (!supervisor) throw new Error("Invalid email or password");
@@ -43,11 +43,14 @@ export const loginSupervisor = async (email: string, password: string) => {
   const isMatch = await bcrypt.compare(password, supervisor.password);
   if (!isMatch) throw new Error("Invalid email or password");
 
+  // Use actual role from database (SUPERVISOR or SUPER_SUPERVISOR)
+  const role = supervisor.role as "SUPERVISOR" | "SUPER_SUPERVISOR";
+
   const token = generateToken(
     supervisor.id,
-    "SUPERVISOR",
-    supervisor.departmentId ?? undefined
+    role,
+    supervisor.departmentId ?? null  // null for SUPER_SUPERVISOR
   );
 
-  return { supervisor: { ...supervisor, role: "SUPERVISOR" }, token };
+  return { supervisor: { ...supervisor, role }, token };
 };

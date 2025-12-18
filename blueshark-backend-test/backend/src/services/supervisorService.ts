@@ -11,17 +11,24 @@ export async function createSupervisor(data: {
   name: string;
   email: string;
   password: string;
-  departmentId?: number; // make it optional
+  role?: "SUPERVISOR" | "SUPER_SUPERVISOR";
+  departmentId?: number;
 }) {
   const hashed = await bcrypt.hash(data.password, 10);
+
+  // Validate: SUPER_SUPERVISOR should NOT have departmentId
+  if (data.role === "SUPER_SUPERVISOR" && data.departmentId) {
+    throw new Error("SUPER_SUPERVISOR cannot be assigned to a specific department");
+  }
 
   const supervisor = await prisma.supervisor.create({
     data: {
       name: data.name,
       email: data.email,
       password: hashed,
-      // Only connect department if departmentId is provided
-      department: data.departmentId
+      role: data.role || "SUPERVISOR",
+      // Only connect department if departmentId is provided and role is not SUPER_SUPERVISOR
+      department: data.departmentId && data.role !== "SUPER_SUPERVISOR"
         ? { connect: { id: data.departmentId } }
         : undefined,
     },

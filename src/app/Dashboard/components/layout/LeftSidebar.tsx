@@ -23,12 +23,13 @@ import { NavigationItem } from "../../types/navigation";
 interface LeftSidebarProps {
   activeView: string;
   onViewChange: (id: string) => void;
+  onToggleSidebar?: () => void;
 }
 
 const navItems: NavigationItem[] = [
   { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
   { id: "rollview", label: "Roll View", icon: Eye },
-  { id: "batchview", label: "Batch View", icon: Package },
+  { id: "batchview", label: "Fabric View (Batch)", icon: Package },
   { id: "subbatchview", label: "Sub Batch View", icon: Layers },
   { id: "departmentview", label: "Department Kanban", icon: Building2 },
   { id: "productionview", label: "Production Overview", icon: Monitor },
@@ -47,8 +48,8 @@ const navItems: NavigationItem[] = [
   },
 ];
 
-const LeftSidebar: React.FC<LeftSidebarProps> = ({ activeView, onViewChange }) => (
-  <Navigation activeView={activeView} onViewChange={onViewChange} items={navItems} />
+const LeftSidebar: React.FC<LeftSidebarProps> = ({ activeView, onViewChange, onToggleSidebar }) => (
+  <Navigation activeView={activeView} onViewChange={onViewChange} items={navItems} onToggleSidebar={onToggleSidebar} />
 );
 
 export default LeftSidebar;

@@ -17,7 +17,7 @@ interface RightContentProps {
 const navItems: NavigationItem[] = [
   { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
   { id: "rollview", label: "Roll View", icon: Eye },
-  { id: "batchview", label: "Batch View", icon: Package },
+  { id: "batchview", label: "Fabric View (Batch)", icon: Package },
   { id: "subbatchview", label: "Sub Batch View", icon: Layers },
   { id: "departmentview", label: "Department Kanban", icon: Building2 },
   { id: "productionview", label: "Production Overview", icon: Monitor },
