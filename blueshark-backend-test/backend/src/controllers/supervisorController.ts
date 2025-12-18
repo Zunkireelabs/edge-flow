@@ -120,6 +120,12 @@ export const getSupervisorSubBatches = async (
       // SUPER_SUPERVISOR can view any department
       if (queryDeptId && queryDeptId !== "all") {
         targetDepartmentId = parseInt(queryDeptId, 10);
+        if (isNaN(targetDepartmentId)) {
+          return res.status(400).json({
+            success: false,
+            message: "Invalid department ID format"
+          });
+        }
       } else {
         // Return message to select a department for Kanban view
         return res.status(200).json({
