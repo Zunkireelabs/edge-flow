@@ -55,16 +55,22 @@ export const getAllRolls = async () => {
     },
   });
 
-  // Calculate remaining quantity for each roll
+  // Calculate remaining quantity and remaining unit count for each roll
   // remaining_quantity = roll.quantity - SUM(batches.quantity)
+  // remaining_unit_count = roll.roll_unit_count - SUM(batches.unit_count)
   return rolls.map((roll) => {
     const usedQuantity = roll.batches.reduce(
       (sum, batch) => sum + (batch.quantity || 0),
       0
     );
+    const usedUnitCount = roll.batches.reduce(
+      (sum, batch) => sum + (batch.unit_count || 0),
+      0
+    );
     return {
       ...roll,
       remaining_quantity: roll.quantity - usedQuantity,
+      remaining_unit_count: (roll.roll_unit_count || 0) - usedUnitCount,
     };
   });
 };
@@ -80,19 +86,24 @@ export const getRollById = async (id: number) => {
   });
   if (!roll) throw new Error("Roll not found");
 
-  // Calculate remaining quantity
+  // Calculate remaining quantity and unit count
   const usedQuantity = roll.batches.reduce(
     (sum, batch) => sum + (batch.quantity || 0),
+    0
+  );
+  const usedUnitCount = roll.batches.reduce(
+    (sum, batch) => sum + (batch.unit_count || 0),
     0
   );
 
   return {
     ...roll,
     remaining_quantity: roll.quantity - usedQuantity,
+    remaining_unit_count: (roll.roll_unit_count || 0) - usedUnitCount,
   };
 };
 
-// Get remaining quantity for a roll (used for batch validation)
+// Get remaining quantity and unit count for a roll (used for batch validation)
 export const getRollRemainingQuantity = async (
   rollId: number,
   excludeBatchId?: number
@@ -101,51 +112,77 @@ export const getRollRemainingQuantity = async (
     where: { id: rollId },
     include: {
       batches: {
-        select: { id: true, quantity: true },
+        select: { id: true, quantity: true, unit_count: true },
       },
     },
   });
 
   if (!roll) throw new Error("Roll not found");
 
-  // Calculate used quantity, optionally excluding a specific batch (for updates)
-  const usedQuantity = roll.batches.reduce((sum, batch) => {
+  // Calculate used quantity and unit count, optionally excluding a specific batch (for updates)
+  let usedQuantity = 0;
+  let usedUnitCount = 0;
+
+  for (const batch of roll.batches) {
     if (excludeBatchId && batch.id === excludeBatchId) {
-      return sum; // Exclude this batch from calculation (for update scenarios)
+      continue; // Exclude this batch from calculation (for update scenarios)
     }
-    return sum + (batch.quantity || 0);
-  }, 0);
+    usedQuantity += batch.quantity || 0;
+    usedUnitCount += batch.unit_count || 0;
+  }
 
   return {
     totalQuantity: roll.quantity,
     usedQuantity,
     remainingQuantity: roll.quantity - usedQuantity,
+    // Unit count data
+    totalUnitCount: roll.roll_unit_count || 0,
+    usedUnitCount,
+    remainingUnitCount: (roll.roll_unit_count || 0) - usedUnitCount,
   };
 };
 
 export const updateRoll = async (id: number, data: Partial<RollData>) => {
   // Validate: If quantity is being reduced, ensure it's not less than allocated to batches
-  if (data.quantity !== undefined) {
+  if (data.quantity !== undefined || data.roll_unit_count !== undefined) {
     const currentRoll = await prisma.rolls.findUnique({
       where: { id },
       include: {
         batches: {
-          select: { quantity: true },
+          select: { quantity: true, unit_count: true },
         },
       },
     });
 
     if (currentRoll) {
-      const totalAllocated = currentRoll.batches.reduce(
-        (sum, batch) => sum + (batch.quantity || 0),
-        0
-      );
-
-      if (data.quantity < totalAllocated) {
-        throw new Error(
-          `Cannot reduce roll quantity to ${data.quantity}. ` +
-          `${totalAllocated} is already allocated to batches.`
+      // Validate quantity
+      if (data.quantity !== undefined) {
+        const totalAllocatedQty = currentRoll.batches.reduce(
+          (sum, batch) => sum + (batch.quantity || 0),
+          0
         );
+
+        if (data.quantity < totalAllocatedQty) {
+          throw new Error(
+            `Cannot reduce roll quantity to ${data.quantity}. ` +
+            `${totalAllocatedQty} is already allocated to batches.`
+          );
+        }
+      }
+
+      // Validate unit_count
+      if (data.roll_unit_count !== undefined) {
+        const totalAllocatedUnits = currentRoll.batches.reduce(
+          (sum, batch) => sum + (batch.unit_count || 0),
+          0
+        );
+
+        if (data.roll_unit_count < totalAllocatedUnits) {
+          throw new Error(
+            `Cannot reduce roll unit count to ${data.roll_unit_count}. ` +
+            `${totalAllocatedUnits} units are already allocated to batches.`
+          );
+        }
       }
     }
   }

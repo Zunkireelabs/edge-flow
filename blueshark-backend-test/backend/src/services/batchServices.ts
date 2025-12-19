@@ -13,14 +13,26 @@ interface BatchData {
 }
 
 export const createBatch = async (data: BatchData) => {
-  // Validate quantity against roll's remaining quantity
+  // Validate quantity and unit_count against roll's remaining values
   if (data.roll_id) {
-    const rollQuantity = await getRollRemainingQuantity(data.roll_id);
-    if (data.quantity > rollQuantity.remainingQuantity) {
+    const rollData = await getRollRemainingQuantity(data.roll_id);
+
+    // Validate quantity
+    if (data.quantity > rollData.remainingQuantity) {
       throw new Error(
-        `Batch quantity (${data.quantity}) exceeds available roll quantity (${rollQuantity.remainingQuantity}). ` +
-        `Roll total: ${rollQuantity.totalQuantity}, Already used: ${rollQuantity.usedQuantity}`
+        `Batch quantity (${data.quantity}) exceeds available roll quantity (${rollData.remainingQuantity}). ` +
+        `Roll total: ${rollData.totalQuantity}, Already used: ${rollData.usedQuantity}`
       );
+    }
+
+    // Validate unit_count (only if both roll has unit count AND batch has unit count)
+    if (data.unit_count && rollData.totalUnitCount > 0) {
+      if (data.unit_count > rollData.remainingUnitCount) {
+        throw new Error(
+          `Batch unit count (${data.unit_count}) exceeds available roll units (${rollData.remainingUnitCount}). ` +
+          `Roll total: ${rollData.totalUnitCount} units, Already used: ${rollData.usedUnitCount} units`
+        );
+      }
     }
   }
 
@@ -58,8 +70,8 @@ export const getBatchById = async (id: number) => {
 };
 
 export const updateBatch = async (id: number, data: Partial<BatchData>) => {
-  // If quantity is being updated and batch has a roll, validate against remaining
-  if (data.quantity !== undefined) {
+  // If quantity or unit_count is being updated and batch has a roll, validate against remaining
+  if (data.quantity !== undefined || data.unit_count !== undefined) {
     // Get current batch to find its roll_id
     const currentBatch = await prisma.batches.findUnique({
       where: { id },
@@ -70,12 +82,24 @@ export const updateBatch = async (id: number, data: Partial<BatchData>) => {
 
     if (rollId) {
       // Exclude current batch from calculation since we're updating it
-      const rollQuantity = await getRollRemainingQuantity(rollId, id);
-      if (data.quantity > rollQuantity.remainingQuantity) {
+      const rollData = await getRollRemainingQuantity(rollId, id);
+
+      // Validate quantity
+      if (data.quantity !== undefined && data.quantity > rollData.remainingQuantity) {
         throw new Error(
-          `Batch quantity (${data.quantity}) exceeds available roll quantity (${rollQuantity.remainingQuantity}). ` +
-          `Roll total: ${rollQuantity.totalQuantity}, Already used by other batches: ${rollQuantity.usedQuantity}`
+          `Batch quantity (${data.quantity}) exceeds available roll quantity (${rollData.remainingQuantity}). ` +
+          `Roll total: ${rollData.totalQuantity}, Already used by other batches: ${rollData.usedQuantity}`
         );
+      }
+
+      // Validate unit_count (only if roll has unit count)
+      if (data.unit_count !== undefined && rollData.totalUnitCount > 0) {
+        if (data.unit_count > rollData.remainingUnitCount) {
+          throw new Error(
+            `Batch unit count (${data.unit_count}) exceeds available roll units (${rollData.remainingUnitCount}). ` +
+            `Roll total: ${rollData.totalUnitCount} units, Already used by other batches: ${rollData.usedUnitCount} units`
+          );
+        }
       }
     }
   }

@@ -162,6 +162,7 @@ interface Roll {
   quantity: number;
   remaining_quantity?: number;  // Calculated: quantity - sum of batch quantities
   roll_unit_count?: number;  // Number of physical roll pieces
+  remaining_unit_count?: number;  // Calculated: roll_unit_count - sum of batch unit_counts
   unit: string;
   color: string;
   vendor: Vendor | null;
@@ -803,6 +804,7 @@ const RollView = () => {
                     </th>
                     <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Unit</th>
                     <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Roll Units</th>
+                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Remaining Units</th>
                     <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Color</th>
                     <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Vendor</th>
                     <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
@@ -831,6 +833,22 @@ const RollView = () => {
                       </td>
                       <td className="px-4 py-2 text-sm text-gray-600">{roll.unit}</td>
                       <td className="px-4 py-2 text-sm text-gray-600">{roll.roll_unit_count || <span className="text-gray-400">—</span>}</td>
+                      <td className="px-4 py-2 text-sm">
+                        {(() => {
+                          // Only show remaining if roll has unit count
+                          if (!roll.roll_unit_count) {
+                            return <span className="text-gray-400">—</span>;
+                          }
+                          const remainingUnits = roll.remaining_unit_count ?? roll.roll_unit_count;
+                          const isLow = remainingUnits < roll.roll_unit_count * 0.2; // Less than 20% remaining
+                          const isEmpty = remainingUnits <= 0;
+                          return (
+                            <span className={`font-medium ${isEmpty ? 'text-red-600' : isLow ? 'text-amber-600' : 'text-green-600'}`}>
+                              {remainingUnits}
+                            </span>
+                          );
+                        })()}
+                      </td>
                       <td className="px-4 py-2 text-sm text-gray-600">{roll.color}</td>
                       <td className="px-4 py-2 text-sm text-gray-600">{roll.vendor ? roll.vendor.name : <span className="text-gray-400">—</span>}</td>
                       <td className="px-4 py-2 text-right">
