@@ -1,20 +1,19 @@
 "use client";
 
 import React, { useState } from "react";
-import { useRouter } from "next/navigation";
 import SidebarItem from "./SidebarItem";
-import { LogOut } from "lucide-react";
+import { Menu } from "lucide-react";
 import { NavigationItem } from "../../types/navigation";
 
 interface NavigationProps {
   activeView: string;
   onViewChange: (id: string) => void;
   items: NavigationItem[];
+  onToggleSidebar?: () => void;
 }
 
-const Navigation: React.FC<NavigationProps> = ({ activeView, onViewChange, items }) => {
+const Navigation: React.FC<NavigationProps> = ({ activeView, onViewChange, items, onToggleSidebar }) => {
   const [openItem, setOpenItem] = useState<string | null>(null);
-  const router = useRouter();
 
   const handleClick = (item: NavigationItem) => {
     if (item.children && item.children.length > 0) {
@@ -24,32 +23,23 @@ const Navigation: React.FC<NavigationProps> = ({ activeView, onViewChange, items
     }
   };
 
-  const handleLogout = () => {
-    // Clear all authentication data from localStorage
-    localStorage.removeItem("token");
-    localStorage.removeItem("role");
-    localStorage.removeItem("departmentId");
-    localStorage.removeItem("userId");
-    localStorage.removeItem("userName");
-    localStorage.removeItem("userEmail");
-
-    // Clear cookies for middleware authentication
-    document.cookie = "token=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/";
-    document.cookie = "role=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/";
-
-    // Redirect to login page
-    router.push("/loginandsignup");
-  };
-
   return (
     <div className="w-60 bg-[#f7f7f7] flex flex-col h-full">
-      {/* Header with Logo */}
-      <div className="px-5 py-4 border-b border-gray-100 h-[60px] flex items-center">
-        <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 bg-blue-600 rounded-md flex items-center justify-center">
-            <span className="text-white font-semibold text-base">B</span>
-          </div>
-          <span className="text-lg font-semibold text-gray-900">BlueShark</span>
+      {/* Header with Product Name */}
+      <div className="px-4 py-3 border-b border-gray-100 h-[60px] flex items-center gap-3">
+        {/* Hamburger Menu */}
+        {onToggleSidebar && (
+          <button
+            onClick={onToggleSidebar}
+            className="p-1.5 rounded-lg hover:bg-gray-200 transition-colors"
+            title="Collapse sidebar"
+          >
+            <Menu size={20} className="text-gray-600" />
+          </button>
+        )}
+        <div className="flex flex-col">
+          <span className="text-xl font-bold tracking-tight bg-gradient-to-r from-red-600 to-red-400 bg-clip-text text-transparent">Gaamma</span>
+          <span className="text-xs text-gray-400 font-medium">Enterprise - Edition</span>
         </div>
       </div>
 
@@ -90,15 +80,16 @@ const Navigation: React.FC<NavigationProps> = ({ activeView, onViewChange, items
         </ul>
       </nav>
 
-      {/* Logout */}
-      <div className="p-3 border-t border-gray-100">
-        <button
-          onClick={handleLogout}
-          className="w-full flex items-center gap-2.5 px-3 py-2 rounded-md text-left text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition-colors"
-        >
-          <LogOut className="w-4 h-4" />
-          <span className="text-sm font-medium">Logout</span>
-        </button>
+      {/* Footer - Zunkireelabs Branding */}
+      <div className="px-4 py-3 border-t border-gray-200">
+        <div className="flex items-center gap-1.5">
+          <span className="text-xs text-gray-400">A Product of</span>
+          <img
+            src="/zunkireelabs-logo.png"
+            alt="Zunkireelabs"
+            className="h-7 w-auto"
+          />
+        </div>
       </div>
     </div>
   );

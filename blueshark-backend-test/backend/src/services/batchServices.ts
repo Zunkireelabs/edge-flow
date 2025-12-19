@@ -1,28 +1,44 @@
 import prisma from "../config/db";
+import { getRollRemainingQuantity } from "./rollServices";
 
 interface BatchData {
-  name: string;
+  name: string;        // Fabric Name
+  order_name?: string; // Order Name
   quantity: number;
-  unit?: string; // optional
-  color?: string; // optional
-  roll_id?: number; // optional
-  vendor_id?: number; // optional
+  unit?: string;
+  unit_count?: number; // Number of fabric pieces
+  color?: string;
+  roll_id?: number;
+  vendor_id?: number;
 }
 
 export const createBatch = async (data: BatchData) => {
+  // Validate quantity against roll's remaining quantity
+  if (data.roll_id) {
+    const rollQuantity = await getRollRemainingQuantity(data.roll_id);
+    if (data.quantity > rollQuantity.remainingQuantity) {
+      throw new Error(
+        `Batch quantity (${data.quantity}) exceeds available roll quantity (${rollQuantity.remainingQuantity}). ` +
+        `Roll total: ${rollQuantity.totalQuantity}, Already used: ${rollQuantity.usedQuantity}`
+      );
+    }
+  }
+
   const batchData: any = {
     name: data.name,
     quantity: data.quantity,
   };
 
+  if (data.order_name) batchData.order_name = data.order_name;
   if (data.unit) batchData.unit = data.unit;
+  if (data.unit_count !== undefined) batchData.unit_count = data.unit_count;
   if (data.color) batchData.color = data.color;
   if (data.roll_id) batchData.roll = { connect: { id: data.roll_id } };
-   if (data.vendor_id) batchData.vendor = { connect: { id: data.vendor_id } };
+  if (data.vendor_id) batchData.vendor = { connect: { id: data.vendor_id } };
 
   return await prisma.batches.create({
     data: batchData,
-    include: { roll: true, vendor:true }, // include roll info if connected
+    include: { roll: true, vendor: true },
   });
 };
 
@@ -42,6 +58,28 @@ export const getBatchById = async (id: number) => {
 };
 
 export const updateBatch = async (id: number, data: Partial<BatchData>) => {
+  // If quantity is being updated and batch has a roll, validate against remaining
+  if (data.quantity !== undefined) {
+    // Get current batch to find its roll_id
+    const currentBatch = await prisma.batches.findUnique({
+      where: { id },
+      select: { roll_id: true },
+    });
+
+    const rollId = data.roll_id || currentBatch?.roll_id;
+
+    if (rollId) {
+      // Exclude current batch from calculation since we're updating it
+      const rollQuantity = await getRollRemainingQuantity(rollId, id);
+      if (data.quantity > rollQuantity.remainingQuantity) {
+        throw new Error(
+          `Batch quantity (${data.quantity}) exceeds available roll quantity (${rollQuantity.remainingQuantity}). ` +
+          `Roll total: ${rollQuantity.totalQuantity}, Already used by other batches: ${rollQuantity.usedQuantity}`
+        );
+      }
+    }
+  }
+
   const updateData: any = { ...data };
 
   if (data.roll_id) {

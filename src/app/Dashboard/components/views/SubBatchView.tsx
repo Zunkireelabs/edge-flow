@@ -284,6 +284,11 @@ const SubBatchView = () => {
 
   const [openMenuId, setOpenMenuId] = useState<number | null>(null);
 
+  // Modal dropdown states
+  const [showBatchDropdown, setShowBatchDropdown] = useState(false);
+  const [batchSearchQuery, setBatchSearchQuery] = useState("");
+  const batchDropdownRef = useRef<HTMLDivElement>(null);
+
   // Filter, sort, and paginate sub batches using useMemo
   const { filteredSubBatches, paginatedSubBatches, totalPages, totalFiltered } = useMemo(() => {
     // Step 1: Filter
@@ -558,6 +563,24 @@ const SubBatchView = () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, [openMenuId]);
+
+  // Handle click outside for modal batch dropdown
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (batchDropdownRef.current && !batchDropdownRef.current.contains(event.target as Node)) {
+        setShowBatchDropdown(false);
+        setBatchSearchQuery("");
+      }
+    };
+
+    if (showBatchDropdown) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showBatchDropdown]);
 
   // Send to production function
   const handleSendToProduction = async () => {
@@ -955,7 +978,7 @@ const SubBatchView = () => {
             setIsPreview(false);
             setIsModalOpen(true);
           }}
-          className="flex items-center gap-2 bg-[#2272B4] text-white px-5 py-2.5 rounded font-semibold shadow-md hover:bg-[#0E538B] hover:shadow-lg transition-all duration-200 hover:scale-105"
+          className="flex items-center gap-2 bg-[#2272B4] text-white px-5 py-2.5 rounded font-medium hover:bg-[#1a5a8a]"
         >
           <Plus className="w-4 h-4" />
           Add Sub Batch
@@ -1088,7 +1111,7 @@ const SubBatchView = () => {
               <table className="w-full min-w-full">
                 <thead>
                   <tr className="border-b border-gray-200 bg-gray-50">
-                    <th className="px-4 py-3 text-left w-12">
+                    <th className="px-4 py-2 text-left w-12">
                       <input
                         type="checkbox"
                         checked={paginatedSubBatches.length > 0 && paginatedSubBatches.every(sb => selectedRows.has(sb.id))}
@@ -1098,7 +1121,7 @@ const SubBatchView = () => {
                     </th>
                     {/* Sortable Headers */}
                     <th
-                      className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors"
+                      className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors"
                       onClick={() => handleSort("id")}
                     >
                       <div className="flex items-center gap-1">
@@ -1109,7 +1132,7 @@ const SubBatchView = () => {
                       </div>
                     </th>
                     <th
-                      className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors"
+                      className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors"
                       onClick={() => handleSort("name")}
                     >
                       <div className="flex items-center gap-1">
@@ -1119,14 +1142,14 @@ const SubBatchView = () => {
                         )}
                       </div>
                     </th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Parent Roll
                     </th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Parent Batch
                     </th>
                     <th
-                      className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors"
+                      className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors"
                       onClick={() => handleSort("status")}
                     >
                       <div className="flex items-center gap-1">
@@ -1137,7 +1160,7 @@ const SubBatchView = () => {
                       </div>
                     </th>
                     <th
-                      className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors"
+                      className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors"
                       onClick={() => handleSort("estimated_pieces")}
                     >
                       <div className="flex items-center gap-1">
@@ -1148,7 +1171,7 @@ const SubBatchView = () => {
                       </div>
                     </th>
                     <th
-                      className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors"
+                      className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors"
                       onClick={() => handleSort("start_date")}
                     >
                       <div className="flex items-center gap-1">
@@ -1159,7 +1182,7 @@ const SubBatchView = () => {
                       </div>
                     </th>
                     <th
-                      className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors"
+                      className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors"
                       onClick={() => handleSort("due_date")}
                     >
                       <div className="flex items-center gap-1">
@@ -1169,7 +1192,7 @@ const SubBatchView = () => {
                         )}
                       </div>
                     </th>
-                    <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Actions
                     </th>
                   </tr>
@@ -1180,7 +1203,7 @@ const SubBatchView = () => {
                       key={sb.id}
                       className={`transition-colors ${selectedRows.has(sb.id) ? 'bg-blue-50' : 'hover:bg-gray-50'}`}
                     >
-                      <td className="px-4 py-3">
+                      <td className="px-4 py-2">
                         <input
                           type="checkbox"
                           checked={selectedRows.has(sb.id)}
@@ -1188,17 +1211,17 @@ const SubBatchView = () => {
                           className="w-4 h-4 rounded border-gray-300 text-[#2272B4] focus:ring-[#2272B4]"
                         />
                       </td>
-                      <td className="px-4 py-3 text-sm text-gray-500">SB{String(sb.id).padStart(3, '0')}</td>
-                      <td className="px-4 py-3">
+                      <td className="px-4 py-2 text-sm text-gray-500">SB{String(sb.id).padStart(3, '0')}</td>
+                      <td className="px-4 py-2">
                         <span className="text-sm font-medium text-[#2272B4] hover:underline cursor-pointer">{sb.name}</span>
                       </td>
-                      <td className="px-4 py-3 text-sm text-gray-600">{getRollName(sb.roll_id)}</td>
-                      <td className="px-4 py-3 text-sm text-gray-600">{getBatchName(sb.batch_id)}</td>
-                      <td className="px-4 py-3 text-sm">{getStatusBadge(sb.status)}</td>
-                      <td className="px-4 py-3 text-sm text-gray-600">{sb.estimated_pieces}</td>
-                      <td className="px-4 py-3 text-sm text-gray-600">{formatDate(sb.start_date)}</td>
-                      <td className="px-4 py-3 text-sm text-gray-600">{formatDate(sb.due_date)}</td>
-                      <td className="px-4 py-3 text-right">
+                      <td className="px-4 py-2 text-sm text-gray-600">{getRollName(sb.roll_id)}</td>
+                      <td className="px-4 py-2 text-sm text-gray-600">{getBatchName(sb.batch_id)}</td>
+                      <td className="px-4 py-2 text-sm">{getStatusBadge(sb.status)}</td>
+                      <td className="px-4 py-2 text-sm text-gray-600">{sb.estimated_pieces}</td>
+                      <td className="px-4 py-2 text-sm text-gray-600">{formatDate(sb.start_date)}</td>
+                      <td className="px-4 py-2 text-sm text-gray-600">{formatDate(sb.due_date)}</td>
+                      <td className="px-4 py-2 text-right">
                         <div className="flex items-center justify-end gap-1">
                           <button
                             onClick={() => handlePreview(sb.id)}
@@ -1789,44 +1812,44 @@ const SubBatchView = () => {
                   <div className="space-y-4">
                     {/* ID */}
                     <div className="flex justify-between items-center py-2 border-b border-gray-100">
-                      <span className=" font-semibold text-black">ID</span>
+                      <span className="font-medium text-black">ID</span>
                       <span className="text-sm text-gray-500">B{editingSubBatch?.id.toString().padStart(4, "0")}</span>
                     </div>
 
                     {/* Parent Roll */}
                     <div className="flex justify-between items-center py-2 border-b border-gray-100">
-                      <span className=" font-semibold text-black">Parent Roll</span>
+                      <span className="font-medium text-black">Parent Roll</span>
                       <span className="text-sm text-gray-500">{getRollName(editingSubBatch?.roll_id)}</span>
                     </div>
 
                     {/* Parent Batch */}
                     <div className="flex justify-between items-center py-2 border-b border-gray-100">
-                      <span className=" font-semibold text-black">Parent Batch</span>
+                      <span className="font-medium text-black">Parent Batch</span>
                       <span className="text-sm text-gray-500">{getBatchName(editingSubBatch?.batch_id)}</span>
                     </div>
 
                     {/* Sub Batch Name */}
                     <div className="flex justify-between items-center py-2 border-b border-gray-100">
-                      <span className="font-semibold text-black">Sub Batch Name</span>
+                      <span className="font-medium text-black">Sub Batch Name</span>
                       <span className="text-sm text-gray-500">{formData.name}</span>
                     </div>
 
                     {/* Estimated Pieces */}
                     <div className="flex justify-between items-center py-2 border-b border-gray-100">
-                      <span className=" font-semibold text-black">Pieces</span>
+                      <span className="font-medium text-black">Pieces</span>
                       <span className="text-sm text-gray-500">{formData.estimatedPieces} </span>
                     </div>
 
                     {/* Expected Items */}
                     <div className="flex justify-between items-center py-2 border-b border-gray-100">
-                      <span className=" font-semibold text-black">Expected Items</span>
+                      <span className="font-medium text-black">Expected Items</span>
                       <span className="text-sm text-gray-500">{formData.expectedItems || editingSubBatch?.expected_items}</span>
                     </div>
 
                     {/* Size Details */}
                     {sizesList.length > 0 && (
                       <div className="py-2">
-                        <p className="font-semibold text-black mb-3">Size Details</p>
+                        <p className="font-medium text-black mb-3">Size Details</p>
                         <table className="w-full border border-gray-400">
                           <thead>
                             <tr className="bg-gray-50 ">
@@ -1849,7 +1872,7 @@ const SubBatchView = () => {
                     {/* Attachment */}
                     {attachments.length > 0 && (
                       <div className="py-2">
-                        <p className="font-semibold text-black mb-3">Attachment</p>
+                        <p className="font-medium text-black mb-3">Attachment</p>
                         <table className="w-full  border border-gray-400">
                           <thead>
                             <tr className="bg-gray-50">
@@ -1871,13 +1894,13 @@ const SubBatchView = () => {
 
                     {/* Start Date */}
                     <div className="flex justify-between items-center py-2 border-b border-gray-100">
-                      <span className="font-semibold text-black">Start Date</span>
+                      <span className="font-medium text-black">Start Date</span>
                       <span className="text-sm text-gray-500">{formatDate(formData.startDate)}</span>
                     </div>
 
                     {/* End Date */}
                     <div className="flex justify-between items-center py-2 border-b border-gray-100">
-                      <span className="font-semibold text-black">End Date</span>
+                      <span className="font-medium text-black">End Date</span>
                       <span className="text-sm text-gray-500">{formatDate(formData.dueDate)}</span>
                     </div>
 
@@ -1886,31 +1909,17 @@ const SubBatchView = () => {
                 ) : (
                   // Edit/Add Layout
                   <>
-                    {/* Modern Header with Step Indicator */}
-                    <div className="border-b border-gray-200 pb-3 mb-4">
-                      <div className="flex items-center justify-between mb-2">
-                        <h3 className="text-xl font-bold text-gray-900" style={{ letterSpacing: '-0.01em' }}>
-                          {editingSubBatch ? "Edit Sub Batch" : "Add Sub Batch"}
-                        </h3>
-                        <span className="text-sm text-gray-500">Step 1 of 1</span>
-                      </div>
-
-                      {/* Progress Stepper */}
-                      <div className="mt-3 flex items-center gap-4">
-                        <div className="flex items-center gap-2">
-                          <div className="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center text-sm font-semibold">
-                            1
-                          </div>
-                          <span className="text-sm font-medium text-gray-900">Basic Info</span>
-                        </div>
-                        <div className="flex-1 h-[2px] bg-gray-200"></div>
-                      </div>
+                    {/* Modal Header */}
+                    <div className="mb-5">
+                      <h3 className="text-lg font-semibold text-gray-900">
+                        {editingSubBatch ? "Edit Sub Batch" : "Add Sub Batch"}
+                      </h3>
                     </div>
 
-                    <div className="space-y-3">
+                    <div className="space-y-4">
                       {/* Sub Batch Name */}
                       <div>
-                        <label className="block text-sm font-semibold text-gray-900 mb-1.5">
+                        <label className="block text-sm font-medium text-gray-900 mb-1.5">
                           Sub Batch Name <span className="text-red-500">*</span>
                         </label>
                         <input
@@ -1925,41 +1934,105 @@ const SubBatchView = () => {
 
 
                   {/* Batch - MOVED TO TOP */}
-                  <div className="flex items-center gap-2">
-                    <PackageMinus size={20} className="text-black" />
-                    <p className="text-black font-semibold ">Select Batch <span className="text-red-500">*</span></p>
+                  <div className="relative" ref={batchDropdownRef}>
+                    <label className="block text-sm font-medium text-gray-900 mb-1.5">
+                      Select Batch <span className="text-red-500">*</span>
+                    </label>
+
+                    <button
+                      type="button"
+                      onClick={() => !isPreview && setShowBatchDropdown(!showBatchDropdown)}
+                      disabled={isPreview}
+                      className={`w-full border border-gray-200 rounded-lg px-3 py-2 text-left text-sm flex items-center justify-between ${
+                        isPreview ? 'bg-gray-100 cursor-not-allowed' : 'bg-white hover:border-gray-300'
+                      }`}
+                    >
+                      <span className={formData.batch_id ? 'text-gray-900 truncate' : 'text-gray-400'}>
+                        {formData.batch_id
+                          ? (() => {
+                              const batch = batches.find(b => b.id === Number(formData.batch_id));
+                              return batch
+                                ? `${batch.name} (B${String(batch.id).padStart(3, '0')}) | ${batch.quantity} ${batch.unit || 'pcs'}`
+                                : 'Select batch...';
+                            })()
+                          : 'Select batch...'}
+                      </span>
+                      <ChevronDown className={`w-4 h-4 text-gray-400 flex-shrink-0 transition-transform ${showBatchDropdown ? 'rotate-180' : ''}`} />
+                    </button>
+
+                    {showBatchDropdown && (
+                      <div className="absolute top-full left-0 mt-1 w-full bg-white rounded-lg shadow-lg border border-gray-200 z-50 overflow-hidden">
+                        {/* Search */}
+                        <div className="p-2 border-b border-gray-100">
+                          <div className="relative">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                            <input
+                              type="text"
+                              placeholder="Search batches..."
+                              value={batchSearchQuery}
+                              onChange={(e) => setBatchSearchQuery(e.target.value)}
+                              className="w-full pl-9 pr-3 py-2 text-sm border border-gray-200 rounded-full focus:outline-none focus:ring-2 focus:ring-[#2272B4]"
+                            />
+                          </div>
+                        </div>
+
+                        {/* Options */}
+                        <div className="max-h-48 overflow-y-auto">
+                          {[...batches]
+                            .sort((a, b) => b.id - a.id)
+                            .filter(b =>
+                              b.name.toLowerCase().includes(batchSearchQuery.toLowerCase()) ||
+                              (b.color && b.color.toLowerCase().includes(batchSearchQuery.toLowerCase())) ||
+                              (b.vendor?.name && b.vendor.name.toLowerCase().includes(batchSearchQuery.toLowerCase()))
+                            )
+                            .map((batch) => (
+                              <button
+                                key={batch.id}
+                                type="button"
+                                onClick={() => {
+                                  setFormData({
+                                    ...formData,
+                                    batch_id: String(batch.id),
+                                    roll_id: batch.roll_id ? String(batch.roll_id) : ''
+                                  });
+                                  setShowBatchDropdown(false);
+                                  setBatchSearchQuery("");
+                                }}
+                                className={`w-full px-3 py-2.5 text-left hover:bg-gray-50 transition-colors flex items-start gap-3 ${
+                                  formData.batch_id === String(batch.id) ? 'bg-blue-50' : ''
+                                }`}
+                              >
+                                <div className={`mt-0.5 w-4 h-4 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${
+                                  formData.batch_id === String(batch.id) ? 'border-[#2272B4] bg-[#2272B4]' : 'border-gray-300'
+                                }`}>
+                                  {formData.batch_id === String(batch.id) && <Check className="w-2.5 h-2.5 text-white" />}
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <div className={`text-sm font-medium ${formData.batch_id === String(batch.id) ? 'text-[#2272B4]' : 'text-gray-900'}`}>
+                                    {batch.name} (B{String(batch.id).padStart(3, '0')})
+                                  </div>
+                                  <div className="text-xs text-gray-500">
+                                    Qty: {batch.quantity} {batch.unit || 'pcs'} | Color: {batch.color || 'N/A'} | Vendor: {batch.vendor?.name || 'No Vendor'}
+                                  </div>
+                                </div>
+                              </button>
+                            ))}
+
+                          {batches.filter(b =>
+                            b.name.toLowerCase().includes(batchSearchQuery.toLowerCase()) ||
+                            (b.color && b.color.toLowerCase().includes(batchSearchQuery.toLowerCase())) ||
+                            (b.vendor?.name && b.vendor.name.toLowerCase().includes(batchSearchQuery.toLowerCase()))
+                          ).length === 0 && (
+                            <div className="px-3 py-4 text-sm text-gray-500 text-center">No batches found</div>
+                          )}
+                        </div>
+                      </div>
+                    )}
                   </div>
-
-                  <select
-                    value={formData.batch_id}
-                    onChange={(e) => {
-                      const selectedBatchId = e.target.value;
-                      const selectedBatch = batches.find(b => b.id === Number(selectedBatchId));
-
-                      // Auto-fill roll when batch is selected
-                      setFormData({
-                        ...formData,
-                        batch_id: selectedBatchId,
-                        roll_id: selectedBatch?.roll_id ? String(selectedBatch.roll_id) : ''
-                      });
-                    }}
-                    className="w-full border border-gray-300 rounded-[10px] px-3 py-2 focus:outline-none focus:ring-1 focus:ring-blue-500 text-sm"
-                    disabled={isPreview}
-                    required
-                  >
-                    <option value="">Select batch first...</option>
-                    {[...batches]
-                      .sort((a, b) => b.id - a.id) // Sort by ID descending (newest first)
-                      .map((batch) => (
-                        <option key={batch.id} value={batch.id}>
-                          {`${batch.name} (B${String(batch.id).padStart(3, '0')}) | Qty: ${batch.quantity} ${batch.unit || 'pcs'} | Color: ${batch.color || 'N/A'} | Vendor: ${batch.vendor?.name || 'No Vendor'}`}
-                        </option>
-                      ))}
-                  </select>
 
                       {/* Roll - AUTO-FILLED */}
                       <div>
-                        <label className="block text-sm font-semibold text-gray-900 mb-1.5">
+                        <label className="block text-sm font-medium text-gray-900 mb-1.5">
                           Roll Name <span className="text-xs text-gray-500">(Auto-filled from Batch)</span>
                         </label>
                         <select
@@ -1974,116 +2047,113 @@ const SubBatchView = () => {
                       </div>
 
                   {/* Estimated Pieces */}
-                  <div className="flex items-center gap-2">
-                    <PackageMinus size={20} className="text-black" />
-                    <p className="text-black font-semibold ">Estimated Pieces </p>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-900 mb-1.5">
+                      Estimated Pieces
+                    </label>
+                    <input
+                      type="number"
+                      placeholder="Enter estimated pieces"
+                      value={formData.estimatedPieces}
+                      onChange={(e) => setFormData({ ...formData, estimatedPieces: e.target.value })}
+                      className="w-full border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                      disabled={isPreview}
+                    />
                   </div>
-                  <input
-                    type="number"
-                    placeholder="Estimated pieces...."
-                    value={formData.estimatedPieces}
-                    onChange={(e) => setFormData({ ...formData, estimatedPieces: e.target.value })}
-                    className="w-full border border-gray-300 rounded-[10px] px-3 py-2 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                    disabled={isPreview}
-                  />
 
-                  {/* Categories */}
-                  <div className="border border-gray-200 rounded-[10px] px-5 pt-4">
-                    {/* Add New Category Section */}
-                    <div className="mb-4">
-                      <div className="flex items-center justify-between mb-3">
-                        <p className="text-black font-semibold">Add New Category</p>
+                  {/* Add New Category */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-900 mb-1.5">
+                      Add New Category
+                    </label>
+                    {!isPreview && (
+                      <div className="flex gap-2 items-center">
+                        <input
+                          type="text"
+                          value={newCategoryName}
+                          onChange={(e) => setNewCategoryName(e.target.value)}
+                          className="flex-1 border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                          placeholder="Enter new category name"
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") {
+                              e.preventDefault();
+                              handleSaveCategory();
+                            }
+                          }}
+                        />
+                        <button
+                          type="button"
+                          onClick={handleSaveCategory}
+                          disabled={!newCategoryName.trim() || isSavingCategory}
+                          className={`px-4 py-2 rounded-lg text-sm font-medium ${
+                            !newCategoryName.trim() || isSavingCategory
+                              ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
+                              : 'bg-[#2272B4] text-white hover:bg-[#1a5a8a]'
+                          }`}
+                        >
+                          {isSavingCategory ? 'Saving...' : 'Save'}
+                        </button>
                       </div>
-                      
-                      {!isPreview && (
-                        <div className="flex gap-2 items-center mb-4">
-                          <input
-                            type="text"
-                            value={newCategoryName}
-                            onChange={(e) => setNewCategoryName(e.target.value)}
-                            className="flex-1 border border-gray-300 rounded-[10px] px-3 py-2 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                            placeholder="Enter new category name"
-                            onKeyDown={(e) => {
-                              if (e.key === "Enter") {
-                                e.preventDefault();
-                                handleSaveCategory();
-                              }
-                            }}
-                          />
-                          <button
-                            type="button"
-                            onClick={handleSaveCategory}
-                            disabled={!newCategoryName.trim() || isSavingCategory}
-                            className={`px-3 py-2 rounded-[10px] flex items-center gap-2 ${
-                              !newCategoryName.trim() || isSavingCategory
-                                ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                                : 'bg-blue-600 text-white hover:bg-green-700'
-                            }`}
-                          >
-                            {isSavingCategory ? 'Saving...' : 'Save'}
-                          </button>
-                        </div>
-                      )}
-                    </div>
+                    )}
+                  </div>
 
-                    {/* Items */}
-                    <div className="flex items-center justify-between mb-3">
-                      <p className="text-black font-semibold">Items</p>
+                  {/* Items */}
+                  <div>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <label className="block text-sm font-medium text-gray-900">Items</label>
                       {!isPreview && (
                         <button
                           type="button"
                           onClick={handleAddSizeRow}
-                          className="px-3 py-1 text-sm text-[#7698FB] border border-blue-200 rounded hover:bg-blue-50 text-extrabold rounded-[10px]"
+                          className="text-sm text-[#2272B4] hover:text-[#1a5a8a] font-medium"
                         >
                           + Add Items
                         </button>
                       )}
                     </div>
 
-                    {sizesList.map((row, index) => {
-                      return (
-                        <div key={index} className="flex gap-2 items-center mb-2">
-                          <select
-                            value={row.size}
-                            onChange={(e) => handleSizeChange(index, "size", e.target.value)}
-                            className="w-full border border-gray-300 rounded-[10px] px-3 py-2 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                            disabled={isPreview}
+                    {sizesList.map((row, index) => (
+                      <div key={index} className="flex gap-2 items-center mb-2">
+                        <select
+                          value={row.size}
+                          onChange={(e) => handleSizeChange(index, "size", e.target.value)}
+                          className="flex-1 border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                          disabled={isPreview}
+                        >
+                          <option value="">Select items</option>
+                          {categoryOptions.map((option, i) => (
+                            <option key={i} value={option}>
+                              {option}
+                            </option>
+                          ))}
+                        </select>
+
+                        <input
+                          type="number"
+                          placeholder="Pieces"
+                          value={row.number_of_pieces}
+                          onChange={(e) => handleSizeChange(index, "number_of_pieces", e.target.value)}
+                          className="w-24 border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                          disabled={isPreview}
+                        />
+
+                        {!isPreview && (
+                          <button
+                            type="button"
+                            className="text-gray-400 hover:text-red-500"
+                            onClick={() => handleDeleteSizeRow(index)}
                           >
-                            <option value="">Select items</option>
-                            {categoryOptions.map((option, i) => (
-                              <option key={i} value={option}>
-                                {option}
-                              </option>
-                            ))}
-                          </select>
-
-                          <input
-                            type="number"
-                            placeholder="Pieces...."
-                            value={row.number_of_pieces}
-                            onChange={(e) => handleSizeChange(index, "number_of_pieces", e.target.value)}
-                            className="w-full border border-gray-300 rounded-[10px] px-3 py-2 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                            disabled={isPreview}
-                          />
-
-                          {!isPreview && (
-                            <button
-                              type="button"
-                              className="text-black hover:text-red-500"
-                              onClick={() => handleDeleteSizeRow(index)}
-                            >
-                              <Trash2 size={20} />
-                            </button>
-                          )}
-                        </div>
-                      );
-                    })}
+                            <Trash2 size={18} />
+                          </button>
+                        )}
+                      </div>
+                    ))}
 
                     {/* Display current sizes for preview */}
                     {isPreview && sizesList.length > 0 && (
                       <div className="mt-2 space-y-1">
                         {sizesList.map((s, idx) => (
-                          <div key={idx} className="text-sm text-gray-600 p-2 bg-gray-50 rounded">
+                          <div key={idx} className="text-sm text-gray-600 p-2 bg-gray-50 rounded-lg">
                             {s.size}: {s.number_of_pieces} pieces
                           </div>
                         ))}
@@ -2091,17 +2161,15 @@ const SubBatchView = () => {
                     )}
                   </div>
 
-
-                  {/* Attachment Section */}
-                  <div className="border border-gray-200  rounded-[10px] px-5 pt-4">
-
-                    <div className="flex items-center justify-between mb-3">
-                      <p className="text-black font-semibold ">Attachment</p>
+                  {/* Attachment */}
+                  <div>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <label className="block text-sm font-medium text-gray-900">Attachment</label>
                       {!isPreview && (
                         <button
                           type="button"
                           onClick={handleAddAttachment}
-                          className="px-3 py-1 text-sm text-[#7698FB] border border-blue-200 rounded hover:bg-blue-50 text-extrabold rounded-[10px]"
+                          className="text-sm text-[#2272B4] hover:text-[#1a5a8a] font-medium"
                         >
                           + Add Attachment
                         </button>
@@ -2111,49 +2179,45 @@ const SubBatchView = () => {
                     {attachments.map((att, index) => (
                       <div key={index} className="grid grid-cols-2 gap-2 mb-2">
                         <div>
-                          <label className="block text-xs text-gray-600 mb-1">Attachment Name</label>
                           <input
                             type="text"
                             value={att.name}
                             onChange={(e) => handleAttachmentChange(index, "name", e.target.value)}
-                            className="w-full border border-gray-300 rounded-[10px] px-3 py-2 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                            className="w-full border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                            placeholder="Attachment name"
                             disabled={isPreview}
                           />
                         </div>
-                        <div>
-                          <label className="block text-xs text-gray-600 mb-1">Quantity</label>
-                          <div className="flex items-center gap-2">
-                            <input
-                              type="number"
-                              placeholder="Pieces...."
-                              value={att.quantity}
-                              onChange={(e) => handleAttachmentChange(index, "quantity", e.target.value)}
-                              className="w-full border border-gray-300 rounded-[10px] px-3 py-2 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                              disabled={isPreview}
-                            />
-                            {!isPreview && (
-                              <button
-                                type="button"
-                                className="text-black hover:text-red-500 "
-                                onClick={() => handleDeleteAttachment(index)}
-                              >
-                                <Trash2 size={20} />
-                              </button>
-                            )}
-                          </div>
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="number"
+                            placeholder="Quantity"
+                            value={att.quantity}
+                            onChange={(e) => handleAttachmentChange(index, "quantity", e.target.value)}
+                            className="w-full border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                            disabled={isPreview}
+                          />
+                          {!isPreview && (
+                            <button
+                              type="button"
+                              className="text-gray-400 hover:text-red-500"
+                              onClick={() => handleDeleteAttachment(index)}
+                            >
+                              <Trash2 size={18} />
+                            </button>
+                          )}
                         </div>
                       </div>
                     ))}
                   </div>
 
-
-                  <div className="flex gap-4">
+                  {/* Dates */}
+                  <div className="grid grid-cols-2 gap-3">
                     {/* Start Date */}
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-1">
-                        <Clock size={20} className="text-black" />
-                        <p className="text-black font-semibold">Start Date</p>
-                      </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-900 mb-1.5">
+                        Start Date
+                      </label>
                       <NepaliDatePicker
                         value={formatDate(formData.startDate)}
                         onChange={(value) =>
@@ -2162,18 +2226,17 @@ const SubBatchView = () => {
                             startDate: value ? `${value}T00:00:00.000Z` : "",
                           })
                         }
-                        className="rounded-[10px]"
+                        className="rounded-lg"
                         disabled={isPreview}
                         placeholder="Select Start Date"
                       />
                     </div>
 
                     {/* Due Date */}
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-1">
-                        <ClockAlert size={20} className="text-black" />
-                        <p className="text-black font-semibold">Due Date</p>
-                      </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-900 mb-1.5">
+                        Due Date
+                      </label>
                       <NepaliDatePicker
                         value={formatDate(formData.dueDate)}
                         onChange={(value) =>
@@ -2182,7 +2245,7 @@ const SubBatchView = () => {
                             dueDate: value ? `${value}T00:00:00.000Z` : "",
                           })
                         }
-                        className="rounded-[10px]"
+                        className="rounded-lg"
                         disabled={isPreview}
                         placeholder="Select Due Date"
                       />

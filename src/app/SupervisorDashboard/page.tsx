@@ -4,7 +4,8 @@ import React, { useState, useEffect, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import LeftSidebar from "./components/layout/LeftSidebar";
 import RightContent from "./components/layout/RightContent";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronRight } from "lucide-react";
+import { DepartmentProvider } from "./contexts/DepartmentContext";
 
 const SupervisorPageContent = () => {
   const searchParams = useSearchParams();
@@ -36,19 +37,12 @@ const SupervisorPageContent = () => {
     <div className="flex h-screen bg-gray-50">
       {/* Sidebar */}
       {sidebarOpen && (
-        <div className="w-60 bg-[#f7f7f7] relative">
-          {/* Collapse button inside sidebar - ChevronLeft when open */}
-          <button
-            onClick={() => setSidebarOpen(false)}
-            className="absolute top-5 right-4 p-1.5 rounded-lg hover:bg-gray-100 transition-colors z-50 group"
-            title="Collapse sidebar"
-          >
-            <ChevronLeft
-              size={20}
-              className="text-gray-600 group-hover:text-gray-900"
-            />
-          </button>
-          <LeftSidebar activeView={activeView} onViewChange={handleViewChange} />
+        <div className="w-60 bg-[#f7f7f7]">
+          <LeftSidebar
+            activeView={activeView}
+            onViewChange={handleViewChange}
+            onToggleSidebar={() => setSidebarOpen(false)}
+          />
         </div>
       )}
 
@@ -76,9 +70,11 @@ const SupervisorPageContent = () => {
 
 const SupervisorPage = () => {
   return (
-    <Suspense fallback={<div className="flex h-screen items-center justify-center">Loading...</div>}>
-      <SupervisorPageContent />
-    </Suspense>
+    <DepartmentProvider>
+      <Suspense fallback={<div className="flex h-screen items-center justify-center">Loading...</div>}>
+        <SupervisorPageContent />
+      </Suspense>
+    </DepartmentProvider>
   );
 };
 

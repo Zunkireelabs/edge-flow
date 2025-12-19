@@ -9,6 +9,7 @@ import {
   getByStatus,
   getCompleted,
 } from "../controllers/subBatchController";
+import { authMiddleware, requireRole } from "../middleware/authMiddleware";
 
 const router = Router();
 
@@ -18,7 +19,14 @@ router.post("/check-dependencies", subBatchController.checkDependencies); // Mus
 router.get("/:id", subBatchController.getSubBatchById);
 router.put("/:id", subBatchController.updateSubBatch);
 router.delete("/:id", subBatchController.deleteSubBatch);
-router.post("/send-to-production", sendSubBatchToProduction);
+
+// Send to production - requires authentication (ADMIN, SUPERVISOR, or SUPER_SUPERVISOR)
+router.post(
+  "/send-to-production",
+  authMiddleware,
+  requireRole(["ADMIN", "SUPERVISOR", "SUPER_SUPERVISOR"]),
+  sendSubBatchToProduction
+);
 
 // Kanban stage moves
 router.post("/move-stage", moveStage);

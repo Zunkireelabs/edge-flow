@@ -9,12 +9,14 @@ import {
   ChevronDown,
   RefreshCw,
   XCircle,
+  Building2,
 } from "lucide-react";
 import TaskDetailsModal from "../../depcomponents/TaskDetailsModal";
 import AlteredTaskDetailsModal from "../../depcomponents/altered/AlteredTaskDetailsModal";
 import RejectedTaskDetailsModal from "../../depcomponents/rejected/RejectedTaskDetailsModal";
 import Loader from "@/app/Components/Loader";
 import { useToast } from "@/app/Components/ToastContext";
+import { useDepartment } from "../../contexts/DepartmentContext";
 
 interface SizeDetail {
   id: number;
@@ -164,6 +166,7 @@ const STAGES = [
 
 const SupervisorKanban = () => {
   const { showToast } = useToast();
+  const { selectedDepartmentId, isSuperSupervisor, departments } = useDepartment();
   const [kanbanData, setKanbanData] = useState<KanbanData>({
     newArrival: [],
     inProgress: [],
@@ -289,17 +292,34 @@ const SupervisorKanban = () => {
         return;
       }
 
-      if (role !== "SUPERVISOR") {
+      // Allow both SUPERVISOR and SUPER_SUPERVISOR roles
+      if (role !== "SUPERVISOR" && role !== "SUPER_SUPERVISOR") {
         showToast("error", "Access denied. This page is for supervisors only.");
         return;
       }
 
-      // Set the current supervisor ID from localStorage
-      if (departmentId) {
-        setCurrentSupervisorId(parseInt(departmentId, 10));
+      // For SUPER_SUPERVISOR, check if a specific department is selected
+      if (isSuperSupervisor && selectedDepartmentId === "all") {
+        // Don't fetch - will show "select department" message
+        setKanbanData({ newArrival: [], inProgress: [], completed: [] });
+        setLoading(false);
+        return;
       }
 
-      const apiUrl = `${process.env.NEXT_PUBLIC_GET_SUBBATCH_SUPERVISOR}`;
+      // Set the current supervisor ID from localStorage or selected department
+      const targetDeptId = isSuperSupervisor && typeof selectedDepartmentId === 'number'
+        ? selectedDepartmentId
+        : departmentId ? parseInt(departmentId, 10) : null;
+
+      if (targetDeptId) {
+        setCurrentSupervisorId(targetDeptId);
+      }
+
+      // Build API URL with departmentId query param for SUPER_SUPERVISOR
+      let apiUrl = `${process.env.NEXT_PUBLIC_GET_SUBBATCH_SUPERVISOR}`;
+      if (isSuperSupervisor && typeof selectedDepartmentId === 'number') {
+        apiUrl += `?departmentId=${selectedDepartmentId}`;
+      }
 
       const response = await fetch(
         apiUrl,
@@ -325,7 +345,12 @@ const SupervisorKanban = () => {
       const result = await response.json();
 
       if (result.success && result.data) {
-        setKanbanData(result.data);
+        // Handle requiresDepartmentSelection response from backend
+        if (result.requiresDepartmentSelection) {
+          setKanbanData({ newArrival: [], inProgress: [], completed: [] });
+        } else {
+          setKanbanData(result.data);
+        }
       } else {
         throw new Error(result.message || 'API returned unsuccessful response');
       }
@@ -336,7 +361,7 @@ const SupervisorKanban = () => {
       setLoading(false);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [isSuperSupervisor, selectedDepartmentId]);
 
   useEffect(() => {
     fetchKanbanData();
@@ -474,6 +499,47 @@ const SupervisorKanban = () => {
       <div className="p-8 bg-gray-50 min-h-full">
         <div className="flex items-center justify-center py-12">
           <Loader loading={true} message="Loading Batches....."/>
+        </div>
+      </div>
+    );
+  }
+
+  // SUPER_SUPERVISOR with "All Departments" selected - show message to select a department
+  if (isSuperSupervisor && selectedDepartmentId === "all") {
+    return (
+      <div className="p-8 bg-gray-50 min-h-full">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-8">
+          <div>
+            <h2 className="text-3xl font-bold text-gray-900">Department View</h2>
+            <p className="text-gray-600 mt-2">Manage tasks across departments</p>
+          </div>
+        </div>
+
+        {/* Select Department Message */}
+        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-12">
+          <div className="text-center">
+            <div className="w-20 h-20 mx-auto mb-6 bg-amber-100 rounded-full flex items-center justify-center">
+              <Building2 className="w-10 h-10 text-amber-600" />
+            </div>
+            <h3 className="text-xl font-semibold text-gray-900 mb-3">
+              Select a Department
+            </h3>
+            <p className="text-gray-600 max-w-md mx-auto mb-6">
+              Please select a specific department from the dropdown above to view and manage tasks in the Kanban board.
+            </p>
+            <div className="flex flex-wrap justify-center gap-2">
+              {departments.map((dept) => (
+                <span
+                  key={dept.id}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gray-100 text-gray-700 rounded-full text-sm"
+                >
+                  <Building2 className="w-3.5 h-3.5" />
+                  {dept.name}
+                </span>
+              ))}
+            </div>
+          </div>
         </div>
       </div>
     );

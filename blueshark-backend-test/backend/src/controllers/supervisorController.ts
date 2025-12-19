@@ -7,20 +7,28 @@ import * as departmentService from "../services/departmentService";
 
 export const createSupervisor = async (req: Request, res: Response) => {
   try {
-    const { name, email, password, departmentId } = req.body;
+    const { name, email, password, role, departmentId } = req.body;
 
     // Only check mandatory fields
     if (!name || !email || !password) {
       return res
         .status(400)
-        .json({ success: false, message: "Missing fields" });
+        .json({ success: false, message: "Missing required fields" });
+    }
+
+    // Validate role if provided
+    if (role && !["SUPERVISOR", "SUPER_SUPERVISOR"].includes(role)) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Invalid role. Must be SUPERVISOR or SUPER_SUPERVISOR" });
     }
 
     const supervisor = await supervisorService.createSupervisor({
       name,
       email,
       password,
-      departmentId, // optional
+      role: role || "SUPERVISOR",
+      departmentId: role === "SUPER_SUPERVISOR" ? undefined : departmentId,
     });
 
     res.status(201).json({ success: true, data: supervisor });
@@ -100,18 +108,46 @@ export const getSupervisorSubBatches = async (
   res: Response
 ) => {
   try {
-    // Get departmentId from JWT token (set during supervisor login)
+    const role = req.user?.role;
     const departmentId = req.user?.departmentId;
 
-    if (!departmentId) {
-      return res.status(400).json({
-        success: false,
-        message: "Supervisor is not assigned to any department"
-      });
+    // SUPER_SUPERVISOR can optionally pass departmentId as query param
+    const queryDeptId = req.query.departmentId as string | undefined;
+
+    let targetDepartmentId: number | undefined;
+
+    if (role === "SUPER_SUPERVISOR") {
+      // SUPER_SUPERVISOR can view any department
+      if (queryDeptId && queryDeptId !== "all") {
+        targetDepartmentId = parseInt(queryDeptId, 10);
+        if (isNaN(targetDepartmentId)) {
+          return res.status(400).json({
+            success: false,
+            message: "Invalid department ID format"
+          });
+        }
+      } else {
+        // Return message to select a department for Kanban view
+        return res.status(200).json({
+          success: true,
+          message: "Please select a specific department to view tasks",
+          data: { newArrival: [], inProgress: [], completed: [] },
+          requiresDepartmentSelection: true,
+        });
+      }
+    } else {
+      // Regular SUPERVISOR uses their assigned department
+      if (!departmentId) {
+        return res.status(400).json({
+          success: false,
+          message: "Supervisor is not assigned to any department"
+        });
+      }
+      targetDepartmentId = departmentId;
     }
 
     const subBatches = await departmentService.getSubBatchesByDepartment(
-      departmentId
+      targetDepartmentId
     );
 
     return res.status(200).json({

@@ -16,15 +16,16 @@ model User {
 }
 
 model rolls {
-  id          Int           @id @default(autoincrement())
-  name        String
-  quantity    Int
-  unit        String
-  color       String
-  vendor_id   Int?
-  batches     batches[]
-  vendor      vendors?      @relation(fields: [vendor_id], references: [id])
-  sub_batches sub_batches[]
+  id              Int           @id @default(autoincrement())
+  name            String
+  quantity        Float         // Changed from Int to Float to support decimal values (e.g., 33.300 kg)
+  roll_unit_count Int?          // Number of physical roll pieces (e.g., 15 rolls)
+  unit            String
+  color           String
+  vendor_id       Int?
+  batches         batches[]
+  vendor          vendors?      @relation(fields: [vendor_id], references: [id])
+  sub_batches     sub_batches[]
 
   @@index([vendor_id])
 }
@@ -32,9 +33,11 @@ model rolls {
 model batches {
   id          Int           @id @default(autoincrement())
   roll_id     Int?
-  name        String
-  quantity    Int
+  name        String        // Fabric Name
+  order_name  String?       // Order Name
+  quantity    Float         // Changed from Int to Float to support decimal values (e.g., 33.300 kg)
   unit        String
+  unit_count  Int?          // Number of fabric pieces
   color       String
   vendor_id   Int?
   roll        rolls?        @relation(fields: [roll_id], references: [id])
@@ -426,6 +429,7 @@ enum DepartmentStage {
 enum Role {
   ADMIN
   SUPERVISOR
+  SUPER_SUPERVISOR
 }
 
 enum SubBatchStatus {

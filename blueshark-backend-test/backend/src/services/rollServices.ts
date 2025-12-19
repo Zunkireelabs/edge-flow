@@ -3,6 +3,7 @@ import prisma from "../config/db";
 interface RollData {
   name: string;
   quantity: number;
+  roll_unit_count?: number; // Number of physical roll pieces (e.g., 15 rolls)
   unit: string;
   color: string;
   vendor_id?: number; // optional: connect existing vendor
@@ -14,6 +15,7 @@ export const createRoll = async (data: RollData) => {
   const rollData: any = {
     name: data.name,
     quantity: data.quantity,
+    roll_unit_count: data.roll_unit_count || null,
     unit: data.unit,
     color: data.color,
   };
@@ -45,12 +47,25 @@ export const createRoll = async (data: RollData) => {
 };
 
 export const getAllRolls = async () => {
-  return await prisma.rolls.findMany({
+  const rolls = await prisma.rolls.findMany({
     include: {
       vendor: true,
       batches: true,
       sub_batches: true,
     },
+  });
+
+  // Calculate remaining quantity for each roll
+  // remaining_quantity = roll.quantity - SUM(batches.quantity)
+  return rolls.map((roll) => {
+    const usedQuantity = roll.batches.reduce(
+      (sum, batch) => sum + (batch.quantity || 0),
+      0
+    );
+    return {
+      ...roll,
+      remaining_quantity: roll.quantity - usedQuantity,
+    };
   });
 };
 
@@ -64,10 +79,77 @@ export const getRollById = async (id: number) => {
     },
   });
   if (!roll) throw new Error("Roll not found");
-  return roll;
+
+  // Calculate remaining quantity
+  const usedQuantity = roll.batches.reduce(
+    (sum, batch) => sum + (batch.quantity || 0),
+    0
+  );
+
+  return {
+    ...roll,
+    remaining_quantity: roll.quantity - usedQuantity,
+  };
+};
+
+// Get remaining quantity for a roll (used for batch validation)
+export const getRollRemainingQuantity = async (
+  rollId: number,
+  excludeBatchId?: number
+) => {
+  const roll = await prisma.rolls.findUnique({
+    where: { id: rollId },
+    include: {
+      batches: {
+        select: { id: true, quantity: true },
+      },
+    },
+  });
+
+  if (!roll) throw new Error("Roll not found");
+
+  // Calculate used quantity, optionally excluding a specific batch (for updates)
+  const usedQuantity = roll.batches.reduce((sum, batch) => {
+    if (excludeBatchId && batch.id === excludeBatchId) {
+      return sum; // Exclude this batch from calculation (for update scenarios)
+    }
+    return sum + (batch.quantity || 0);
+  }, 0);
+
+  return {
+    totalQuantity: roll.quantity,
+    usedQuantity,
+    remainingQuantity: roll.quantity - usedQuantity,
+  };
 };
 
 export const updateRoll = async (id: number, data: Partial<RollData>) => {
+  // Validate: If quantity is being reduced, ensure it's not less than allocated to batches
+  if (data.quantity !== undefined) {
+    const currentRoll = await prisma.rolls.findUnique({
+      where: { id },
+      include: {
+        batches: {
+          select: { quantity: true },
+        },
+      },
+    });
+
+    if (currentRoll) {
+      const totalAllocated = currentRoll.batches.reduce(
+        (sum, batch) => sum + (batch.quantity || 0),
+        0
+      );
+
+      if (data.quantity < totalAllocated) {
+        throw new Error(
+          `Cannot reduce roll quantity to ${data.quantity}. ` +
+          `${totalAllocated} is already allocated to batches.`
+        );
+      }
+    }
+  }
+
   const updateData: any = { ...data };
 
   if (data.vendor_id) {

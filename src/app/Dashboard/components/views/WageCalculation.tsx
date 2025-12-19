@@ -605,7 +605,7 @@ const WageCalculation = () => {
                 <tr>
                   <th
                     onClick={() => handleSort('worker_name')}
-                    className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                    className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
                   >
                     <div className="flex items-center gap-1">
                       Worker Name
@@ -616,7 +616,7 @@ const WageCalculation = () => {
                   </th>
                   <th
                     onClick={() => handleSort('total_billable_wages')}
-                    className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                    className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
                   >
                     <div className="flex items-center justify-end gap-1">
                       Billable Wages
@@ -627,7 +627,7 @@ const WageCalculation = () => {
                   </th>
                   <th
                     onClick={() => handleSort('total_non_billable_wages')}
-                    className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                    className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
                   >
                     <div className="flex items-center justify-end gap-1">
                       Non-Billable
@@ -638,7 +638,7 @@ const WageCalculation = () => {
                   </th>
                   <th
                     onClick={() => handleSort('total_quantity_worked')}
-                    className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                    className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
                   >
                     <div className="flex items-center justify-end gap-1">
                       Qty Worked
@@ -649,7 +649,7 @@ const WageCalculation = () => {
                   </th>
                   <th
                     onClick={() => handleSort('total_entries')}
-                    className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                    className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
                   >
                     <div className="flex items-center justify-end gap-1">
                       Entries
@@ -680,19 +680,19 @@ const WageCalculation = () => {
                       onClick={() => handleRowClick(worker)}
                       className="hover:bg-gray-50 cursor-pointer transition-colors"
                     >
-                      <td className="px-4 py-3 text-sm font-medium text-gray-900">
+                      <td className="px-4 py-2 text-sm font-medium text-gray-900">
                         {worker.worker_name}
                       </td>
-                      <td className="px-4 py-3 text-sm text-right text-green-600 font-medium">
+                      <td className="px-4 py-2 text-sm text-right text-green-600 font-medium">
                         Rs. {worker.total_billable_wages.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                       </td>
-                      <td className="px-4 py-3 text-sm text-right text-red-500">
+                      <td className="px-4 py-2 text-sm text-right text-red-500">
                         Rs. {worker.total_non_billable_wages.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                       </td>
-                      <td className="px-4 py-3 text-sm text-right text-gray-900">
+                      <td className="px-4 py-2 text-sm text-right text-gray-900">
                         {worker.total_quantity_worked.toLocaleString()}
                       </td>
-                      <td className="px-4 py-3 text-sm text-right text-gray-500">
+                      <td className="px-4 py-2 text-sm text-right text-gray-500">
                         {worker.total_entries}
                       </td>
                     </tr>
@@ -819,14 +819,14 @@ const WageCalculation = () => {
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Sub-Batch</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Activity</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Particulars</th>
-                  <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Qty</th>
-                  <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Unit Price</th>
-                  <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
-                  <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Sub-Batch</th>
+                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Activity</th>
+                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Particulars</th>
+                  <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Qty</th>
+                  <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Unit Price</th>
+                  <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
+                  <th className="px-4 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
@@ -848,11 +848,11 @@ const WageCalculation = () => {
                       key={log.id}
                       className={`${!log.is_billable ? 'bg-gray-50' : ''} hover:bg-gray-100`}
                     >
-                      <td className="px-4 py-3 text-sm text-gray-900">
+                      <td className="px-4 py-2 text-sm text-gray-900">
                         {log.work_date ? new Date(log.work_date).toLocaleDateString('en-US') : '-'}
                       </td>
-                      <td className="px-4 py-3 text-sm text-gray-900">{log.sub_batch_name || '-'}</td>
-                      <td className="px-4 py-3 text-sm">
+                      <td className="px-4 py-2 text-sm text-gray-900">{log.sub_batch_name || '-'}</td>
+                      <td className="px-4 py-2 text-sm">
                         <span className={`px-2 py-1 rounded-full text-xs font-medium ${
                           log.activity_type === 'NORMAL' ? 'bg-blue-100 text-blue-800' :
                           log.activity_type === 'ALTERED' ? 'bg-amber-100 text-amber-800' :
@@ -862,13 +862,13 @@ const WageCalculation = () => {
                           {log.activity_type || 'NORMAL'}
                         </span>
                       </td>
-                      <td className="px-4 py-3 text-sm text-gray-600">{log.particulars || '-'}</td>
-                      <td className="px-4 py-3 text-sm text-right text-gray-900">{log.quantity_worked}</td>
-                      <td className="px-4 py-3 text-sm text-right text-gray-900">Rs. {log.unit_price}</td>
-                      <td className="px-4 py-3 text-sm text-right font-medium text-gray-900">
+                      <td className="px-4 py-2 text-sm text-gray-600">{log.particulars || '-'}</td>
+                      <td className="px-4 py-2 text-sm text-right text-gray-900">{log.quantity_worked}</td>
+                      <td className="px-4 py-2 text-sm text-right text-gray-900">Rs. {log.unit_price}</td>
+                      <td className="px-4 py-2 text-sm text-right font-medium text-gray-900">
                         Rs. {log.amount.toLocaleString()}
                       </td>
-                      <td className="px-4 py-3 text-center">
+                      <td className="px-4 py-2 text-center">
                         <span className={`px-2 py-1 rounded-full text-xs font-medium ${
                           log.is_billable
                             ? 'bg-green-100 text-green-800'

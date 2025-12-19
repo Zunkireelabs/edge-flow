@@ -356,7 +356,7 @@ const VendorView = () => {
           <p className="text-gray-500 text-sm">Manage all vendors</p>
         </div>
         <button
-          className="flex items-center gap-2 bg-[#2272B4] text-white px-5 py-2.5 rounded font-semibold shadow-md hover:bg-[#0E538B] hover:shadow-lg transition-all duration-200 hover:scale-105"
+          className="flex items-center gap-2 bg-[#2272B4] text-white px-5 py-2.5 rounded font-medium hover:bg-[#1a5a8a]"
           onClick={() => {
             resetForm();
             setIsDrawerOpen(true);
@@ -420,29 +420,29 @@ const VendorView = () => {
               <table className="w-full min-w-full">
                 <thead>
                   <tr className="border-b border-gray-200 bg-gray-50">
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100" onClick={() => handleSort("id")}>
+                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100" onClick={() => handleSort("id")}>
                       <div className="flex items-center gap-1">ID {sortColumn === "id" && (sortDirection === "asc" ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)}</div>
                     </th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100" onClick={() => handleSort("name")}>
+                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100" onClick={() => handleSort("name")}>
                       <div className="flex items-center gap-1">Name {sortColumn === "name" && (sortDirection === "asc" ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)}</div>
                     </th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">VAT/PAN</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Address</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Phone</th>
-                    <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">VAT/PAN</th>
+                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Address</th>
+                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Phone</th>
+                    <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200">
                   {paginatedVendors.map((vendor) => (
                     <tr key={vendor.id} className="hover:bg-gray-50 transition-colors">
-                      <td className="px-4 py-3 text-sm text-gray-500">V{String(vendor.id).padStart(3, '0')}</td>
-                      <td className="px-4 py-3">
+                      <td className="px-4 py-2 text-sm text-gray-500">V{String(vendor.id).padStart(3, '0')}</td>
+                      <td className="px-4 py-2">
                         <span className="text-sm font-medium text-[#2272B4] hover:underline cursor-pointer">{vendor.name}</span>
                       </td>
-                      <td className="px-4 py-3 text-sm text-gray-600">{vendor.vat_pan || <span className="text-gray-400">—</span>}</td>
-                      <td className="px-4 py-3 text-sm text-gray-600">{vendor.address || <span className="text-gray-400">—</span>}</td>
-                      <td className="px-4 py-3 text-sm text-gray-600">{vendor.phone || <span className="text-gray-400">—</span>}</td>
-                      <td className="px-4 py-3 text-right">
+                      <td className="px-4 py-2 text-sm text-gray-600">{vendor.vat_pan || <span className="text-gray-400">—</span>}</td>
+                      <td className="px-4 py-2 text-sm text-gray-600">{vendor.address || <span className="text-gray-400">—</span>}</td>
+                      <td className="px-4 py-2 text-sm text-gray-600">{vendor.phone || <span className="text-gray-400">—</span>}</td>
+                      <td className="px-4 py-2 text-right">
                         <div className="flex items-center justify-end gap-1">
                           <button
                             onClick={() => handlePreview(vendor)}
@@ -512,7 +512,7 @@ const VendorView = () => {
             {/* Header */}
             <div className="flex-shrink-0 p-4 border-b border-gray-200">
               <div className="flex items-center justify-between">
-                <h3 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+                <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
                   <Building2 size={20} className="text-blue-600" />
                   {isPreview
                     ? "Vendor Details"
@@ -534,7 +534,7 @@ const VendorView = () => {
               <div className="space-y-4">
                 {/* Vendor Name */}
                 <div>
-                  <label className="block text-sm font-semibold text-gray-900 mb-1.5">
+                  <label className="block text-sm font-medium text-gray-900 mb-1.5">
                     Name <span className="text-red-500">*</span>
                   </label>
                   <input
@@ -551,7 +551,7 @@ const VendorView = () => {
 
                 {/* VAT/PAN */}
                 <div>
-                  <label className="block text-sm font-semibold text-gray-900 mb-1.5">
+                  <label className="block text-sm font-medium text-gray-900 mb-1.5">
                     VAT/PAN
                   </label>
                   <input
@@ -567,7 +567,7 @@ const VendorView = () => {
 
                 {/* Address */}
                 <div>
-                  <label className="block text-sm font-semibold text-gray-900 mb-1.5">
+                  <label className="block text-sm font-medium text-gray-900 mb-1.5">
                     Address
                   </label>
                   <input
@@ -583,7 +583,7 @@ const VendorView = () => {
 
                 {/* Phone */}
                 <div>
-                  <label className="block text-sm font-semibold text-gray-900 mb-1.5">
+                  <label className="block text-sm font-medium text-gray-900 mb-1.5">
                     Phone
                   </label>
                   <input
@@ -599,7 +599,7 @@ const VendorView = () => {
 
                 {/* Comment */}
                 <div>
-                  <label className="block text-sm font-semibold text-gray-900 mb-1.5">
+                  <label className="block text-sm font-medium text-gray-900 mb-1.5">
                     Comment
                   </label>
                   <textarea

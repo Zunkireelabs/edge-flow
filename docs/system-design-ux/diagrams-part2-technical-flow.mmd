@@ -1,0 +1,476 @@
+%%{ init: { 'theme': 'base', 'themeVariables': { 'primaryColor': '#2272B4', 'secondaryColor': '#f4f4f4', 'tertiaryColor': '#fff' } } }%%
+
+%% ============================================
+%% BLUESHARK TECHNICAL FLOW DIAGRAMS
+%% Part 2: Implementation View
+%% Import into diagrams.net: Arrange > Insert > Advanced > Mermaid
+%% ============================================
+
+%% DIAGRAM 1: Database Entity Relationship
+%% Copy this section and paste in diagrams.net
+erDiagram
+    vendors ||--o{ rolls : "supplies"
+    vendors {
+        int id PK
+        string name
+        string vat_pan
+        string address
+        string phone
+        string comment
+    }
+
+    rolls ||--o{ batches : "used_in"
+    rolls {
+        int id PK
+        string name
+        int quantity
+        string unit
+        string color
+        int vendor_id FK
+    }
+
+    batches ||--o{ sub_batches : "contains"
+    batches {
+        int id PK
+        string name
+        int quantity
+        string unit
+        string color
+        int roll_id FK
+        int vendor_id FK
+    }
+
+    sub_batches ||--o{ size_details : "has"
+    sub_batches ||--o{ attachments : "has"
+    sub_batches ||--o{ department_sub_batches : "assigned_to"
+    sub_batches {
+        int id PK
+        string name
+        int batch_id FK
+        int roll_id FK
+        int estimated_pieces
+        string expected_items
+        date start_date
+        date due_date
+        string status
+        int total_quantity
+        int quantity_remaining
+    }
+
+    size_details {
+        int id PK
+        int sub_batch_id FK
+        string size_category
+        int quantity
+    }
+
+    attachments {
+        int id PK
+        int sub_batch_id FK
+        string attachment_name
+        int quantity
+    }
+
+    departments ||--o{ department_sub_batches : "processes"
+    departments ||--o{ workers : "employs"
+    departments {
+        int id PK
+        string name
+        string description
+        int supervisor_id FK
+    }
+
+    department_sub_batches ||--o{ worker_logs : "tracks"
+    department_sub_batches {
+        int id PK
+        int sub_batch_id FK
+        int department_id FK
+        int quantity_received
+        int quantity_remaining
+        string status
+        string remarks
+        int alteration_source_id FK
+        int rejection_source_id FK
+        datetime created_at
+    }
+
+    workers ||--o{ worker_logs : "performs"
+    workers {
+        int id PK
+        string name
+        string pan
+        string address
+        int department_id FK
+        string wage_type
+        decimal wage_rate
+    }
+
+    worker_logs {
+        int id PK
+        int worker_id FK
+        int department_sub_batch_id FK
+        int sub_batch_id FK
+        int department_id FK
+        date work_date
+        int quantity_worked
+        decimal unit_price
+        boolean is_billable
+        string activity_type
+        string particulars
+        datetime created_at
+    }
+
+    supervisors {
+        int id PK
+        string name
+        string email
+        string password
+        int department_id FK
+    }
+
+    inventory_categories ||--o{ inventory_items : "categorizes"
+    inventory_categories {
+        int id PK
+        string name
+    }
+
+    inventory_items ||--o{ inventory_additions : "has"
+    inventory_items ||--o{ inventory_subtractions : "has"
+    inventory_items {
+        int id PK
+        string name
+        string unit
+        int quantity
+        int min_quantity
+        int category_id FK
+        string vendor
+        string phone
+        string remarks
+    }
+
+    inventory_additions {
+        int id PK
+        int inventory_id FK
+        int quantity
+        date date
+        decimal price
+        string remarks
+    }
+
+    inventory_subtractions {
+        int id PK
+        int inventory_id FK
+        int quantity
+        string reason
+        date date
+        string remarks
+    }
+
+---
+
+%% DIAGRAM 2: API Endpoints - Authentication
+%% Copy this section and paste in diagrams.net
+graph TB
+    subgraph AUTH["AUTHENTICATION ENDPOINTS"]
+        LOGIN[POST /auth/login] --> |Returns JWT| ADMIN_TOKEN[Admin Token]
+        SUP_LOGIN[POST /auth/supervisor-login] --> |Returns JWT + deptId| SUP_TOKEN[Supervisor Token]
+
+        ADMIN_TOKEN --> ADMIN_DASH[Admin Dashboard]
+        SUP_TOKEN --> SUP_DASH[Supervisor Dashboard]
+    end
+
+---
+
+%% DIAGRAM 3: API Endpoints - CRUD Resources
+%% Copy this section and paste in diagrams.net
+graph TB
+    subgraph CRUD_APIS["CRUD API ENDPOINTS"]
+        subgraph ROLLS_API["ROLLS"]
+            R_GET[GET /rolls]
+            R_POST[POST /rolls]
+            R_PUT[PUT /rolls/:id]
+            R_DEL[DELETE /rolls/:id]
+        end
+
+        subgraph BATCHES_API["BATCHES"]
+            B_GET[GET /batches]
+            B_POST[POST /batches]
+            B_PUT[PUT /batches/:id]
+            B_DEL[DELETE /batches/:id]
+        end
+
+        subgraph SUBBATCH_API["SUB-BATCHES"]
+            SB_GET[GET /sub-batches]
+            SB_POST[POST /sub-batches]
+            SB_PUT[PUT /sub-batches/:id]
+            SB_DEL[DELETE /sub-batches/:id]
+        end
+
+        subgraph DEPT_API["DEPARTMENTS"]
+            D_GET[GET /departments]
+            D_POST[POST /departments]
+            D_PUT[PUT /departments/:id]
+            D_DEL[DELETE /departments/:id]
+            D_SB[GET /departments/:id/sub-batches]
+        end
+
+        subgraph WORKER_API["WORKERS"]
+            W_GET[GET /workers]
+            W_DEPT[GET /workers/department/:id]
+            W_POST[POST /workers]
+            W_PUT[PUT /workers/:id]
+            W_DEL[DELETE /workers/:id]
+        end
+    end
+
+---
+
+%% DIAGRAM 4: API Endpoints - Production Operations
+%% Copy this section and paste in diagrams.net
+graph TB
+    subgraph PROD_OPS["PRODUCTION OPERATION ENDPOINTS"]
+        SEND[POST /sub-batches/send-to-production]
+        ADV[POST /sub-batches/advance-department]
+        HIST[GET /department-sub-batches/sub-batch-history/:id]
+        ALT[POST /admin/production/alteration]
+        REJ[POST /admin/production/reject]
+        COMPLETE[PUT /admin/production/mark-complete]
+
+        SEND --> |Creates dept_sub_batches| DB[(Database)]
+        ADV --> |Updates quantities| DB
+        ALT --> |Creates ALTERED card| DB
+        REJ --> |Creates REJECTED card| DB
+        COMPLETE --> |Updates status| DB
+    end
+
+---
+
+%% DIAGRAM 5: Component Architecture - Admin
+%% Copy this section and paste in diagrams.net
+graph TB
+    subgraph ADMIN_COMP["ADMIN DASHBOARD COMPONENTS"]
+        PAGE[page.tsx] --> LAYOUT[Layout Components]
+
+        LAYOUT --> HEADER[Header.tsx]
+        LAYOUT --> SIDEBAR[LeftSidebar.tsx]
+        LAYOUT --> CONTENT[RightContent.tsx]
+
+        CONTENT --> VIEWS[View Components]
+
+        VIEWS --> DASH[Dashboard.tsx]
+        VIEWS --> ROLL[RollView.tsx]
+        VIEWS --> BATCH[BatchView.tsx]
+        VIEWS --> SUBBATCH[SubBatchView.tsx]
+        VIEWS --> PROD[ProductionView.tsx]
+        VIEWS --> DEPT[DepartmentView.tsx]
+        VIEWS --> INV[Inventory.tsx]
+        VIEWS --> WAGE[WageCalculation.tsx]
+        VIEWS --> VENDOR[GenericView.tsx]
+        VIEWS --> WORKER[Worker.tsx]
+        VIEWS --> DEPTFORM[DepartmentForm.tsx]
+        VIEWS --> SUPFORM[CreateSupervisor.tsx]
+
+        VIEWS --> MODALS[Modal Components]
+        MODALS --> TASK_MODAL[ProductionTaskDetailsModal.tsx]
+        MODALS --> ALT_MODAL[AlterationModal.tsx]
+        MODALS --> REJ_MODAL[RejectModal.tsx]
+    end
+
+---
+
+%% DIAGRAM 6: Component Architecture - Supervisor
+%% Copy this section and paste in diagrams.net
+graph TB
+    subgraph SUP_COMP["SUPERVISOR DASHBOARD COMPONENTS"]
+        PAGE[page.tsx] --> LAYOUT[Layout Components]
+
+        LAYOUT --> HEADER[Header.tsx]
+        LAYOUT --> SIDEBAR[LeftSidebar.tsx]
+        LAYOUT --> ROUTER[ContentRouter.tsx]
+
+        ROUTER --> VIEWS[View Components]
+        VIEWS --> DASH[Dashboard.tsx]
+        VIEWS --> DEPT[DepartmentView.tsx]
+        VIEWS --> WORKER[Worker.tsx]
+
+        VIEWS --> DEPCOMP[depcomponents]
+
+        DEPCOMP --> TASK[TaskDetailsModal.tsx]
+        DEPCOMP --> ADD_REC[AddRecordModal.tsx]
+        DEPCOMP --> EDIT_REC[EditRecordModal.tsx]
+        DEPCOMP --> WK_TABLE[WorkerAssignmentTable.tsx]
+        DEPCOMP --> ALT[AlterationModal.tsx]
+        DEPCOMP --> REJ[RejectionModal.tsx]
+
+        DEPCOMP --> ALTERED[altered/]
+        ALTERED --> ALT_TASK[AlteredTaskDetailsModal.tsx]
+        ALTERED --> ALT_ASSIGN[AssignAlteredWorkerModal.tsx]
+
+        DEPCOMP --> REJECTED[rejected/]
+        REJECTED --> REJ_TASK[RejectedTaskDetailsModal.tsx]
+        REJECTED --> REJ_ASSIGN[AssignRejectedWorkerModal.tsx]
+    end
+
+---
+
+%% DIAGRAM 7: State Management Flow
+%% Copy this section and paste in diagrams.net
+graph TB
+    subgraph STATE["STATE MANAGEMENT FLOW"]
+        LOCAL[localStorage] --> |token| AUTH[Authentication State]
+        LOCAL --> |role| AUTH
+        LOCAL --> |departmentId| AUTH
+        LOCAL --> |userId| AUTH
+
+        AUTH --> |Bearer Token| API[API Calls]
+
+        subgraph VIEW_STATE["View Component State"]
+            DATA[Data State<br/>useState Array]
+            LOADING[Loading State<br/>useState Boolean]
+            ERROR[Error State<br/>useState String]
+            UI[UI State<br/>isModalOpen, editing]
+            FILTER[Filter State<br/>sort, pagination]
+        end
+
+        API --> |Response| DATA
+        DATA --> |useMemo| FILTERED[Filtered/Sorted Data]
+        FILTERED --> RENDER[Render Table]
+    end
+
+---
+
+%% DIAGRAM 8: Data Fetch Pattern
+%% Copy this section and paste in diagrams.net
+graph TB
+    subgraph FETCH["DATA FETCH PATTERN"]
+        MOUNT[Component Mounts] --> EFFECT[useEffect]
+        EFFECT --> LOADING_TRUE[setLoading true]
+        LOADING_TRUE --> AXIOS[axios.get with Bearer token]
+        AXIOS --> BACKEND[Backend API]
+        BACKEND --> |JSON Response| SET_DATA[setData response]
+        SET_DATA --> LOADING_FALSE[setLoading false]
+        LOADING_FALSE --> MEMO[useMemo: Filter, Sort, Paginate]
+        MEMO --> TABLE[Render Table]
+
+        AXIOS --> |Error| CATCH[catch error]
+        CATCH --> SET_ERROR[setError message]
+        SET_ERROR --> LOADING_FALSE
+    end
+
+---
+
+%% DIAGRAM 9: Send to Production - Technical Flow
+%% Copy this section and paste in diagrams.net
+sequenceDiagram
+    participant F as Frontend<br/>SubBatchView.tsx
+    participant B as Backend<br/>POST /send-to-production
+    participant D as Database
+
+    F->>F: handleSendToProduction()
+    F->>B: POST { subBatchId, manualDepartments[], total_quantity }
+    B->>D: Validate sub_batch is DRAFT
+    B->>D: INSERT workflow record
+    loop For each department
+        B->>D: INSERT department_sub_batches
+    end
+    B->>D: UPDATE sub_batches SET status = IN_PRODUCTION
+    B-->>F: { success: true, workflow }
+    F->>F: showToast success
+    F->>F: fetchSubBatches()
+
+---
+
+%% DIAGRAM 10: Worker Assignment - Technical Flow
+%% Copy this section and paste in diagrams.net
+sequenceDiagram
+    participant F as Frontend<br/>TaskDetailsModal.tsx
+    participant B as Backend<br/>POST /worker-logs
+    participant D as Database
+
+    F->>F: handleAssignWorker()
+    F->>B: POST { worker_id, dept_sub_batch_id, quantity, date, is_billable }
+    B->>D: Validate worker exists
+    B->>D: Validate quantity <= remaining
+    B->>D: INSERT worker_logs
+    B->>D: UPDATE dept_sub_batches<br/>quantity_remaining -= quantity<br/>status = IN_PROGRESS
+    B-->>F: { success: true }
+    F->>F: fetchWorkerRecords()
+    F->>F: showToast success
+
+---
+
+%% DIAGRAM 11: Department Advancement - Technical Flow
+%% Copy this section and paste in diagrams.net
+sequenceDiagram
+    participant F as Frontend<br/>TaskDetailsModal.tsx
+    participant B as Backend<br/>POST /advance-department
+    participant D as Database
+
+    F->>F: handleAdvanceDepartment()
+    F->>B: POST { departmentSubBatchId, toDepartmentId, quantityBeingSent }
+    B->>D: Validate current dept completed
+    B->>D: Validate toDepartmentId is next
+    B->>D: UPDATE current dept_sub_batch<br/>status = COMPLETED
+    B->>D: UPDATE target dept_sub_batch<br/>quantity_received = qty<br/>status = NEW_ARRIVAL
+    B-->>F: { success: true }
+    F->>F: closeModal()
+    F->>F: refreshKanban()
+
+---
+
+%% DIAGRAM 12: Alteration Creation - Technical Flow
+%% Copy this section and paste in diagrams.net
+sequenceDiagram
+    participant F as Frontend<br/>AlterationModal.tsx
+    participant B as Backend<br/>POST /alteration
+    participant D as Database
+
+    F->>F: handleCreateAlteration()
+    F->>B: POST { worker_log_id, quantity, reason, return_to_dept_id }
+    B->>D: Validate worker_log exists
+    B->>D: Validate quantity <= worked
+    B->>D: INSERT dept_sub_batches<br/>remarks = Altered<br/>alteration_source_id = original
+    B->>D: UPDATE original worker_log
+    B-->>F: { success: true }
+    F->>F: closeModal()
+    F->>F: refreshKanban()
+
+---
+
+%% DIAGRAM 13: User Roles and Permissions
+%% Copy this section and paste in diagrams.net
+graph TB
+    subgraph ADMIN_PERMS["ADMIN PERMISSIONS"]
+        A1[Create/Edit/Delete Rolls]
+        A2[Create/Edit/Delete Batches]
+        A3[Create/Edit/Delete Sub-batches]
+        A4[Define department workflow]
+        A5[Send to production]
+        A6[View ALL departments]
+        A7[Manage ALL workers]
+        A8[Manage vendors]
+        A9[Manage supervisors]
+        A10[Manage inventory]
+        A11[Calculate wages]
+    end
+
+    subgraph SUP_PERMS["SUPERVISOR PERMISSIONS"]
+        S1[View OWN department]
+        S2[Assign workers to tasks]
+        S3[Edit/Delete assignments]
+        S4[Mark alteration]
+        S5[Mark rejection]
+        S6[Advance to next dept]
+        S7[Mark complete - last dept]
+        S8[Manage OWN workers]
+    end
+
+    subgraph SUP_DENIED["SUPERVISOR CANNOT"]
+        X1[See other departments]
+        X2[Create batches]
+        X3[Configure system]
+        X4[Manage inventory]
+        X5[Calculate wages]
+    end
+
+    style SUP_DENIED fill:#FEE2E2

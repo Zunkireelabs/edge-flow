@@ -510,7 +510,7 @@ const DepartmentForm = () => {
           <p className="text-gray-600 text-sm mt-1">Manage departments, supervisors, and workers</p>
         </div>
         <button
-          className="flex items-center gap-2 bg-blue-600 text-white px-5 py-2.5 rounded-xl font-semibold shadow-md hover:bg-blue-700 hover:shadow-lg transition-all duration-200 hover:scale-105"
+          className="flex items-center gap-2 bg-[#2272B4] text-white px-5 py-2.5 rounded font-medium hover:bg-[#1a5a8a]"
           onClick={() => {
             resetFormData();
             setIsDrawerOpen(true);
@@ -578,33 +578,33 @@ const DepartmentForm = () => {
               <table className="w-full min-w-full">
                 <thead>
                   <tr className="border-b border-gray-200 bg-gray-50">
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100" onClick={() => handleSort("id")}>
+                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100" onClick={() => handleSort("id")}>
                       <div className="flex items-center gap-1">ID {sortColumn === "id" && (sortDirection === "asc" ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)}</div>
                     </th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100" onClick={() => handleSort("name")}>
+                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100" onClick={() => handleSort("name")}>
                       <div className="flex items-center gap-1">Department Name {sortColumn === "name" && (sortDirection === "asc" ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)}</div>
                     </th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100" onClick={() => handleSort("supervisor")}>
+                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100" onClick={() => handleSort("supervisor")}>
                       <div className="flex items-center gap-1">Supervisor {sortColumn === "supervisor" && (sortDirection === "asc" ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)}</div>
                     </th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100" onClick={() => handleSort("workers")}>
+                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100" onClick={() => handleSort("workers")}>
                       <div className="flex items-center gap-1">Workers {sortColumn === "workers" && (sortDirection === "asc" ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)}</div>
                     </th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Remarks</th>
-                    <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Remarks</th>
+                    <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200">
                   {paginatedDepartments.map((dept) => (
                     <tr key={dept.id} className="hover:bg-gray-50 transition-colors">
-                      <td className="px-4 py-3 text-sm text-gray-500">D{String(dept.id).padStart(3, '0')}</td>
-                      <td className="px-4 py-3">
+                      <td className="px-4 py-2 text-sm text-gray-500">D{String(dept.id).padStart(3, '0')}</td>
+                      <td className="px-4 py-2">
                         <span className="text-sm font-medium text-[#2272B4] hover:underline cursor-pointer">{dept.name}</span>
                       </td>
-                      <td className="px-4 py-3 text-sm text-gray-600">{getSupervisorName(dept.supervisor)}</td>
-                      <td className="px-4 py-3 text-sm text-gray-600">{dept.workers?.length || 0} workers</td>
-                      <td className="px-4 py-3 text-sm text-gray-600">{dept.remarks || <span className="text-gray-400">—</span>}</td>
-                      <td className="px-4 py-3 text-right">
+                      <td className="px-4 py-2 text-sm text-gray-600">{getSupervisorName(dept.supervisor)}</td>
+                      <td className="px-4 py-2 text-sm text-gray-600">{dept.workers?.length || 0} workers</td>
+                      <td className="px-4 py-2 text-sm text-gray-600">{dept.remarks || <span className="text-gray-400">—</span>}</td>
+                      <td className="px-4 py-2 text-right">
                         <div className="flex items-center justify-end gap-1">
                           <button
                             onClick={() => handlePreview(dept)}
@@ -680,7 +680,7 @@ const DepartmentForm = () => {
             </button>
             {/* Header */}
             <div className="border-b border-gray-200 pb-3 mb-4">
-              <h3 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+              <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
                 <Users size={20} className="text-blue-600" />
                 {isPreview
                   ? "Department Details"
@@ -693,7 +693,7 @@ const DepartmentForm = () => {
             <div className="space-y-4">
               {/* Department Name */}
               <div>
-                <label className="block text-sm font-semibold text-gray-900 mb-1.5">
+                <label className="block text-sm font-medium text-gray-900 mb-1.5">
                   Department Name <span className="text-red-500">*</span>
                 </label>
                 <input
@@ -711,7 +711,7 @@ const DepartmentForm = () => {
 
               {/* Supervisor */}
               <div>
-                <label className="block text-sm font-semibold text-gray-900 mb-1.5">
+                <label className="block text-sm font-medium text-gray-900 mb-1.5">
                   Supervisor <span className="text-red-500">*</span>
                 </label>
                 <select
@@ -734,7 +734,7 @@ const DepartmentForm = () => {
 
               {/* Workers */}
               <div>
-                <label className="block text-sm font-semibold text-gray-900 mb-1.5">
+                <label className="block text-sm font-medium text-gray-900 mb-1.5">
                   Assign Workers
                 </label>
 
@@ -823,7 +823,7 @@ const DepartmentForm = () => {
 
               {/* Remarks */}
               <div>
-                <label className="block text-sm font-semibold text-gray-900 mb-1.5">
+                <label className="block text-sm font-medium text-gray-900 mb-1.5">
                   Remarks
                 </label>
                 <textarea

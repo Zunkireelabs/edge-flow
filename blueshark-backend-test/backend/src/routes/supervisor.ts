@@ -26,10 +26,11 @@ router.put("/:id", updateSupervisorController);
 
 
 // Endpoint for supervisor to get sub-batches of their department
+// SUPER_SUPERVISOR can pass ?departmentId=X to view any department
 router.get(
   "/sub-batches",
   authMiddleware,
-  requireRole("SUPERVISOR"), // only supervisors can access
+  requireRole(["SUPERVISOR", "SUPER_SUPERVISOR"]), // both supervisor types can access
   getSupervisorSubBatches
 );
 
