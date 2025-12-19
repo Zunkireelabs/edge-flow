@@ -147,6 +147,8 @@ type Roll = {
   name: string;
   quantity: number;
   remaining_quantity?: number; // Calculated: quantity - sum of batch quantities
+  roll_unit_count?: number;    // Total unit count (e.g., 15 rolls)
+  remaining_unit_count?: number; // Calculated: roll_unit_count - sum of batch unit_counts
   unit: string;
   color: string;
   vendor: Vendor | null;
@@ -481,6 +483,20 @@ const BatchView = () => {
             showToast("error", `Quantity exceeds available roll quantity! Available: ${adjustedAvailable} ${selectedRoll.unit}`);
             return;
           }
+
+          // Validate unit_count against roll's available units (only if roll has unit count)
+          if (formData.unit_count && Number(formData.unit_count) > 0 && selectedRoll.roll_unit_count && selectedRoll.roll_unit_count > 0) {
+            const availableUnits = selectedRoll.remaining_unit_count ?? selectedRoll.roll_unit_count;
+            // For editing, add back the current batch's unit_count to available
+            const adjustedAvailableUnits = editingBatch && editingBatch.roll_id === formData.roll_id
+              ? availableUnits + (editingBatch.unit_count || 0)
+              : availableUnits;
+
+            if (Number(formData.unit_count) > adjustedAvailableUnits) {
+              showToast("error", `Unit count exceeds available! Available: ${adjustedAvailableUnits} pcs from roll`);
+              return;
+            }
+          }
         }
       }
 
@@ -791,6 +807,8 @@ const BatchView = () => {
             { value: "name-desc", label: "Name Z-A", description: "Reverse alphabetical" },
             { value: "quantity-desc", label: "Quantity (High to Low)", description: "Largest quantities first" },
             { value: "quantity-asc", label: "Quantity (Low to High)", description: "Smallest quantities first" },
+            { value: "unit_count-desc", label: "No of Unit (High to Low)", description: "Most pieces first" },
+            { value: "unit_count-asc", label: "No of Unit (Low to High)", description: "Fewest pieces first" },
           ]}
         />
 
@@ -858,6 +876,9 @@ const BatchView = () => {
                     </th>
                     <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Unit</th>
                     <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Color</th>
+                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100" onClick={() => handleSort("unit_count")}>
+                      <div className="flex items-center gap-1">No of Unit {sortColumn === "unit_count" && (sortDirection === "asc" ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)}</div>
+                    </th>
                     <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Roll</th>
                     <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Vendor</th>
                     <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
@@ -874,6 +895,7 @@ const BatchView = () => {
                       <td className="px-4 py-2 text-sm text-gray-600">{batch.quantity}</td>
                       <td className="px-4 py-2 text-sm text-gray-600">{batch.unit}</td>
                       <td className="px-4 py-2 text-sm text-gray-600">{batch.color}</td>
+                      <td className="px-4 py-2 text-sm text-gray-600">{batch.unit_count ? `${batch.unit_count} pcs` : <span className="text-gray-400">—</span>}</td>
                       <td className="px-4 py-2 text-sm text-gray-600">{batch.roll?.name || <span className="text-gray-400">—</span>}</td>
                       <td className="px-4 py-2 text-sm text-gray-600">{batch.vendor ? batch.vendor.name : <span className="text-gray-400">—</span>}</td>
                       <td className="px-4 py-2 text-right">
@@ -1215,6 +1237,20 @@ const BatchView = () => {
               <div>
                 <label className="block text-sm font-medium text-gray-900 mb-1.5">
                   No of Unit
+                  {(() => {
+                    // Show available units from roll if roll is selected and has unit_count
+                    if (formData.roll_id) {
+                      const selectedRoll = rolls.find(r => r.id === formData.roll_id);
+                      if (selectedRoll?.roll_unit_count && selectedRoll.roll_unit_count > 0) {
+                        const availableUnits = selectedRoll.remaining_unit_count ?? selectedRoll.roll_unit_count;
+                        const adjustedAvailable = editingBatch && editingBatch.roll_id === formData.roll_id
+                          ? availableUnits + (editingBatch.unit_count || 0)
+                          : availableUnits;
+                        return <span className="text-xs text-blue-600 font-normal ml-2">(Available: {adjustedAvailable} pcs)</span>;
+                      }
+                    }
+                    return null;
+                  })()}
                 </label>
                 <input
                   type="number"
@@ -1224,9 +1260,41 @@ const BatchView = () => {
                   onChange={handleChange}
                   readOnly={isPreview}
                   min="0"
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                  className={`w-full border rounded-lg px-3 py-2 text-sm ${
+                    (() => {
+                      // Red border if exceeds available units
+                      if (formData.roll_id && formData.unit_count && Number(formData.unit_count) > 0) {
+                        const selectedRoll = rolls.find(r => r.id === formData.roll_id);
+                        if (selectedRoll?.roll_unit_count && selectedRoll.roll_unit_count > 0) {
+                          const availableUnits = selectedRoll.remaining_unit_count ?? selectedRoll.roll_unit_count;
+                          const adjustedAvailable = editingBatch && editingBatch.roll_id === formData.roll_id
+                            ? availableUnits + (editingBatch.unit_count || 0)
+                            : availableUnits;
+                          if (Number(formData.unit_count) > adjustedAvailable) {
+                            return 'border-red-500 focus:ring-red-500 focus:border-red-500';
+                          }
+                        }
+                      }
+                      return 'border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent';
+                    })()
+                  }`}
                 />
-                <p className="text-xs text-gray-500 mt-1">Number of fabric pieces (separate from weight/length)</p>
+                {(() => {
+                  // Show error message if exceeds available
+                  if (formData.roll_id && formData.unit_count && Number(formData.unit_count) > 0) {
+                    const selectedRoll = rolls.find(r => r.id === formData.roll_id);
+                    if (selectedRoll?.roll_unit_count && selectedRoll.roll_unit_count > 0) {
+                      const availableUnits = selectedRoll.remaining_unit_count ?? selectedRoll.roll_unit_count;
+                      const adjustedAvailable = editingBatch && editingBatch.roll_id === formData.roll_id
+                        ? availableUnits + (editingBatch.unit_count || 0)
+                        : availableUnits;
+                      if (Number(formData.unit_count) > adjustedAvailable) {
+                        return <p className="text-xs text-red-500 mt-1">Exceeds available units! Max: {adjustedAvailable} pcs</p>;
+                      }
+                    }
+                  }
+                  return <p className="text-xs text-gray-500 mt-1">Number of fabric pieces (separate from weight/length)</p>;
+                })()}
               </div>
 
               {/* Color - Auto-filled from Roll */}
