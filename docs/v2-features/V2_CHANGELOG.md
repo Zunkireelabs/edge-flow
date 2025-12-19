@@ -81,6 +81,52 @@ model batches {
 
 "Batch View" renamed to "Fabric View (Batch)" in the admin sidebar for clarity.
 
+### 6. Unit Count Deduction from Roll to Batch
+
+When creating batches from a roll, the system now tracks and validates unit counts (physical pieces) in addition to quantity (weight/length).
+
+**How it works:**
+```
+Roll: roll_unit_count = 15 pcs
+         ↓
+Batch created: unit_count = 5 pcs
+         ↓
+Roll remaining_unit_count = 15 - 5 = 10 pcs
+```
+
+**Backend Validation:**
+- `createBatch()` validates unit_count against roll's remaining units
+- `updateBatch()` validates unit_count when editing
+- `updateRoll()` prevents reducing roll_unit_count below allocated units
+
+**Frontend Features:**
+- BatchView shows "(Available: X pcs)" when roll is selected
+- Red border on unit_count input when exceeding available
+- Error message: "Exceeds available units! Max: X pcs"
+- RollView displays "Remaining Units" column with color indicators:
+  - Green: > 20% remaining
+  - Amber: < 20% remaining
+  - Red: 0 remaining
+
+**API Response Changes:**
+```typescript
+// Roll response now includes:
+{
+  roll_unit_count: 15,
+  remaining_unit_count: 10  // Calculated: roll_unit_count - SUM(batches.unit_count)
+}
+
+// getRollRemainingQuantity() now returns:
+{
+  totalQuantity: 350,
+  usedQuantity: 100,
+  remainingQuantity: 250,
+  totalUnitCount: 15,      // NEW
+  usedUnitCount: 5,        // NEW
+  remainingUnitCount: 10   // NEW
+}
+```
+
 ---
 
 ## Frontend Changes
@@ -147,8 +193,8 @@ model batches {
 
 - `authService.ts` - Handle SUPER_SUPERVISOR login
 - `supervisorService.ts` - Accept role parameter
-- `rollServices.ts` - Include roll_unit_count
-- `batchServices.ts` - Include order_name, unit_count
+- `rollServices.ts` - Include roll_unit_count, remaining_unit_count calculation, unit count validation
+- `batchServices.ts` - Include order_name, unit_count, unit count validation against roll
 
 ---
 
@@ -210,6 +256,14 @@ See `MIGRATION_NOTES.md` for detailed database migration steps.
 - [ ] Batch form has "No of Unit" field
 - [ ] Unit auto-fills when Roll is selected
 
+### Unit Count Deduction
+- [ ] RollView displays "Remaining Units" column
+- [ ] Remaining units show color indicators (green/amber/red)
+- [ ] BatchView shows available units when roll selected
+- [ ] Red border appears when unit_count exceeds available
+- [ ] Error toast when trying to save exceeding units
+- [ ] Cannot reduce roll_unit_count below allocated batches
+
 ### Admin Supervisor Form
 - [ ] Role dropdown appears
 - [ ] Department field hidden for SUPER_SUPERVISOR
@@ -232,3 +286,4 @@ See `MIGRATION_NOTES.md` for detailed database migration steps.
 | Version | Date | Description |
 |---------|------|-------------|
 | v2.0.0 | Dec 2025 | Initial v2 release with SUPER_SUPERVISOR role |
+| v2.1.0 | Dec 19, 2025 | Unit count deduction from Roll to Batch |
