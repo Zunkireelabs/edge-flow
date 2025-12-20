@@ -281,9 +281,93 @@ See `MIGRATION_NOTES.md` for detailed database migration steps.
 
 ---
 
+## Super Supervisor Sub-Batch Permissions (v2.2.0)
+
+### Overview
+Enhanced Super Supervisor access to Sub-Batch management with full Workflow Builder for sending sub-batches to production, while maintaining appropriate restrictions on creation and deletion.
+
+### Permission Matrix
+
+| Feature | Admin | Super Supervisor |
+|---------|-------|------------------|
+| View Sub-Batches | ✅ | ✅ |
+| Create Sub-Batch | ✅ | ❌ (Button hidden) |
+| Delete Sub-Batch | ✅ | ❌ (Button hidden) |
+| Send to Production (Workflow Builder) | ✅ | ✅ |
+| Edit - Name, Batch, Roll, Pieces, Category, Items | ✅ | ❌ (Read-only) |
+| Edit - Attachment | ✅ | ✅ |
+| Edit - Start Date / Due Date | ✅ | ✅ |
+
+### Changes Made
+
+#### 1. Workflow Builder for Super Supervisor
+**File:** `src/app/SupervisorDashboard/components/views/SubBatchView.tsx`
+
+- Replaced simple "Select Department" dropdown with full Workflow Builder
+- Super Supervisor can now:
+  - Add multiple departments to workflow
+  - Remove departments from workflow
+  - See workflow preview before sending
+  - Define complete production flow
+
+**Workflow Builder Features:**
+```
+┌─────────────────────────────────────┐
+│   Send Sub Batch to Production      │
+│   ─────────────────────────────     │
+│   Sub Batch Summary                 │
+│   Name: testSCZ    ID: B0006        │
+│                                     │
+│   ┌─ Workflow Builder ────────────┐ │
+│   │ [Select Start Department ▼] 🗑 │ │
+│   │ [+ Add Next Department]       │ │
+│   └───────────────────────────────┘ │
+│                                     │
+│   Workflow Preview: Cutting → ...   │
+│                                     │
+│   [Cancel]  [Confirm & Send]        │
+└─────────────────────────────────────┘
+```
+
+#### 2. Edit Modal with Restricted Fields
+- View and Edit buttons added to Actions column
+- Edit modal shows all fields but restricts editing:
+  - **Read-only (grayed out):** Name, Batch, Pieces
+  - **Editable:** Attachments, Start Date, Due Date
+- Info note displayed: "As a Super Supervisor, you can only edit Attachments and Dates."
+
+#### 3. Hidden Actions for Super Supervisor
+- "+ Add Sub Batch" button: Hidden (Super Supervisor cannot create)
+- Delete button: Hidden (Super Supervisor cannot delete)
+- Only Admin can create and delete sub-batches
+
+### API Integration
+Uses existing endpoint with workflow array:
+```typescript
+POST /sub-batches/send-to-production
+{
+  subBatchId: number,
+  manualDepartments: number[],  // Array of department IDs in order
+  total_quantity: number
+}
+```
+
+### Testing Checklist
+- [ ] Super Supervisor cannot see "+ Add Sub Batch" button
+- [ ] Super Supervisor can see View, Edit, Send buttons
+- [ ] Super Supervisor sees Workflow Builder (not simple dropdown)
+- [ ] Can add multiple departments to workflow
+- [ ] Workflow Preview displays correctly
+- [ ] Edit modal shows read-only fields for Name, Batch, Pieces
+- [ ] Can edit Attachments and Dates
+- [ ] Save edit updates only allowed fields
+
+---
+
 ## Version History
 
 | Version | Date | Description |
 |---------|------|-------------|
 | v2.0.0 | Dec 2025 | Initial v2 release with SUPER_SUPERVISOR role |
 | v2.1.0 | Dec 19, 2025 | Unit count deduction from Roll to Batch |
+| v2.2.0 | Dec 19, 2025 | Super Supervisor Sub-Batch permissions with Workflow Builder |
