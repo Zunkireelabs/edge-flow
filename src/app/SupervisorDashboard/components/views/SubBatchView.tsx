@@ -305,11 +305,12 @@ const SubBatchView = () => {
       const token = localStorage.getItem("token");
 
       // Super Supervisor can only update attachments and dates
+      // Backend expects camelCase fields
       const payload: any = {
-        start_date: editFormData.startDate ? `${editFormData.startDate}T00:00:00.000Z` : null,
-        due_date: editFormData.dueDate ? `${editFormData.dueDate}T00:00:00.000Z` : null,
+        startDate: editFormData.startDate ? `${editFormData.startDate}T00:00:00.000Z` : null,
+        dueDate: editFormData.dueDate ? `${editFormData.dueDate}T00:00:00.000Z` : null,
         attachments: attachments.filter(a => a.name.trim()).map(a => ({
-          attachment_name: a.name,
+          attachmentName: a.name,
           quantity: parseInt(a.quantity) || 0,
         })),
       };
