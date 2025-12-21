@@ -1,8 +1,8 @@
 # BlueShark - Current Status
 
-**Last Updated:** December 13, 2025
-**Phase:** Production v1.0 - Bug Fix Deployed
-**Overall Health:** Production Live - Critical Fix Applied
+**Last Updated:** December 21, 2025
+**Phase:** Production v1.0 - Dev v2 Active Development
+**Overall Health:** Production Live + Active Feature Development
 
 ---
 
@@ -11,22 +11,48 @@
 | Area | Status | Notes |
 |------|--------|-------|
 | Frontend | Live | https://edge-flow-gamma.vercel.app |
-| Backend | Fixed | Critical bug fix deployed |
+| Backend | Running | localhost:5000 (dev) |
 | Database | Clean | Production Neon - ready for real data |
-| Deployment | Complete | v1.0 + Bug Fix |
-| Client | Active | Using production system |
+| Deployment | Complete | v1.0 + Bug Fixes |
+| Active Branch | dev-v2 | New features in development |
 
 ---
 
-## Recent Work (Dec 13, 2025)
+## Recent Work (Dec 21, 2025)
 
-### Deployed Today
-- **CRITICAL BUG FIX**: Task Management view failing for supervisors
-  - **Issue**: `/api/supervisors/sub-batches` endpoint was using `userId` instead of `departmentId`
-  - **Symptom**: Dashboard showed data (1 New Arrival) but Task Management showed 0 items + error
-  - **Root Cause**: `supervisorController.ts` passed `req.user?.userId` to `getSubBatchesByDepartment()` which expects `departmentId`
-  - **Fix**: Changed to use `req.user?.departmentId` from JWT token
-  - **File**: `blueshark-backend-test/backend/src/controllers/supervisorController.ts`
+### Completed Today
+
+#### 1. Local Search Bars for All Admin Views
+- Added table-specific search functionality to 7 views
+- Search filters data within each specific view (not global)
+- **Files Modified:**
+  - `src/app/Dashboard/components/views/RollView.tsx`
+  - `src/app/Dashboard/components/views/BatchView.tsx`
+  - `src/app/Dashboard/components/views/SubBatchView.tsx`
+  - `src/app/Dashboard/components/views/GenericView.tsx` (Vendor)
+  - `src/app/Dashboard/components/views/Worker.tsx`
+  - `src/app/Dashboard/components/views/DepartmentForm.tsx`
+  - `src/app/Dashboard/components/views/CreateSupervisor.tsx`
+
+#### 2. Removed "pcs" Suffix from Batch View
+- NO OF UNIT column now shows just the number (e.g., "5" instead of "5 pcs")
+- **File:** `src/app/Dashboard/components/views/BatchView.tsx`
+
+#### 3. Fixed SubBatchView TypeScript Error
+- SubBatch interface doesn't have nested `batch` and `roll` objects
+- Changed search to look up names from `batches` and `rolls` arrays using IDs
+- **File:** `src/app/Dashboard/components/views/SubBatchView.tsx`
+
+#### 4. Fixed Super Supervisor Worker Assignment Bug
+- **Issue:** Worker dropdown was empty when Super Supervisor tried to assign workers
+- **Root Cause:** `AddRecordModal.tsx` used `localStorage.getItem("departmentId")` which doesn't work for Super Supervisors who switch between departments
+- **Fix:** Changed to use `subBatch?.department_id || localStorage.getItem("departmentId")`
+- **File:** `src/app/SupervisorDashboard/depcomponents/AddRecordModal.tsx`
+
+### Key Commits
+- `0fa5d8f` - fix: Use subBatch department_id for worker fetch in Super Supervisor mode
+- `44632c2` - fix: Correct SubBatch search to use batch_id and roll_id lookups
+- `6bacea8` - feat: Add local search bar to all admin views and remove pcs suffix
 
 ---
 
@@ -47,31 +73,24 @@ URL: https://edge-flow-gamma.vercel.app
 Admin: admin@gmail.com / admin
 ```
 
-### Key Commits
-- `0e7dbd8` - fix(api): Use departmentId instead of userId in supervisor sub-batches endpoint
-- `8ff0477` - Branding update to Zunkireelabs
-- `39ed843` - Production environment variables fix
-- `48b8936` - Merge dev to main: Production Release v1.0
-
 ---
 
 ## Development Model
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                    PRODUCTION WORKFLOW                       │
+│                    DEVELOPMENT WORKFLOW                      │
 ├─────────────────────────────────────────────────────────────┤
 │                                                              │
-│  [Client Uses Prod] → [Feedback] → [Dev Branch] → [Test]    │
-│         ↑                                            │       │
-│         └────────────── [Main/Prod] ←────────────────┘       │
+│  [dev-v2] → [Test Locally] → [Push] → [Merge to Main]       │
 │                                                              │
 └─────────────────────────────────────────────────────────────┘
 ```
 
 **Branches:**
 - `main` - Production (https://edge-flow-gamma.vercel.app)
-- `dev` - Development (https://edge-flow-git-dev-sthasadins-projects.vercel.app)
+- `dev-v2` - Active development branch
+- `dev` - Legacy development branch
 
 ---
 
@@ -93,6 +112,10 @@ Admin: admin@gmail.com / admin
 - URL slug persistence for both dashboards
 - Inventory management with categories
 - Wage calculation module
+
+### Added (Dec 21, 2025)
+- Local search bars in all admin views
+- Super Supervisor multi-department support (worker assignment fix)
 
 ### Pending (Backlog)
 - Dashboard analytics/reports
@@ -116,34 +139,14 @@ Admin: admin@gmail.com / admin
 - ✅ Alteration data not showing (fixed worker_log_id linkage)
 - ✅ Activity History missing alteration events (now displays correctly)
 - ✅ Kanban cards missing Altered/Rejected info (now shows counts)
-- ✅ **Task Management showing 0 items for supervisors** (fixed userId→departmentId bug)
+- ✅ Task Management showing 0 items for supervisors (fixed userId→departmentId bug)
+- ✅ **Super Supervisor worker dropdown empty** (fixed to use subBatch.department_id)
+- ✅ **SubBatchView build error** (fixed TypeScript property access)
 
 ### Minor (Non-blocking)
 - Neon free tier: databases auto-suspend after 5 min inactivity
 - UI-S2-001: Data doesn't auto-refresh after worker assignment
 - Date picker shows "Jan 1, 1970" (needs proper date handling)
-
----
-
-## Client Feedback Tracking
-
-| Date | Feedback | Status | Priority |
-|------|----------|--------|----------|
-| Dec 13, 2025 | Task Management shows 0 items | ✅ Fixed | Critical |
-
----
-
-## Key Files Modified
-
-### Backend (Dec 13, 2025)
-- `blueshark-backend-test/backend/src/controllers/supervisorController.ts`
-  - **BUG FIX**: Changed `req.user?.userId` to `req.user?.departmentId`
-  - This fixes the Task Management view failing for supervisors
-
-### Backend (Dec 1, 2025)
-- `blueshark-backend-test/backend/src/services/departmentService.ts`
-  - Added `altered_source`, `rejected_source` includes
-  - Added `total_altered`, `total_rejected` calculations
 
 ---
 
@@ -175,11 +178,10 @@ Admin: admin@gmail.com / admin
 
 ## Next Actions
 
-1. ✅ Deploy backend fix to production (Render)
-2. Test Task Management view on production after deploy
-3. Monitor client feedback
-4. Continue with backlog items
+1. Continue testing Super Supervisor workflow
+2. Monitor Vercel deployment for any issues
+3. Continue with backlog items as needed
 
 ---
 
-**Status updated: December 13, 2025 - Bug Fix Deployed**
+**Status updated: December 21, 2025 - Feature Development + Bug Fixes**

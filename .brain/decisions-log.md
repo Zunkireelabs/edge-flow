@@ -1,11 +1,37 @@
 # BlueShark - Technical Decisions Log
 
 **Purpose:** Track major technical decisions and their rationale
-**Last Updated:** December 13, 2025
+**Last Updated:** December 21, 2025
 
 ---
 
 ## Bug Fixes
+
+### Bug Fix: Super Supervisor Worker Assignment Dropdown Empty
+**Date:** December 21, 2025
+**Issue:** When a Super Supervisor tried to assign workers to a task, the worker dropdown was empty
+**Root Cause:** `AddRecordModal.tsx` was using `localStorage.getItem("departmentId")` to fetch workers. This works for regular supervisors (departmentId set at login), but Super Supervisors switch between departments dynamically via DepartmentContext, which doesn't update localStorage.
+**Fix:** Changed to use `subBatch?.department_id || localStorage.getItem("departmentId")` - prioritizes the task's actual department, falls back to localStorage for backward compatibility
+**File:** `src/app/SupervisorDashboard/depcomponents/AddRecordModal.tsx`
+**Impact:**
+- Super Supervisors can now assign workers when working in any department
+- Regular supervisors continue to work as before (localStorage fallback)
+- No breaking changes
+
+---
+
+### Bug Fix: SubBatchView TypeScript Build Error
+**Date:** December 21, 2025
+**Issue:** Vercel build failed with "Property 'batch' does not exist on type 'SubBatch'"
+**Root Cause:** Search filter was trying to access `sb.batch?.name` and `sb.roll?.name`, but SubBatch interface only has `batch_id` and `roll_id` (numbers, not nested objects)
+**Fix:** Changed to look up names from `batches` and `rolls` arrays: `batches.find(b => b.id === sb.batch_id)?.name`
+**File:** `src/app/Dashboard/components/views/SubBatchView.tsx`
+**Impact:**
+- Build passes on Vercel
+- Search still works correctly for batch and roll names
+- Added `batches` and `rolls` to useMemo dependencies
+
+---
 
 ### Bug Fix: Supervisor Task Management API using wrong ID
 **Date:** December 13, 2025
