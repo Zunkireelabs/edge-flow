@@ -306,12 +306,15 @@ const SubBatchView = () => {
       // Search filter
       if (tableSearchQuery.trim()) {
         const query = tableSearchQuery.toLowerCase();
+        // Look up batch and roll names from their respective arrays
+        const batchName = batches.find(b => b.id === sb.batch_id)?.name;
+        const rollName = rolls.find(r => r.id === sb.roll_id)?.name;
         const searchFields = [
           sb.name,
           `SB${String(sb.id).padStart(3, '0')}`,
           sb.status,
-          sb.batch?.name,
-          sb.roll?.name,
+          batchName,
+          rollName,
         ].filter(Boolean).map(f => String(f).toLowerCase());
 
         if (!searchFields.some(field => field.includes(query))) {
@@ -355,7 +358,7 @@ const SubBatchView = () => {
     const paginated = filtered.slice(startIndex, startIndex + itemsPerPage);
 
     return { filteredSubBatches: filtered, paginatedSubBatches: paginated, totalPages, totalFiltered };
-  }, [subBatches, selectedStatus, selectedBatchFilter, selectedRollFilter, tableSearchQuery, sortColumn, sortDirection, currentPage, itemsPerPage]);
+  }, [subBatches, selectedStatus, selectedBatchFilter, selectedRollFilter, tableSearchQuery, sortColumn, sortDirection, currentPage, itemsPerPage, batches, rolls]);
 
   // Handle sort column click
   const handleSort = (column: string) => {
