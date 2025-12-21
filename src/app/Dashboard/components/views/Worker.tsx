@@ -168,6 +168,9 @@ const WorkerPage = () => {
     const [currentPage, setCurrentPage] = useState(1);
     const [itemsPerPage, setItemsPerPage] = useState(25);
 
+    // Table search state
+    const [tableSearchQuery, setTableSearchQuery] = useState("");
+
     const [formData, setFormData] = useState({
         name: "",
         pan: "",
@@ -223,6 +226,23 @@ const WorkerPage = () => {
         // Step 1: Filter
         let filtered = workers.filter(worker => {
             if (selectedWageType !== "all" && worker.wage_type !== selectedWageType) return false;
+
+            // Search filter
+            if (tableSearchQuery.trim()) {
+                const query = tableSearchQuery.toLowerCase();
+                const searchFields = [
+                    worker.name,
+                    `W${String(worker.id).padStart(3, '0')}`,
+                    worker.pan,
+                    worker.address,
+                    worker.wage_type,
+                ].filter(Boolean).map(f => String(f).toLowerCase());
+
+                if (!searchFields.some(field => field.includes(query))) {
+                    return false;
+                }
+            }
+
             return true;
         });
 
@@ -247,7 +267,7 @@ const WorkerPage = () => {
         const paginated = filtered.slice(startIndex, startIndex + itemsPerPage);
 
         return { paginatedWorkers: paginated, totalPages, totalFiltered };
-    }, [workers, selectedWageType, sortColumn, sortDirection, currentPage, itemsPerPage]);
+    }, [workers, selectedWageType, tableSearchQuery, sortColumn, sortDirection, currentPage, itemsPerPage]);
 
     // Handle sort column click
     const handleSort = (column: string) => {
@@ -263,11 +283,12 @@ const WorkerPage = () => {
     // Clear all filters
     const clearAllFilters = () => {
         setSelectedWageType("all");
+        setTableSearchQuery("");
         setCurrentPage(1);
     };
 
     // Check if any filters are active
-    const hasActiveFilters = selectedWageType !== "all";
+    const hasActiveFilters = selectedWageType !== "all" || tableSearchQuery.trim() !== "";
 
     // Form change
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -432,6 +453,21 @@ const WorkerPage = () => {
                     <SlidersHorizontal className="w-4 h-4" />
                     Advanced filters
                 </button>
+
+                {/* Search Input */}
+                <div className="relative">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                    <input
+                        type="text"
+                        placeholder="Search..."
+                        value={tableSearchQuery}
+                        onChange={(e) => {
+                            setTableSearchQuery(e.target.value);
+                            setCurrentPage(1);
+                        }}
+                        className="pl-9 pr-3 py-2 text-sm border border-gray-300 rounded-md w-48 focus:outline-none focus:ring-1 focus:ring-[#2272B4] focus:border-[#2272B4]"
+                    />
+                </div>
 
                 {/* Clear Filters */}
                 {hasActiveFilters && (

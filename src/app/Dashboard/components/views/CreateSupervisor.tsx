@@ -184,6 +184,9 @@ const CreateSupervisor = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(25);
 
+  // Table search state
+  const [tableSearchQuery, setTableSearchQuery] = useState("");
+
   // Modal dropdown states
   const [showRoleDropdown, setShowRoleDropdown] = useState(false);
   const [showDepartmentDropdown, setShowDepartmentDropdown] = useState(false);
@@ -393,10 +396,30 @@ const CreateSupervisor = () => {
     setIsDrawerOpen(true);
   };
 
-  // Sort and paginate supervisors using useMemo
+  // Filter, sort and paginate supervisors using useMemo
   const { paginatedSupervisors, totalPages, totalFiltered } = useMemo(() => {
-    // Step 1: Sort
-    const sorted = [...supervisors].sort((a, b) => {
+    // Step 1: Filter
+    let filtered = supervisors.filter(sup => {
+      // Search filter
+      if (tableSearchQuery.trim()) {
+        const query = tableSearchQuery.toLowerCase();
+        const searchFields = [
+          sup.name,
+          `S${String(sup.id).padStart(3, '0')}`,
+          sup.email,
+          sup.role,
+          sup.department?.name,
+        ].filter(Boolean).map(f => String(f).toLowerCase());
+
+        if (!searchFields.some(field => field.includes(query))) {
+          return false;
+        }
+      }
+      return true;
+    });
+
+    // Step 2: Sort
+    const sorted = [...filtered].sort((a, b) => {
       let aVal: any = a[sortColumn as keyof Supervisor];
       let bVal: any = b[sortColumn as keyof Supervisor];
       if (aVal == null) aVal = "";
@@ -414,7 +437,7 @@ const CreateSupervisor = () => {
     const paginated = sorted.slice(startIndex, startIndex + itemsPerPage);
 
     return { paginatedSupervisors: paginated, totalPages, totalFiltered };
-  }, [supervisors, sortColumn, sortDirection, currentPage, itemsPerPage]);
+  }, [supervisors, tableSearchQuery, sortColumn, sortDirection, currentPage, itemsPerPage]);
 
   // Handle sort column click
   const handleSort = (column: string) => {
@@ -426,6 +449,15 @@ const CreateSupervisor = () => {
     }
     setCurrentPage(1);
   };
+
+  // Clear all filters
+  const clearAllFilters = () => {
+    setTableSearchQuery("");
+    setCurrentPage(1);
+  };
+
+  // Check if any filters are active
+  const hasActiveFilters = tableSearchQuery.trim() !== "";
 
   return (
     <div className="p-8 bg-white min-h-screen">
@@ -478,6 +510,31 @@ const CreateSupervisor = () => {
           <SlidersHorizontal className="w-4 h-4" />
           Advanced filters
         </button>
+
+        {/* Search Input */}
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+          <input
+            type="text"
+            placeholder="Search..."
+            value={tableSearchQuery}
+            onChange={(e) => {
+              setTableSearchQuery(e.target.value);
+              setCurrentPage(1);
+            }}
+            className="pl-9 pr-3 py-2 text-sm border border-gray-300 rounded-md w-48 focus:outline-none focus:ring-1 focus:ring-[#2272B4] focus:border-[#2272B4]"
+          />
+        </div>
+
+        {/* Clear Filters */}
+        {hasActiveFilters && (
+          <button
+            onClick={clearAllFilters}
+            className="text-sm text-red-600 hover:text-red-700 font-medium transition-colors"
+          >
+            Clear all
+          </button>
+        )}
 
         {/* Results Count */}
         <span className="text-sm text-gray-500 ml-auto">
