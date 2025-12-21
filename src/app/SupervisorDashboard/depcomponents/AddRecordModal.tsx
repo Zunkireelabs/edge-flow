@@ -81,7 +81,8 @@ const AddWorkerRecordModal: React.FC<AddWorkerRecordModalProps> = ({
   const fetchWorkers = async () => {
     try {
       setLoading(true);
-      const departmentId = localStorage.getItem("departmentId");
+      // Use subBatch's department_id (works for Super Supervisors), fallback to localStorage for regular supervisors
+      const departmentId = subBatch?.department_id || localStorage.getItem("departmentId");
       if (!departmentId) return;
 
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/workers/department/${departmentId}`);
