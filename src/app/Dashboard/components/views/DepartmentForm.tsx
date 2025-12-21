@@ -206,6 +206,9 @@ const DepartmentForm = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(25);
 
+  // Table search state
+  const [tableSearchQuery, setTableSearchQuery] = useState("");
+
   const [formData, setFormData] = useState({
     id: "",
     name: "",
@@ -249,10 +252,28 @@ const DepartmentForm = () => {
     return dept.workers || [];
   };
 
-  // Sort and paginate departments using useMemo
+  // Filter, sort and paginate departments using useMemo
   const { paginatedDepartments, totalPages, totalFiltered } = useMemo(() => {
-    // Step 1: Sort
-    const sorted = [...departments].sort((a, b) => {
+    // Step 1: Filter
+    let filtered = departments.filter(dept => {
+      // Search filter
+      if (tableSearchQuery.trim()) {
+        const query = tableSearchQuery.toLowerCase();
+        const searchFields = [
+          dept.name,
+          `D${String(dept.id).padStart(3, '0')}`,
+          getSupervisorName(dept.supervisor),
+        ].filter(Boolean).map(f => String(f).toLowerCase());
+
+        if (!searchFields.some(field => field.includes(query))) {
+          return false;
+        }
+      }
+      return true;
+    });
+
+    // Step 2: Sort
+    const sorted = [...filtered].sort((a, b) => {
       let aVal: any = a[sortColumn as keyof Department];
       let bVal: any = b[sortColumn as keyof Department];
 
@@ -284,7 +305,7 @@ const DepartmentForm = () => {
     const paginated = sorted.slice(startIndex, startIndex + itemsPerPage);
 
     return { paginatedDepartments: paginated, totalPages, totalFiltered };
-  }, [departments, sortColumn, sortDirection, currentPage, itemsPerPage]);
+  }, [departments, tableSearchQuery, sortColumn, sortDirection, currentPage, itemsPerPage]);
 
   // Handle sort column click
   const handleSort = (column: string) => {
@@ -296,6 +317,15 @@ const DepartmentForm = () => {
     }
     setCurrentPage(1);
   };
+
+  // Clear all filters
+  const clearAllFilters = () => {
+    setTableSearchQuery("");
+    setCurrentPage(1);
+  };
+
+  // Check if any filters are active
+  const hasActiveFilters = tableSearchQuery.trim() !== "";
 
   // Reset form
   const resetFormData = () => {
@@ -551,6 +581,31 @@ const DepartmentForm = () => {
           <SlidersHorizontal className="w-4 h-4" />
           Advanced filters
         </button>
+
+        {/* Search Input */}
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+          <input
+            type="text"
+            placeholder="Search..."
+            value={tableSearchQuery}
+            onChange={(e) => {
+              setTableSearchQuery(e.target.value);
+              setCurrentPage(1);
+            }}
+            className="pl-9 pr-3 py-2 text-sm border border-gray-300 rounded-md w-48 focus:outline-none focus:ring-1 focus:ring-[#2272B4] focus:border-[#2272B4]"
+          />
+        </div>
+
+        {/* Clear Filters */}
+        {hasActiveFilters && (
+          <button
+            onClick={clearAllFilters}
+            className="text-sm text-red-600 hover:text-red-700 font-medium transition-colors"
+          >
+            Clear all
+          </button>
+        )}
 
         {/* Results Count */}
         <span className="text-sm text-gray-500 ml-auto">

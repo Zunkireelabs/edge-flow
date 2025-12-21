@@ -199,6 +199,9 @@ const RollView = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(25);
 
+  // Table search state
+  const [tableSearchQuery, setTableSearchQuery] = useState("");
+
   const [formData, setFormData] = useState({
     id: "",
     name: "",
@@ -253,6 +256,23 @@ const RollView = () => {
       if (selectedUnit !== "all" && roll.unit !== selectedUnit) return false;
       if (selectedColor !== "all" && roll.color !== selectedColor) return false;
       if (selectedVendorFilter !== "all" && roll.vendor?.id.toString() !== selectedVendorFilter) return false;
+
+      // Search filter
+      if (tableSearchQuery.trim()) {
+        const query = tableSearchQuery.toLowerCase();
+        const searchFields = [
+          roll.name,
+          `R${String(roll.id).padStart(3, '0')}`,
+          roll.color,
+          roll.unit,
+          roll.vendor?.name,
+        ].filter(Boolean).map(f => String(f).toLowerCase());
+
+        if (!searchFields.some(field => field.includes(query))) {
+          return false;
+        }
+      }
+
       return true;
     });
 
@@ -277,7 +297,7 @@ const RollView = () => {
     const paginated = filtered.slice(startIndex, startIndex + itemsPerPage);
 
     return { paginatedRolls: paginated, totalPages, totalFiltered };
-  }, [rolls, selectedUnit, selectedColor, selectedVendorFilter, sortColumn, sortDirection, currentPage, itemsPerPage]);
+  }, [rolls, selectedUnit, selectedColor, selectedVendorFilter, tableSearchQuery, sortColumn, sortDirection, currentPage, itemsPerPage]);
 
   // Handle sort column click
   const handleSort = (column: string) => {
@@ -304,11 +324,12 @@ const RollView = () => {
     setSelectedUnit("all");
     setSelectedColor("all");
     setSelectedVendorFilter("all");
+    setTableSearchQuery("");
     setCurrentPage(1);
   };
 
   // Check if any filters are active
-  const hasActiveFilters = selectedUnit !== "all" || selectedColor !== "all" || selectedVendorFilter !== "all";
+  const hasActiveFilters = selectedUnit !== "all" || selectedColor !== "all" || selectedVendorFilter !== "all" || tableSearchQuery.trim() !== "";
 
   // Reset form data
   const resetFormData = () => {
@@ -742,6 +763,21 @@ const RollView = () => {
           <SlidersHorizontal className="w-4 h-4" />
           Advanced filters
         </button>
+
+        {/* Search Input */}
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+          <input
+            type="text"
+            placeholder="Search..."
+            value={tableSearchQuery}
+            onChange={(e) => {
+              setTableSearchQuery(e.target.value);
+              setCurrentPage(1);
+            }}
+            className="pl-9 pr-3 py-2 text-sm border border-gray-300 rounded-md w-48 focus:outline-none focus:ring-1 focus:ring-[#2272B4] focus:border-[#2272B4]"
+          />
+        </div>
 
         {/* Clear Filters */}
         {hasActiveFilters && (

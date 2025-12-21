@@ -174,6 +174,9 @@ const VendorView = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(25);
 
+  // Table search state
+  const [tableSearchQuery, setTableSearchQuery] = useState("");
+
   const [formData, setFormData] = useState({
     name: "",
     vat_pan: "",
@@ -187,8 +190,25 @@ const VendorView = () => {
 
   // Filter, sort, and paginate vendors using useMemo
   const { paginatedVendors, totalPages, totalFiltered } = useMemo(() => {
-    // Step 1: Filter (no filters for now, but structure is ready)
-    let filtered = [...vendors];
+    // Step 1: Filter
+    let filtered = vendors.filter(vendor => {
+      // Search filter
+      if (tableSearchQuery.trim()) {
+        const query = tableSearchQuery.toLowerCase();
+        const searchFields = [
+          vendor.name,
+          `V${String(vendor.id).padStart(3, '0')}`,
+          vendor.address,
+          vendor.vat_pan,
+          vendor.phone,
+        ].filter(Boolean).map(f => String(f).toLowerCase());
+
+        if (!searchFields.some(field => field.includes(query))) {
+          return false;
+        }
+      }
+      return true;
+    });
 
     // Step 2: Sort
     filtered = filtered.sort((a, b) => {
@@ -211,7 +231,7 @@ const VendorView = () => {
     const paginated = filtered.slice(startIndex, startIndex + itemsPerPage);
 
     return { paginatedVendors: paginated, totalPages, totalFiltered };
-  }, [vendors, sortColumn, sortDirection, currentPage, itemsPerPage]);
+  }, [vendors, tableSearchQuery, sortColumn, sortDirection, currentPage, itemsPerPage]);
 
   // Handle sort column click
   const handleSort = (column: string) => {
@@ -223,6 +243,15 @@ const VendorView = () => {
     }
     setCurrentPage(1);
   };
+
+  // Clear all filters
+  const clearAllFilters = () => {
+    setTableSearchQuery("");
+    setCurrentPage(1);
+  };
+
+  // Check if any filters are active
+  const hasActiveFilters = tableSearchQuery.trim() !== "";
 
   // Reset form
   const resetForm = () => {
@@ -395,6 +424,31 @@ const VendorView = () => {
           <SlidersHorizontal className="w-4 h-4" />
           Advanced filters
         </button>
+
+        {/* Search Input */}
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+          <input
+            type="text"
+            placeholder="Search..."
+            value={tableSearchQuery}
+            onChange={(e) => {
+              setTableSearchQuery(e.target.value);
+              setCurrentPage(1);
+            }}
+            className="pl-9 pr-3 py-2 text-sm border border-gray-300 rounded-md w-48 focus:outline-none focus:ring-1 focus:ring-[#2272B4] focus:border-[#2272B4]"
+          />
+        </div>
+
+        {/* Clear Filters */}
+        {hasActiveFilters && (
+          <button
+            onClick={clearAllFilters}
+            className="text-sm text-red-600 hover:text-red-700 font-medium transition-colors"
+          >
+            Clear all
+          </button>
+        )}
 
         {/* Results Count */}
         <span className="text-sm text-gray-500 ml-auto">
