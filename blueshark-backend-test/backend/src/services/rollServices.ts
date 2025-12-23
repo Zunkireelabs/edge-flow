@@ -52,21 +52,38 @@ export const getAllRolls = async () => {
       vendor: true,
       batches: true,
       sub_batches: true,
+      batch_rolls: true, // NEW: Include multi-roll batch allocations
     },
   });
 
   // Calculate remaining quantity and remaining unit count for each roll
-  // remaining_quantity = roll.quantity - SUM(batches.quantity)
-  // remaining_unit_count = roll.roll_unit_count - SUM(batches.unit_count)
+  // remaining_quantity = roll.quantity - SUM(legacy batches.quantity) - SUM(batch_rolls.weight)
+  // remaining_unit_count = roll.roll_unit_count - SUM(legacy batches.unit_count) - SUM(batch_rolls.units)
   return rolls.map((roll) => {
-    const usedQuantity = roll.batches.reduce(
+    // Legacy: Single-roll batches (batches.roll_id)
+    const usedQuantityFromBatches = roll.batches.reduce(
       (sum, batch) => sum + (batch.quantity || 0),
       0
     );
-    const usedUnitCount = roll.batches.reduce(
+    const usedUnitCountFromBatches = roll.batches.reduce(
       (sum, batch) => sum + (batch.unit_count || 0),
       0
     );
+
+    // NEW: Multi-roll batches (batch_rolls table)
+    const usedQuantityFromBatchRolls = roll.batch_rolls.reduce(
+      (sum, br) => sum + (br.weight || 0),
+      0
+    );
+    const usedUnitCountFromBatchRolls = roll.batch_rolls.reduce(
+      (sum, br) => sum + (br.units || 0),
+      0
+    );
+
+    // Total used = legacy + multi-roll
+    const usedQuantity = usedQuantityFromBatches + usedQuantityFromBatchRolls;
+    const usedUnitCount = usedUnitCountFromBatches + usedUnitCountFromBatchRolls;
+
     return {
       ...roll,
       remaining_quantity: roll.quantity - usedQuantity,
@@ -82,19 +99,31 @@ export const getRollById = async (id: number) => {
       vendor: true,
       batches: true,
       sub_batches: true,
+      batch_rolls: true, // NEW: Include multi-roll batch allocations
     },
   });
   if (!roll) throw new Error("Roll not found");
 
-  // Calculate remaining quantity and unit count
-  const usedQuantity = roll.batches.reduce(
+  // Calculate remaining quantity and unit count (legacy + multi-roll)
+  const usedQuantityFromBatches = roll.batches.reduce(
     (sum, batch) => sum + (batch.quantity || 0),
     0
   );
-  const usedUnitCount = roll.batches.reduce(
+  const usedUnitCountFromBatches = roll.batches.reduce(
     (sum, batch) => sum + (batch.unit_count || 0),
     0
   );
+  const usedQuantityFromBatchRolls = roll.batch_rolls.reduce(
+    (sum, br) => sum + (br.weight || 0),
+    0
+  );
+  const usedUnitCountFromBatchRolls = roll.batch_rolls.reduce(
+    (sum, br) => sum + (br.units || 0),
+    0
+  );
+
+  const usedQuantity = usedQuantityFromBatches + usedQuantityFromBatchRolls;
+  const usedUnitCount = usedUnitCountFromBatches + usedUnitCountFromBatchRolls;
 
   return {
     ...roll,
@@ -111,8 +140,13 @@ export const getRollRemainingQuantity = async (
   const roll = await prisma.rolls.findUnique({
     where: { id: rollId },
     include: {
+      // Legacy: Single-roll batches
       batches: {
         select: { id: true, quantity: true, unit_count: true },
+      },
+      // NEW: Multi-roll batch allocations
+      batch_rolls: {
+        select: { batch_id: true, weight: true, units: true },
       },
     },
   });
@@ -123,12 +157,22 @@ export const getRollRemainingQuantity = async (
   let usedQuantity = 0;
   let usedUnitCount = 0;
 
+  // Legacy: Sum from batches.roll_id
   for (const batch of roll.batches) {
     if (excludeBatchId && batch.id === excludeBatchId) {
       continue; // Exclude this batch from calculation (for update scenarios)
     }
     usedQuantity += batch.quantity || 0;
     usedUnitCount += batch.unit_count || 0;
+  }
+
+  // NEW: Sum from batch_rolls table
+  for (const br of roll.batch_rolls) {
+    if (excludeBatchId && br.batch_id === excludeBatchId) {
+      continue; // Exclude this batch from calculation (for update scenarios)
+    }
+    usedQuantity += br.weight || 0;
+    usedUnitCount += br.units || 0;
   }
 
   return {
@@ -148,19 +192,29 @@ export const updateRoll = async (id: number, data: Partial<RollData>) => {
     const currentRoll = await prisma.rolls.findUnique({
       where: { id },
       include: {
+        // Legacy: Single-roll batches
         batches: {
           select: { quantity: true, unit_count: true },
+        },
+        // NEW: Multi-roll batch allocations
+        batch_rolls: {
+          select: { weight: true, units: true },
         },
       },
     });
 
     if (currentRoll) {
-      // Validate quantity
+      // Validate quantity (legacy + multi-roll)
       if (data.quantity !== undefined) {
-        const totalAllocatedQty = currentRoll.batches.reduce(
+        const allocatedFromBatches = currentRoll.batches.reduce(
           (sum, batch) => sum + (batch.quantity || 0),
           0
         );
+        const allocatedFromBatchRolls = currentRoll.batch_rolls.reduce(
+          (sum, br) => sum + (br.weight || 0),
+          0
+        );
+        const totalAllocatedQty = allocatedFromBatches + allocatedFromBatchRolls;
 
         if (data.quantity < totalAllocatedQty) {
           throw new Error(
@@ -170,12 +224,17 @@ export const updateRoll = async (id: number, data: Partial<RollData>) => {
         }
       }
 
-      // Validate unit_count
+      // Validate unit_count (legacy + multi-roll)
       if (data.roll_unit_count !== undefined) {
-        const totalAllocatedUnits = currentRoll.batches.reduce(
+        const allocatedUnitsFromBatches = currentRoll.batches.reduce(
           (sum, batch) => sum + (batch.unit_count || 0),
           0
         );
+        const allocatedUnitsFromBatchRolls = currentRoll.batch_rolls.reduce(
+          (sum, br) => sum + (br.units || 0),
+          0
+        );
+        const totalAllocatedUnits = allocatedUnitsFromBatches + allocatedUnitsFromBatchRolls;
 
         if (data.roll_unit_count < totalAllocatedUnits) {
           throw new Error(

@@ -22,6 +22,7 @@ import {
 import Loader from "@/app/Components/Loader";
 import { useToast } from "@/app/Components/ToastContext";
 import { useDepartment } from "../../contexts/DepartmentContext";
+import { formatNepaliDate } from "@/app/utils/dateUtils";
 
 const API = process.env.NEXT_PUBLIC_API_URL;
 
@@ -435,15 +436,6 @@ const SubBatchView = () => {
     }
   };
 
-  // Format date
-  const formatDate = (dateString: string) => {
-    if (!dateString) return "-";
-    return new Date(dateString).toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-    });
-  };
 
   // Get department label for display
   const getDepartmentLabel = () => {
@@ -582,10 +574,10 @@ const SubBatchView = () => {
                       {subBatch.estimated_pieces?.toLocaleString() || 0}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                      {formatDate(subBatch.start_date)}
+                      {formatNepaliDate(subBatch.start_date)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                      {formatDate(subBatch.due_date)}
+                      {formatNepaliDate(subBatch.due_date)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       {getStatusBadge(subBatch.status)}

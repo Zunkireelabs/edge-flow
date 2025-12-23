@@ -1,8 +1,9 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
-import { Calendar, ChevronLeft, ChevronRight, Search, Building2 } from 'lucide-react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { Search, ChevronDown, Check, ArrowUpDown, Inbox } from 'lucide-react';
 import axios from 'axios';
+import { formatNepaliDate } from '@/app/utils/dateUtils';
 
 interface Task {
   id: string;
@@ -29,79 +30,149 @@ interface Column {
   tasks: Task[];
 }
 
-const initialColumns: Column[] = [
-  {
-    id: 'new-arrivals',
-    title: 'New Arrivals',
-    tasks: []
-  },
-  {
-    id: 'in-progress',
-    title: 'In Progress',
-    tasks: []
-  },
-  {
-    id: 'completed',
-    title: 'Completed',
-    tasks: []
-  }
-];
+interface FilterOption {
+  value: string;
+  label: string;
+  description?: string;
+}
 
-// Mock task data - replace with actual API data
-const mockTasks: Task[] = [
-  {
-    id: '1',
-    title: 'Linen Sets',
-    startDate: 'Aug 15, 2024',
-    dueDate: 'Aug 29, 2024',
-    batch: 'Batch 1',
-    status: 'new-arrivals'
-  },
-  {
-    id: '2',
-    title: 'Linen Sets',
-    startDate: 'Aug 15, 2024',
-    dueDate: 'Aug 29, 2024',
-    batch: 'Batch 1',
-    priority: 'urgent',
-    status: 'new-arrivals'
-  },
-  {
-    id: '3',
-    title: 'Linen Sets',
-    startDate: 'Aug 15, 2024',
-    dueDate: 'Aug 20, 2024',
-    batch: 'Batch 1',
-    priority: 'at-risk',
-    status: 'new-arrivals'
-  },
-  {
-    id: '4',
-    title: 'Cotton Blend',
-    startDate: 'Aug 10, 2024',
-    dueDate: 'Aug 24, 2024',
-    batch: 'Batch 2',
-    status: 'in-progress'
-  },
-  {
-    id: '5',
-    title: 'Wool Cashmere',
-    startDate: 'Aug 12, 2024',
-    dueDate: 'Aug 26, 2024',
-    batch: 'Batch 3',
-    status: 'completed'
-  }
+// Custom Filter Dropdown Component
+const FilterDropdown = ({
+  label,
+  options,
+  value,
+  onChange,
+  searchable = true,
+  icon,
+}: {
+  label: string;
+  options: FilterOption[];
+  value: string;
+  onChange: (value: string) => void;
+  searchable?: boolean;
+  icon?: React.ReactNode;
+}) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const dropdownRef = useRef<HTMLDivElement>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+
+  const selectedOption = options.find(opt => opt.value === value);
+  const displayLabel = selectedOption?.label || label;
+
+  const filteredOptions = options.filter(opt =>
+    opt.label.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (opt.description && opt.description.toLowerCase().includes(searchQuery.toLowerCase()))
+  );
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+        setSearchQuery("");
+      }
+    };
+    if (isOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+      setTimeout(() => searchInputRef.current?.focus(), 100);
+    }
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [isOpen]);
+
+  const handleSelect = (optionValue: string) => {
+    onChange(optionValue);
+    setIsOpen(false);
+    setSearchQuery("");
+  };
+
+  const isActive = value !== "all";
+
+  return (
+    <div className="relative" ref={dropdownRef}>
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className={`flex items-center gap-1.5 px-3 py-1.5 text-sm border rounded-lg transition-all duration-200 ${
+          isActive
+            ? "border-[#2272B4] bg-blue-50 text-[#2272B4]"
+            : "border-gray-300 bg-white text-gray-600 hover:border-gray-400"
+        }`}
+      >
+        {icon && <span className="flex-shrink-0">{icon}</span>}
+        <span className="max-w-[120px] truncate">{displayLabel}</span>
+        <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`} />
+      </button>
+
+      {isOpen && (
+        <div className="absolute top-full left-0 mt-1.5 w-56 bg-white rounded-lg shadow-lg border border-gray-200 z-50 overflow-hidden">
+          {searchable && (
+            <div className="p-2 border-b border-gray-100">
+              <div className="relative">
+                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
+                <input
+                  ref={searchInputRef}
+                  type="text"
+                  placeholder="Search..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full pl-8 pr-3 py-1.5 text-sm border border-gray-200 rounded-full focus:outline-none focus:ring-1 focus:ring-[#2272B4] focus:border-transparent"
+                />
+              </div>
+            </div>
+          )}
+          <div className="max-h-56 overflow-y-auto">
+            {filteredOptions.length === 0 ? (
+              <div className="px-3 py-2 text-sm text-gray-500 text-center">No options found</div>
+            ) : (
+              filteredOptions.map((option) => (
+                <button
+                  key={option.value}
+                  onClick={() => handleSelect(option.value)}
+                  className={`w-full px-3 py-2 text-left hover:bg-gray-50 transition-colors flex items-center gap-2.5 ${
+                    value === option.value ? "bg-blue-50" : ""
+                  }`}
+                >
+                  <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${
+                    value === option.value ? "border-[#2272B4] bg-[#2272B4]" : "border-gray-300"
+                  }`}>
+                    {value === option.value && <Check className="w-2.5 h-2.5 text-white" />}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className={`text-sm font-medium ${value === option.value ? "text-[#2272B4]" : "text-gray-900"}`}>
+                      {option.label}
+                    </div>
+                    {option.description && (
+                      <div className="text-xs text-gray-500 mt-0.5">{option.description}</div>
+                    )}
+                  </div>
+                </button>
+              ))
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+const initialColumns: Column[] = [
+  { id: 'new-arrivals', title: 'New Arrivals', tasks: [] },
+  { id: 'in-progress', title: 'In Progress', tasks: [] },
+  { id: 'completed', title: 'Completed', tasks: [] }
 ];
 
 export default function DepartmentWorkloadView() {
   const [departments, setDepartments] = useState<Department[]>([]);
-  const [selectedDepartment, setSelectedDepartment] = useState<Department | null>(null);
+  const [selectedDepartmentId, setSelectedDepartmentId] = useState<number | 'all'>('all');
   const [columns, setColumns] = useState<Column[]>(initialColumns);
   const [draggedTask, setDraggedTask] = useState<Task | null>(null);
   const [draggedFrom, setDraggedFrom] = useState<string | null>(null);
-  const [filterSidebarOpen, setFilterSidebarOpen] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [loading, setLoading] = useState(true);
+
+  // Filter states
+  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [priorityFilter, setPriorityFilter] = useState<string>("all");
+  const [sortBy, setSortBy] = useState<string>("newest");
 
   const API = process.env.NEXT_PUBLIC_API_URL;
 
@@ -112,11 +183,6 @@ export default function DepartmentWorkloadView() {
         setLoading(true);
         const response = await axios.get(`${API}/departments`);
         setDepartments(response.data);
-
-        // Auto-select first department
-        if (response.data.length > 0) {
-          setSelectedDepartment(response.data[0]);
-        }
       } catch (error) {
         console.error("Failed to fetch departments:", error);
       } finally {
@@ -129,95 +195,176 @@ export default function DepartmentWorkloadView() {
 
   // Load tasks for selected department
   useEffect(() => {
-    if (selectedDepartment) {
-      const fetchDepartmentTasks = async () => {
+    const fetchDepartmentTasks = async () => {
+      if (selectedDepartmentId === 'all') {
+        // Fetch tasks from all departments
         try {
-          // Get auth token from localStorage
           const token = localStorage.getItem("token");
+          const allTasks: { newArrival: Task[], inProgress: Task[], completed: Task[] } = {
+            newArrival: [],
+            inProgress: [],
+            completed: []
+          };
 
-          // Fetch sub-batches for this department
-          const response = await axios.get(
-            `${API}/departments/${selectedDepartment.id}/sub-batches`,
-            {
-              headers: {
-                Authorization: `Bearer ${token}`,
-              },
+          // Fetch from each department
+          await Promise.all(departments.map(async (dept) => {
+            try {
+              const response = await axios.get(
+                `${API}/departments/${dept.id}/sub-batches`,
+                { headers: { Authorization: `Bearer ${token}` } }
+              );
+              const kanbanData = response.data.data;
+
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              const transformToTask = (dsb: any): Task => {
+                const subBatch = dsb.sub_batch;
+                let priority: 'urgent' | 'at-risk' | undefined = undefined;
+                if (subBatch?.due_date) {
+                  const dueDate = new Date(subBatch.due_date);
+                  const today = new Date();
+                  const daysUntilDue = Math.ceil((dueDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+                  if (daysUntilDue < 0) priority = 'urgent';
+                  else if (daysUntilDue <= 3) priority = 'at-risk';
+                }
+
+                let status: 'new-arrivals' | 'in-progress' | 'completed' = 'new-arrivals';
+                if (dsb.stage === 'COMPLETED') status = 'completed';
+                else if (dsb.stage === 'IN_PROGRESS') status = 'in-progress';
+
+                return {
+                  id: `${dept.id}-${dsb.id}`,
+                  title: subBatch?.name || 'Untitled Task',
+                  startDate: formatNepaliDate(subBatch?.start_date),
+                  dueDate: formatNepaliDate(subBatch?.due_date),
+                  batch: subBatch?.batch?.name || 'No Batch',
+                  priority,
+                  status
+                };
+              };
+
+              (kanbanData.newArrival || []).forEach((dsb: any) => allTasks.newArrival.push(transformToTask(dsb)));
+              (kanbanData.inProgress || []).forEach((dsb: any) => allTasks.inProgress.push(transformToTask(dsb)));
+              (kanbanData.completed || []).forEach((dsb: any) => allTasks.completed.push(transformToTask(dsb)));
+            } catch (err) {
+              console.error(`Failed to fetch tasks for department ${dept.id}:`, err);
             }
+          }));
+
+          setColumns([
+            { id: 'new-arrivals', title: 'New Arrivals', tasks: allTasks.newArrival },
+            { id: 'in-progress', title: 'In Progress', tasks: allTasks.inProgress },
+            { id: 'completed', title: 'Completed', tasks: allTasks.completed }
+          ]);
+        } catch (error) {
+          console.error("Failed to fetch all department tasks:", error);
+          setColumns(initialColumns);
+        }
+      } else {
+        // Fetch tasks for specific department
+        try {
+          const token = localStorage.getItem("token");
+          const response = await axios.get(
+            `${API}/departments/${selectedDepartmentId}/sub-batches`,
+            { headers: { Authorization: `Bearer ${token}` } }
           );
 
-          // Backend returns { success: true, data: { newArrival: [], inProgress: [], completed: [] } }
           const kanbanData = response.data.data;
 
-          // Helper function to transform department_sub_batch to Task format
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           const transformToTask = (dsb: any): Task => {
             const subBatch = dsb.sub_batch;
-
-            // Determine priority based on due date
             let priority: 'urgent' | 'at-risk' | undefined = undefined;
             if (subBatch?.due_date) {
               const dueDate = new Date(subBatch.due_date);
               const today = new Date();
               const daysUntilDue = Math.ceil((dueDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
-
-              if (daysUntilDue < 0) {
-                priority = 'urgent'; // Overdue
-              } else if (daysUntilDue <= 3) {
-                priority = 'at-risk'; // Due soon
-              }
+              if (daysUntilDue < 0) priority = 'urgent';
+              else if (daysUntilDue <= 3) priority = 'at-risk';
             }
 
-            // Map stage to kanban status
             let status: 'new-arrivals' | 'in-progress' | 'completed' = 'new-arrivals';
-            if (dsb.stage === 'COMPLETED') {
-              status = 'completed';
-            } else if (dsb.stage === 'IN_PROGRESS') {
-              status = 'in-progress';
-            } else if (dsb.stage === 'NEW_ARRIVAL') {
-              status = 'new-arrivals';
-            }
+            if (dsb.stage === 'COMPLETED') status = 'completed';
+            else if (dsb.stage === 'IN_PROGRESS') status = 'in-progress';
 
             return {
               id: dsb.id.toString(),
               title: subBatch?.name || 'Untitled Task',
-              startDate: subBatch?.start_date ? new Date(subBatch.start_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'N/A',
-              dueDate: subBatch?.due_date ? new Date(subBatch.due_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'N/A',
+              startDate: formatNepaliDate(subBatch?.start_date),
+              dueDate: formatNepaliDate(subBatch?.due_date),
               batch: subBatch?.batch?.name || 'No Batch',
               priority,
               status
             };
           };
 
-          // Transform each kanban column's data
-          const newColumns: Column[] = [
-            {
-              id: 'new-arrivals',
-              title: 'New Arrivals',
-              tasks: (kanbanData.newArrival || []).map(transformToTask)
-            },
-            {
-              id: 'in-progress',
-              title: 'In Progress',
-              tasks: (kanbanData.inProgress || []).map(transformToTask)
-            },
-            {
-              id: 'completed',
-              title: 'Completed',
-              tasks: (kanbanData.completed || []).map(transformToTask)
-            }
-          ];
-
-          setColumns(newColumns);
+          setColumns([
+            { id: 'new-arrivals', title: 'New Arrivals', tasks: (kanbanData.newArrival || []).map(transformToTask) },
+            { id: 'in-progress', title: 'In Progress', tasks: (kanbanData.inProgress || []).map(transformToTask) },
+            { id: 'completed', title: 'Completed', tasks: (kanbanData.completed || []).map(transformToTask) }
+          ]);
         } catch (error) {
           console.error("Failed to fetch department tasks:", error);
-          // Fall back to empty columns on error
           setColumns(initialColumns);
         }
-      };
+      }
+    };
 
+    if (departments.length > 0 || selectedDepartmentId !== 'all') {
       fetchDepartmentTasks();
     }
-  }, [selectedDepartment, API]);
+  }, [selectedDepartmentId, departments, API]);
+
+  // Calculate department task counts
+  const departmentTaskCounts = useMemo(() => {
+    const counts: Record<number, number> = {};
+    departments.forEach(dept => {
+      counts[dept.id] = dept.active_tasks || 0;
+    });
+    return counts;
+  }, [departments]);
+
+  // Get total task count
+  const totalTaskCount = useMemo(() => {
+    return columns.reduce((sum, col) => sum + col.tasks.length, 0);
+  }, [columns]);
+
+  // Filter and sort tasks
+  const filteredColumns = useMemo(() => {
+    return columns.map(column => {
+      let tasks = [...column.tasks];
+
+      // Search filter
+      if (searchQuery) {
+        tasks = tasks.filter(task =>
+          task.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          task.batch.toLowerCase().includes(searchQuery.toLowerCase())
+        );
+      }
+
+      // Priority filter
+      if (priorityFilter !== 'all') {
+        tasks = tasks.filter(task => {
+          if (priorityFilter === 'urgent') return task.priority === 'urgent';
+          if (priorityFilter === 'at-risk') return task.priority === 'at-risk';
+          if (priorityFilter === 'normal') return !task.priority;
+          return true;
+        });
+      }
+
+      // Sort
+      if (sortBy === 'newest') {
+        // Keep original order (newest first from API)
+      } else if (sortBy === 'oldest') {
+        tasks = tasks.reverse();
+      } else if (sortBy === 'name-asc') {
+        tasks = tasks.sort((a, b) => a.title.localeCompare(b.title));
+      } else if (sortBy === 'name-desc') {
+        tasks = tasks.sort((a, b) => b.title.localeCompare(a.title));
+      }
+
+      return { ...column, tasks };
+    });
+  }, [columns, searchQuery, priorityFilter, sortBy]);
 
   const handleDragStart = (e: React.DragEvent, task: Task, columnId: string) => {
     setDraggedTask(task);
@@ -242,15 +389,9 @@ export default function DepartmentWorkloadView() {
     setColumns(prevColumns => {
       return prevColumns.map(column => {
         if (column.id === draggedFrom) {
-          return {
-            ...column,
-            tasks: column.tasks.filter(task => task.id !== draggedTask.id)
-          };
+          return { ...column, tasks: column.tasks.filter(task => task.id !== draggedTask.id) };
         } else if (column.id === targetColumnId) {
-          return {
-            ...column,
-            tasks: [...column.tasks, { ...draggedTask, status: targetColumnId as Task['status'] }]
-          };
+          return { ...column, tasks: [...column.tasks, { ...draggedTask, status: targetColumnId as Task['status'] }] };
         }
         return column;
       });
@@ -260,303 +401,202 @@ export default function DepartmentWorkloadView() {
     setDraggedFrom(null);
   };
 
-  const getPriorityColor = (priority?: string) => {
-    switch (priority) {
-      case 'urgent':
-        return 'bg-red-500 text-white';
-      case 'at-risk':
-        return 'bg-gray-500 text-white';
-      default:
-        return '';
-    }
-  };
-
-  const getPriorityText = (priority?: string) => {
-    switch (priority) {
-      case 'urgent':
-        return 'URGENT';
-      case 'at-risk':
-        return 'At Risk';
-      default:
-        return '';
-    }
-  };
-
-  const filteredDepartments = departments.filter(dept =>
-    dept.name.toLowerCase().includes(searchQuery.toLowerCase())
-  );
-
-  // Get column status icon and color
-  const getColumnIcon = (columnId: string) => {
+  const getColumnStyle = (columnId: string) => {
     switch (columnId) {
       case 'new-arrivals':
-        return { icon: '📥', color: 'text-gray-600', bgColor: 'bg-gray-100', dotColor: 'bg-gray-500' };
+        return { dotColor: 'bg-gray-400', headerBg: 'bg-gray-50' };
       case 'in-progress':
-        return { icon: '▶️', color: 'text-blue-600', bgColor: 'bg-blue-100', dotColor: 'bg-blue-500' };
+        return { dotColor: 'bg-blue-500', headerBg: 'bg-blue-50' };
       case 'completed':
-        return { icon: '✓', color: 'text-green-600', bgColor: 'bg-green-100', dotColor: 'bg-green-500' };
+        return { dotColor: 'bg-green-500', headerBg: 'bg-green-50' };
       default:
-        return { icon: '●', color: 'text-gray-600', bgColor: 'bg-gray-100', dotColor: 'bg-gray-500' };
+        return { dotColor: 'bg-gray-400', headerBg: 'bg-gray-50' };
     }
   };
 
+  // Filter options
+  const priorityOptions: FilterOption[] = [
+    { value: 'all', label: 'All Priorities' },
+    { value: 'urgent', label: 'Urgent', description: 'Overdue tasks' },
+    { value: 'at-risk', label: 'At Risk', description: 'Due within 3 days' },
+    { value: 'normal', label: 'Normal', description: 'On track' },
+  ];
+
+  const sortOptions: FilterOption[] = [
+    { value: 'newest', label: 'Newest First' },
+    { value: 'oldest', label: 'Oldest First' },
+    { value: 'name-asc', label: 'Name A-Z' },
+    { value: 'name-desc', label: 'Name Z-A' },
+  ];
+
   return (
-    <div className="flex min-h-screen bg-white">
-      {/* Filter Sidebar */}
-      <div
-        className={`bg-white shadow flex-shrink-0 border-r border-gray-200 min-h-screen overflow-y-auto transition-all duration-300 ease-in-out ${
-          filterSidebarOpen ? 'w-72 opacity-100' : 'w-0 opacity-0'
-        }`}
-        style={{
-          scrollbarWidth: 'thin',
-          scrollbarColor: '#d1d5db #f3f4f6',
-          fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif'
-        }}
-      >
-        <div className="p-6">
-          {/* Header */}
-          <div className="py-4 border-b border-gray-100">
-            <h4 className="text-lg font-semibold text-gray-900 mb-3" style={{ letterSpacing: '-0.01em' }}>
-              Select Department
-            </h4>
-            <p className="text-xs text-gray-600">
-              Choose a department to view its workload
-            </p>
-          </div>
+    <div className="min-h-screen bg-gray-50">
+      {/* Header */}
+      <div className="bg-white border-b border-gray-200">
+        <div className="px-6 py-3">
+          <h1 className="text-sm font-bold text-gray-900">Department Kanban</h1>
+        </div>
 
-          {/* Search */}
-          <div className="py-4 border-b border-gray-100">
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">Search Departments</label>
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={16} />
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search..."
-                className="w-full pl-10 pr-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              />
-            </div>
-          </div>
-
-          {/* Department List */}
-          <div className="py-4">
-            <div className="space-y-1.5">
-              {loading ? (
-                <div className="text-center text-gray-500 text-sm py-4">Loading...</div>
-              ) : filteredDepartments.length === 0 ? (
-                <div className="text-center text-gray-500 text-sm py-4">No departments found</div>
-              ) : (
-                filteredDepartments.map((dept) => (
-                  <button
-                    key={dept.id}
-                    onClick={() => setSelectedDepartment(dept)}
-                    className={`w-full flex items-center justify-between text-left py-2.5 px-4 rounded-xl transition-all ${
-                      selectedDepartment?.id === dept.id
-                        ? "bg-blue-600 text-white shadow-sm"
-                        : "hover:bg-gray-50 text-gray-700"
-                    }`}
-                  >
-                    <div className="flex items-center gap-2">
-                      <Building2 size={16} />
-                      <span className="text-sm font-medium">{dept.name}</span>
-                    </div>
-                    {dept.active_tasks !== undefined && (
-                      <span className={`text-xs px-2 py-0.5 rounded-full ${
-                        selectedDepartment?.id === dept.id
-                          ? "bg-blue-500 text-white"
-                          : "bg-gray-100 text-gray-600"
-                      }`}>
-                        {dept.active_tasks}
-                      </span>
-                    )}
-                  </button>
-                ))
+        {/* Department Tabs - Jira Style */}
+        <div className="px-6">
+          <div className="flex items-center gap-6 overflow-x-auto" style={{ scrollbarWidth: 'none' }}>
+            {/* All Departments Tab */}
+            <button
+              onClick={() => setSelectedDepartmentId('all')}
+              className={`relative py-3 text-sm font-medium transition-all whitespace-nowrap ${
+                selectedDepartmentId === 'all'
+                  ? 'text-[#2272B4]'
+                  : 'text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              All ({totalTaskCount})
+              {selectedDepartmentId === 'all' && (
+                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#2272B4] rounded-full" />
               )}
-            </div>
-          </div>
+            </button>
 
-          {/* Stats */}
-          <div className="py-4 border-t border-gray-100">
-            <h4 className="text-sm font-medium text-gray-700 mb-3">Department Stats</h4>
-            {selectedDepartment && (
-              <div className="space-y-2 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Workers:</span>
-                  <span className="font-medium text-gray-900">{selectedDepartment.worker_count || 0}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Active Tasks:</span>
-                  <span className="font-medium text-gray-900">{selectedDepartment.active_tasks || 0}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Status:</span>
-                  <span className={`font-medium ${
-                    selectedDepartment.status === 'active' ? 'text-green-600' : 'text-gray-600'
-                  }`}>
-                    {selectedDepartment.status || 'active'}
-                  </span>
-                </div>
-              </div>
-            )}
+            {/* Department Tabs */}
+            {departments.map((dept) => (
+              <button
+                key={dept.id}
+                onClick={() => setSelectedDepartmentId(dept.id)}
+                className={`relative py-3 text-sm font-medium transition-all whitespace-nowrap ${
+                  selectedDepartmentId === dept.id
+                    ? 'text-[#2272B4]'
+                    : 'text-gray-600 hover:text-gray-900'
+                }`}
+              >
+                {dept.name} ({departmentTaskCounts[dept.id] || 0})
+                {selectedDepartmentId === dept.id && (
+                  <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#2272B4] rounded-full" />
+                )}
+              </button>
+            ))}
           </div>
         </div>
       </div>
 
-      {/* Main Content */}
-      <div className="flex-1 min-h-screen">
-        {/* Header */}
-        <div className="sticky top-0 bg-white z-10 py-6 px-6 border-b border-gray-200 shadow-sm">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <button
-                onClick={() => setFilterSidebarOpen(!filterSidebarOpen)}
-                className="p-2 hover:bg-gray-50 rounded-lg transition-colors border border-gray-200"
-                title={filterSidebarOpen ? "Hide filters" : "Show filters"}
-              >
-                {filterSidebarOpen ? (
-                  <ChevronLeft size={20} className="text-gray-600" />
-                ) : (
-                  <ChevronRight size={20} className="text-gray-600" />
-                )}
-              </button>
-              <div>
-                <h1 className="text-2xl font-bold text-gray-900" style={{ letterSpacing: '-0.02em' }}>
-                  Kanban Board
-                </h1>
-                <p className="text-sm text-gray-500 mt-1">
-                  {selectedDepartment
-                    ? `${selectedDepartment.name} - Manage tasks with visual workflow`
-                    : 'Select a department to view its workload'}
-                </p>
-              </div>
-            </div>
+      {/* Filter Bar */}
+      <div className="bg-white border-b border-gray-200 px-6 py-3">
+        <div className="flex items-center gap-3 flex-wrap">
+          {/* Search */}
+          <div className="relative flex-1 max-w-xs">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <input
+              type="text"
+              placeholder="Search tasks..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-9 pr-4 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2272B4] focus:border-transparent"
+            />
+          </div>
+
+          {/* Priority Filter */}
+          <FilterDropdown
+            label="All Priorities"
+            options={priorityOptions}
+            value={priorityFilter}
+            onChange={setPriorityFilter}
+            searchable={false}
+          />
+
+          {/* Sort */}
+          <FilterDropdown
+            label="Sort"
+            options={sortOptions}
+            value={sortBy}
+            onChange={setSortBy}
+            searchable={false}
+            icon={<ArrowUpDown className="w-3.5 h-3.5" />}
+          />
+
+          {/* Results count */}
+          <div className="ml-auto text-sm text-gray-500">
+            {filteredColumns.reduce((sum, col) => sum + col.tasks.length, 0)} tasks
           </div>
         </div>
+      </div>
 
-        {/* Kanban Board */}
-        <div className="p-6 bg-white">
-          {!selectedDepartment ? (
-            <div className="flex items-center justify-center h-96 bg-white rounded-lg border-2 border-dashed border-gray-300">
-              <div className="text-center">
-                <Building2 size={48} className="mx-auto text-gray-400 mb-3" />
-                <p className="text-gray-600 font-medium">No department selected</p>
-                <p className="text-sm text-gray-500 mt-1">Select a department from the sidebar to view its workload</p>
-              </div>
+      {/* Kanban Board */}
+      <div className="p-6">
+        {loading ? (
+          <div className="flex items-center justify-center h-96">
+            <div className="text-center">
+              <div className="w-8 h-8 border-2 border-[#2272B4] border-t-transparent rounded-full animate-spin mx-auto mb-3"></div>
+              <p className="text-gray-500">Loading departments...</p>
             </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-              {columns.map((column) => {
-                const { icon, color, bgColor, dotColor } = getColumnIcon(column.id);
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {filteredColumns.map((column) => {
+              const { dotColor, headerBg } = getColumnStyle(column.id);
 
-                return (
-                  <div
-                    key={column.id}
-                    className="bg-gray-50 rounded-xl"
-                    onDragOver={handleDragOver}
-                    onDrop={(e) => handleDrop(e, column.id)}
-                  >
-                    {/* Column Header */}
-                    <div className="p-4 flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className={`w-2 h-2 rounded-full ${dotColor}`}></div>
-                        <span className="text-sm font-semibold text-gray-700">{column.title}</span>
-                        <span className="text-xs text-gray-500 font-medium">{column.tasks.length}</span>
+              return (
+                <div
+                  key={column.id}
+                  className="bg-gray-100 rounded-xl overflow-hidden"
+                  onDragOver={handleDragOver}
+                  onDrop={(e) => handleDrop(e, column.id)}
+                >
+                  {/* Column Header */}
+                  <div className="px-4 py-3 bg-white border border-gray-200 rounded-lg mx-3 mt-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <div className={`w-2.5 h-2.5 rounded-full ${dotColor}`}></div>
+                        <span className="text-sm font-semibold text-gray-800">{column.title}</span>
+                        <span className="text-xs text-gray-500 bg-white px-2 py-0.5 rounded-full border border-gray-200">
+                          {column.tasks.length}
+                        </span>
                       </div>
-                      <button className="text-gray-400 hover:text-gray-600 transition-colors">
-                        <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                          <circle cx="8" cy="3" r="1.5" fill="currentColor"/>
-                          <circle cx="8" cy="8" r="1.5" fill="currentColor"/>
-                          <circle cx="8" cy="13" r="1.5" fill="currentColor"/>
-                        </svg>
-                      </button>
                     </div>
+                  </div>
 
-                    {/* Cards Container */}
-                    <div className="px-3 pb-3 space-y-3 min-h-[500px]">
-                      {column.tasks.map((task) => (
+                  {/* Cards Container */}
+                  <div className="p-3 space-y-2 min-h-[400px] max-h-[600px] overflow-y-auto">
+                    {column.tasks.length === 0 ? (
+                      <div className="flex flex-col items-center justify-center py-12 text-gray-400">
+                        <Inbox className="w-8 h-8 mb-2 opacity-50" />
+                        <p className="text-sm">No tasks</p>
+                      </div>
+                    ) : (
+                      column.tasks.map((task) => (
                         <div
                           key={task.id}
                           draggable
                           onDragStart={(e) => handleDragStart(e, task, column.id)}
-                          className="bg-white rounded-lg p-4 cursor-move hover:shadow-lg transition-all duration-200 border border-gray-200 hover:border-gray-300 group"
+                          className="bg-white rounded-lg p-4 cursor-move hover:shadow-md transition-all duration-200 border border-gray-200"
                         >
                           {/* Task Header */}
                           <div className="flex items-start justify-between mb-3">
-                            <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">TASK-{task.id}</span>
+                            <h4 className="font-bold text-[#2272B4] text-sm leading-snug">
+                              {task.title}
+                            </h4>
                             {task.priority && (
-                              <span className={`text-xs font-medium px-2.5 py-1 rounded-md flex items-center gap-1 ${
+                              <span className={`text-xs font-medium px-2 py-0.5 rounded flex items-center gap-1 flex-shrink-0 ml-2 ${
                                 task.priority === 'urgent'
-                                  ? 'bg-red-50 text-red-600 border border-red-200'
-                                  : 'bg-gray-100 text-gray-600 border border-gray-200'
+                                  ? 'bg-red-100 text-red-700'
+                                  : 'bg-amber-100 text-amber-700'
                               }`}>
-                                {task.priority === 'urgent' ? '↑' : '−'} {getPriorityText(task.priority)}
+                                {task.priority === 'urgent' ? '!' : '⚠'} {task.priority === 'urgent' ? 'Overdue' : 'At Risk'}
                               </span>
                             )}
                           </div>
 
-                          {/* Task Title */}
-                          <h4 className="font-semibold text-gray-900 mb-3 text-base leading-snug">{task.title}</h4>
-
-                          {/* Task Meta Info */}
-                          <div className="space-y-2 mb-4">
-                            <div className="flex items-center gap-2 text-xs text-gray-600">
-                              <Calendar size={13} className="text-gray-400" />
-                              <span>{task.startDate}</span>
-                            </div>
-                            <div className="flex items-center gap-2 text-xs">
-                              <Calendar size={13} className="text-red-400" />
-                              <span className="text-red-600 font-medium">{task.dueDate}</span>
-                            </div>
-                          </div>
-
-                          {/* Batch Tag */}
-                          <div className="flex items-center gap-2 mb-4">
-                            <span className="text-xs bg-gray-100 text-gray-700 px-2.5 py-1 rounded-md font-medium border border-gray-200">
-                              {task.batch}
-                            </span>
-                          </div>
-
-                          {/* Footer - Avatar & Stats */}
-                          <div className="flex items-center justify-between pt-3 border-t border-gray-100">
-                            <div className="flex items-center gap-2">
-                              {/* Avatar placeholder */}
-                              <div className="w-6 h-6 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white text-xs font-semibold">
-                                {task.title.charAt(0)}
-                              </div>
-                            </div>
-                            <div className="flex items-center gap-3">
-                              {/* Attachment icon */}
-                              <div className="flex items-center gap-1 text-gray-500">
-                                <svg width="14" height="14" viewBox="0 0 16 16" fill="none" className="text-gray-400">
-                                  <path d="M14 10V12.5C14 13.88 12.88 15 11.5 15H4.5C3.12 15 2 13.88 2 12.5V3.5C2 2.12 3.12 1 4.5 1H7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
-                                  <path d="M14 1V6M14 1H9M14 1L8 7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
-                                </svg>
-                                <span className="text-xs font-medium">1</span>
-                              </div>
-                              {/* Comment icon */}
-                              <div className="flex items-center gap-1 text-gray-500">
-                                <svg width="14" height="14" viewBox="0 0 16 16" fill="none" className="text-gray-400">
-                                  <path d="M14 10.5C14 11.3284 13.3284 12 12.5 12H4.5L2 14.5V3.5C2 2.67157 2.67157 2 3.5 2H12.5C13.3284 2 14 2.67157 14 3.5V10.5Z" stroke="currentColor" strokeWidth="1.5"/>
-                                </svg>
-                                <span className="text-xs font-medium">2</span>
-                              </div>
-                            </div>
+                          {/* Info Lines */}
+                          <div className="space-y-1 text-xs text-gray-600">
+                            <p>Batch: {task.batch}</p>
+                            <p>Due date: {task.dueDate}</p>
+                            <p>Start date: {task.startDate}</p>
                           </div>
                         </div>
-                      ))}
-
-                      {/* Add Task Button */}
-                      <button className="w-full p-3 text-sm text-gray-500 hover:text-gray-700 border-2 border-dashed border-gray-300 hover:border-gray-400 rounded-lg transition-colors bg-white hover:bg-gray-50">
-                        + Add task
-                      </button>
-                    </div>
+                      ))
+                    )}
                   </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
     </div>
   );

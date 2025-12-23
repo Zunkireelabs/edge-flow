@@ -722,8 +722,7 @@ const DepartmentForm = () => {
       {isDrawerOpen && (
         <div className="fixed inset-0 z-50 flex">
           <div
-            className="absolute inset-0 bg-white/30 transition-opacity duration-300"
-            style={{ backdropFilter: 'blur(4px)' }}
+            className="absolute inset-0 bg-black/20 transition-opacity duration-300"
             onClick={closeDrawer}
           />
           <div className="ml-auto w-full max-w-xl bg-white shadow-lg p-4 relative h-screen overflow-y-auto">

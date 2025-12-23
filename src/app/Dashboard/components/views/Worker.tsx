@@ -602,8 +602,7 @@ const WorkerPage = () => {
                 <div className="fixed inset-0 z-50 flex justify-end">
                     {/* Overlay */}
                     <div
-                        className="absolute inset-0 bg-white/30 transition-opacity duration-300"
-                        style={{ backdropFilter: 'blur(4px)' }}
+                        className="absolute inset-0 bg-black/20 transition-opacity duration-300"
                         onClick={closeDrawer}
                     />
 

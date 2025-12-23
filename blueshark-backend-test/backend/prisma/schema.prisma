@@ -24,29 +24,66 @@ model rolls {
   unit            String
   color           String
   vendor_id       Int?
+  created_at      DateTime      @default(now()) // Date when roll was created
   batches         batches[]
   vendor          vendors?      @relation(fields: [vendor_id], references: [id])
   sub_batches     sub_batches[]
+  batch_rolls     batch_rolls[] // NEW: Multi-roll batch relation
 
   @@index([vendor_id])
+  @@index([created_at])
 }
 
 model batches {
-  id          Int           @id @default(autoincrement())
-  roll_id     Int?
-  name        String        // Fabric Name
-  order_name  String?       // Order Name
-  quantity    Float         // Changed from Int to Float to support decimal values (e.g., 33.300 kg)
-  unit        String
-  unit_count  Int?          // Number of fabric pieces
-  color       String
-  vendor_id   Int?
-  roll        rolls?        @relation(fields: [roll_id], references: [id])
-  vendor      vendors?      @relation(fields: [vendor_id], references: [id])
-  sub_batches sub_batches[]
+  id           Int           @id @default(autoincrement())
+  roll_id      Int?          // DEPRECATED: Keep for backward compatibility with single-roll batches
+  name         String        // Fabric Name
+  order_name   String?       // Order Name
+  quantity     Float         // Total weight (sum of batch_rolls.weight for multi-roll batches)
+  unit         String
+  unit_count   Int?          // Total units (sum of batch_rolls.units for multi-roll batches)
+  color        String
+  vendor_id    Int?
+  total_pieces Int?          // Expected total pieces for this batch (for size breakdown)
+  roll         rolls?        @relation(fields: [roll_id], references: [id])
+  vendor       vendors?      @relation(fields: [vendor_id], references: [id])
+  sub_batches  sub_batches[]
+  batch_rolls  batch_rolls[] // NEW: Multi-roll batch relation
+  batch_sizes  batch_sizes[] // Size breakdown for this batch
 
   @@index([roll_id])
   @@index([vendor_id])
+}
+
+// NEW: Junction table for multi-roll batches
+// Allows one batch to use fabric from multiple rolls
+model batch_rolls {
+  id         Int      @id @default(autoincrement())
+  batch_id   Int
+  roll_id    Int
+  weight     Float    // Weight taken from this roll
+  units      Int?     // Number of units taken from this roll
+  created_at DateTime @default(now())
+
+  batch      batches  @relation(fields: [batch_id], references: [id], onDelete: Cascade)
+  roll       rolls    @relation(fields: [roll_id], references: [id])
+
+  @@unique([batch_id, roll_id]) // Each roll can only be added once per batch
+  @@index([batch_id])
+  @@index([roll_id])
+}
+
+// Size breakdown for batches - tracks expected pieces per size
+model batch_sizes {
+  id         Int      @id @default(autoincrement())
+  batch_id   Int
+  size       String   // Size name (e.g., "M", "L", "XL", "42", "Free Size")
+  pieces     Int      // Number of pieces for this size
+  created_at DateTime @default(now())
+
+  batch      batches  @relation(fields: [batch_id], references: [id], onDelete: Cascade)
+
+  @@index([batch_id])
 }
 
 model sub_batches {

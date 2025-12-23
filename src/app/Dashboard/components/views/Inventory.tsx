@@ -780,7 +780,7 @@ const Inventory = () => {
             {/* Mobile/Tablet: Add button next to title */}
             <button
               onClick={handleAddNew}
-              className="lg:hidden flex items-center gap-1.5 bg-[#2272B4] text-white px-3 py-2 rounded-xl font-semibold shadow-md hover:bg-[#1a5a8a] transition-all duration-200 text-sm flex-shrink-0"
+              className="lg:hidden flex items-center gap-1.5 bg-gray-900 text-white px-3 py-1.5 rounded-md text-sm font-medium hover:bg-gray-800 transition-colors flex-shrink-0"
             >
               <Plus className="w-4 h-4" />
               <span className="hidden sm:inline">Add Item</span>
@@ -830,7 +830,7 @@ const Inventory = () => {
             {/* Desktop: Add button in the row */}
             <button
               onClick={handleAddNew}
-              className="hidden lg:flex items-center gap-1.5 bg-[#2272B4] text-white px-4 py-2 rounded-xl font-semibold shadow-md hover:bg-[#1a5a8a] hover:shadow-lg transition-all duration-200 text-sm"
+              className="hidden lg:flex items-center gap-1.5 bg-gray-900 text-white px-3 py-1.5 rounded-md text-sm font-medium hover:bg-gray-800 transition-colors"
             >
               <Plus className="w-4 h-4" />
               Add Item
@@ -933,8 +933,8 @@ const Inventory = () => {
           <>
             <table className="w-full">
               <thead>
-                <tr className="border-b border-gray-200 bg-gray-50">
-                  <th className="px-4 py-2 text-left w-12">
+                <tr className="border-b border-gray-200" style={{ backgroundColor: 'rgb(247, 242, 242)' }}>
+                  <th className="px-4 py-2 text-left w-12 whitespace-nowrap border-r border-gray-200">
                     <input
                       type="checkbox"
                       checked={selectedRows.size === paginatedItems.length && paginatedItems.length > 0}
@@ -943,18 +943,20 @@ const Inventory = () => {
                     />
                   </th>
                   <th
-                    className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                    className="px-4 py-2 text-left text-xs whitespace-nowrap border-r border-gray-200 cursor-pointer hover:bg-gray-100"
+                    style={{ color: '#141414', fontWeight: 500 }}
                     onClick={() => handleSort("id")}
                   >
                     <div className="flex items-center gap-1">
-                      ID
+                      Id
                       {sortColumn === "id" && (
                         sortDirection === "asc" ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />
                       )}
                     </div>
                   </th>
                   <th
-                    className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                    className="px-4 py-2 text-left text-xs whitespace-nowrap border-r border-gray-200 cursor-pointer hover:bg-gray-100"
+                    style={{ color: '#141414', fontWeight: 500 }}
                     onClick={() => handleSort("name")}
                   >
                     <div className="flex items-center gap-1">
@@ -965,7 +967,8 @@ const Inventory = () => {
                     </div>
                   </th>
                   <th
-                    className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                    className="px-4 py-2 text-left text-xs whitespace-nowrap border-r border-gray-200 cursor-pointer hover:bg-gray-100"
+                    style={{ color: '#141414', fontWeight: 500 }}
                     onClick={() => handleSort("quantity")}
                   >
                     <div className="flex items-center gap-1">
@@ -976,7 +979,8 @@ const Inventory = () => {
                     </div>
                   </th>
                   <th
-                    className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                    className="px-4 py-2 text-left text-xs whitespace-nowrap border-r border-gray-200 cursor-pointer hover:bg-gray-100"
+                    style={{ color: '#141414', fontWeight: 500 }}
                     onClick={() => handleSort("category")}
                   >
                     <div className="flex items-center gap-1">
@@ -986,10 +990,10 @@ const Inventory = () => {
                       )}
                     </div>
                   </th>
-                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-4 py-2 text-left text-xs whitespace-nowrap border-r border-gray-200" style={{ color: '#141414', fontWeight: 500 }}>
                     Vendor
                   </th>
-                  <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-4 py-2 text-right text-xs whitespace-nowrap" style={{ color: '#141414', fontWeight: 500 }}>
                     Actions
                   </th>
                 </tr>
@@ -1006,7 +1010,7 @@ const Inventory = () => {
                         : "hover:bg-gray-50"
                     }`}
                   >
-                    <td className="px-4 py-2">
+                    <td className="px-4 py-1.5 whitespace-nowrap border-r border-gray-200">
                       <input
                         type="checkbox"
                         checked={selectedRows.has(item.id)}
@@ -1014,10 +1018,10 @@ const Inventory = () => {
                         className="w-4 h-4 rounded border-gray-300 text-[#2272B4] focus:ring-[#2272B4]"
                       />
                     </td>
-                    <td className="px-4 py-2 text-sm text-gray-500">
+                    <td className="px-4 py-1.5 text-sm text-gray-500 whitespace-nowrap border-r border-gray-200 font-light">
                       {formatInventoryId(item.id)}
                     </td>
-                    <td className="px-4 py-2">
+                    <td className="px-4 py-1.5 whitespace-nowrap border-r border-gray-200">
                       <div className="flex items-center gap-2">
                         <span
                           className="text-sm font-medium text-[#2272B4] hover:underline cursor-pointer"
@@ -1033,19 +1037,19 @@ const Inventory = () => {
                         )}
                       </div>
                     </td>
-                    <td className="px-4 py-2 text-sm text-gray-600">
+                    <td className="px-4 py-1.5 text-sm text-gray-600 whitespace-nowrap border-r border-gray-200 font-light">
                       {item.quantity} {item.unit}
                       {item.min_quantity && item.min_quantity > 0 && (
                         <span className="text-xs text-gray-400 ml-1">(min: {item.min_quantity})</span>
                       )}
                     </td>
-                    <td className="px-4 py-2 text-sm text-gray-600">
+                    <td className="px-4 py-1.5 text-sm text-gray-600 whitespace-nowrap border-r border-gray-200 font-light">
                       {item.category?.name || <span className="text-gray-400">-</span>}
                     </td>
-                    <td className="px-4 py-2 text-sm text-gray-600">
+                    <td className="px-4 py-1.5 text-sm text-gray-600 whitespace-nowrap border-r border-gray-200 font-light">
                       {item.vendor || <span className="text-gray-400">-</span>}
                     </td>
-                    <td className="px-4 py-2 text-right">
+                    <td className="px-4 py-1.5 text-right whitespace-nowrap">
                       <div className="flex items-center justify-end gap-1">
                         <button
                           onClick={() => handlePreview(item)}
@@ -1175,7 +1179,6 @@ const Inventory = () => {
           {/* Backdrop - Fixed full screen */}
           <div
             className="fixed inset-0 bg-black/20 z-[9998]"
-            style={{ backdropFilter: "blur(4px)" }}
             onClick={closeDrawer}
           />
 
@@ -1614,8 +1617,7 @@ const Inventory = () => {
       {showCategoryModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
           <div
-            className="absolute inset-0 bg-black/30"
-            style={{ backdropFilter: "blur(4px)" }}
+            className="absolute inset-0 bg-black/20"
             onClick={() => {
               setShowCategoryModal(false);
               setNewCategoryName("");
@@ -1725,8 +1727,7 @@ const Inventory = () => {
       {showStockModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
           <div
-            className="absolute inset-0 bg-black/30"
-            style={{ backdropFilter: "blur(4px)" }}
+            className="absolute inset-0 bg-black/20"
             onClick={() => setShowStockModal(false)}
           />
           <div className="relative bg-white rounded-xl shadow-2xl w-full max-w-lg mx-4 max-h-[80vh] flex flex-col">

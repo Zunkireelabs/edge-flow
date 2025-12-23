@@ -3,6 +3,7 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { X, Calendar, Plus, ChevronDown, ChevronRight, CheckCircle, Clock, Inbox, Pencil, Trash2, MoreVertical, Edit3, AlertTriangle } from 'lucide-react';
 import NepaliDatePicker from '@/app/Components/NepaliDatePicker';
 import { useToast } from '@/app/Components/ToastContext';
+import { formatNepaliDate } from '@/app/utils/dateUtils';
 
 interface AlteredTaskData {
     id: number;
@@ -537,18 +538,6 @@ const AlteredTaskDetailsModal: React.FC<AlteredTaskDetailsModalProps> = ({
         }
     };
 
-    const formatDate = (dateString: string) => {
-        if (!dateString) return '-';
-        try {
-            return new Date(dateString).toLocaleDateString('en-US', {
-                month: '2-digit',
-                day: '2-digit',
-                year: 'numeric'
-            });
-        } catch {
-            return dateString;
-        }
-    };
 
     const handleSave = async () => {
         if (!taskData?.id) {
@@ -829,7 +818,7 @@ const AlteredTaskDetailsModal: React.FC<AlteredTaskDetailsModalProps> = ({
                                         <div className="mt-2 flex items-center gap-2">
                                             <span className="inline-flex items-center gap-1 bg-yellow-100 text-yellow-800 text-xs font-medium px-2 py-1 rounded">
                                                 <Clock size={12} />
-                                                Received: {formatDate(taskData.alteration_date)}
+                                                Received: {formatNepaliDate(taskData.alteration_date)}
                                             </span>
                                         </div>
                                     </div>
@@ -877,14 +866,14 @@ const AlteredTaskDetailsModal: React.FC<AlteredTaskDetailsModalProps> = ({
                                         <div>
                                             <label className="text-sm font-medium text-gray-900 block mb-2">Estimated Start Date</label>
                                             <div className="bg-gray-50 border border-gray-200 rounded-lg px-4 py-2.5 text-sm text-gray-600 flex items-center justify-between">
-                                                <span>{formatDate(taskData.estimated_start_date)}</span>
+                                                <span>{formatNepaliDate(taskData.estimated_start_date)}</span>
                                                 <Calendar size={16} className="text-gray-400" />
                                             </div>
                                         </div>
                                         <div>
                                             <label className="text-sm font-medium text-gray-900 block mb-2">Due Date</label>
                                             <div className="bg-gray-50 border border-gray-200 rounded-lg px-4 py-2.5 text-sm text-gray-600 flex items-center justify-between">
-                                                <span>{formatDate(taskData.due_date)}</span>
+                                                <span>{formatNepaliDate(taskData.due_date)}</span>
                                                 <Calendar size={16} className="text-gray-400" />
                                             </div>
                                         </div>
@@ -1012,7 +1001,7 @@ const AlteredTaskDetailsModal: React.FC<AlteredTaskDetailsModalProps> = ({
                                             <label className="text-xs font-semibold text-gray-600 uppercase tracking-wide block mb-1.5">Date Received</label>
                                             <div className="flex items-center gap-2 text-sm text-gray-900 font-medium">
                                                 <Calendar size={16} className="text-gray-500" />
-                                                <span>{formatDate(taskData.alteration_date)}</span>
+                                                <span>{formatNepaliDate(taskData.alteration_date)}</span>
                                             </div>
                                         </div>
 
