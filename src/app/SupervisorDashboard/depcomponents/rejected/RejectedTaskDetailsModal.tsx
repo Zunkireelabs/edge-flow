@@ -4,6 +4,7 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { X, Calendar, ChevronDown, Plus, Trash2, Inbox, CheckCircle, Clock, Pencil, MoreVertical, ChevronRight } from 'lucide-react';
 import NepaliDatePicker from '@/app/Components/NepaliDatePicker';
 import { useToast } from '@/app/Components/ToastContext';
+import { formatNepaliDate } from '@/app/utils/dateUtils';
 
 interface RejectedTaskData {
     id: number;
@@ -455,18 +456,6 @@ const RejectedTaskDetailsModal: React.FC<RejectedTaskDetailsModalProps> = ({
         }
     };
 
-    const formatDate = (dateString: string) => {
-        if (!dateString) return '-';
-        try {
-            return new Date(dateString).toLocaleDateString('en-US', {
-                month: '2-digit',
-                day: '2-digit',
-                year: 'numeric'
-            });
-        } catch {
-            return dateString;
-        }
-    };
 
     const handleSave = async () => {
         if (!taskData?.id) {
@@ -719,14 +708,14 @@ const RejectedTaskDetailsModal: React.FC<RejectedTaskDetailsModalProps> = ({
                                         <div>
                                             <label className="text-sm font-medium text-gray-900 block mb-2">Estimated Start Date</label>
                                             <div className="bg-gray-50 border border-gray-200 rounded-lg px-4 py-2.5 text-sm text-gray-600 flex items-center justify-between">
-                                                <span>{formatDate(taskData.estimated_start_date)}</span>
+                                                <span>{formatNepaliDate(taskData.estimated_start_date)}</span>
                                                 <Calendar size={16} className="text-gray-400" />
                                             </div>
                                         </div>
                                         <div>
                                             <label className="text-sm font-medium text-gray-900 block mb-2">Due Date</label>
                                             <div className="bg-gray-50 border border-gray-200 rounded-lg px-4 py-2.5 text-sm text-gray-600 flex items-center justify-between">
-                                                <span>{formatDate(taskData.due_date)}</span>
+                                                <span>{formatNepaliDate(taskData.due_date)}</span>
                                                 <Calendar size={16} className="text-gray-400" />
                                             </div>
                                         </div>
@@ -804,7 +793,7 @@ const RejectedTaskDetailsModal: React.FC<RejectedTaskDetailsModalProps> = ({
                                     <div>
                                         <label className="text-sm font-medium text-gray-900 block mb-2">Date</label>
                                         <div className="bg-gray-50 border border-gray-200 rounded-lg px-4 py-2.5 text-sm text-gray-600 flex items-center justify-between">
-                                            <span>{formatDate(taskData.rejection_date)}</span>
+                                            <span>{formatNepaliDate(taskData.rejection_date)}</span>
                                             <Calendar size={16} className="text-gray-400" />
                                         </div>
                                     </div>

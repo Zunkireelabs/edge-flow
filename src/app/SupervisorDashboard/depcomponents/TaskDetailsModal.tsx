@@ -7,6 +7,7 @@ import PreviewModal from './PreviewModal';
 import AlterationModal from './AlterationModal';
 import RejectionModal from './RejectionModal';
 import { useToast } from '@/app/Components/ToastContext';
+import { formatNepaliDate } from '@/app/utils/dateUtils';
 
 interface TaskDetailsModalProps {
     isOpen: boolean;
@@ -654,13 +655,6 @@ const TaskDetailsModal: React.FC<TaskDetailsModalProps> = ({ isOpen, onClose, ta
         }
     }, [fetchWorkerLogs, showToast]);
 
-    const formatDate = useCallback((dateString: string) =>
-        dateString ? new Date(dateString).toLocaleDateString('en-US', {
-            year: 'numeric',
-            month: 'short',
-            day: 'numeric'
-        }) : '-', []);
-
     if (!isOpen || !taskData) return null;
 
     return (
@@ -749,7 +743,7 @@ const TaskDetailsModal: React.FC<TaskDetailsModalProps> = ({ isOpen, onClose, ta
                                             <div className="mt-2 flex items-center gap-2">
                                                 <span className="inline-flex items-center gap-1 bg-yellow-100 text-yellow-800 text-xs font-medium px-2 py-1 rounded">
                                                     <Clock size={12} />
-                                                    Received: {formatDate(taskData.alteration_source.created_at || taskData.createdAt)}
+                                                    Received: {formatNepaliDate(taskData.alteration_source.created_at || taskData.createdAt)}
                                                 </span>
                                             </div>
                                         </div>
@@ -774,7 +768,7 @@ const TaskDetailsModal: React.FC<TaskDetailsModalProps> = ({ isOpen, onClose, ta
                                             <div className="mt-2 flex items-center gap-2">
                                                 <span className="inline-flex items-center gap-1 bg-red-100 text-red-800 text-xs font-medium px-2 py-1 rounded">
                                                     <Clock size={12} />
-                                                    Received: {formatDate(taskData.rejection_source.created_at || taskData.createdAt)}
+                                                    Received: {formatNepaliDate(taskData.rejection_source.created_at || taskData.createdAt)}
                                                 </span>
                                             </div>
                                         </div>
@@ -820,14 +814,14 @@ const TaskDetailsModal: React.FC<TaskDetailsModalProps> = ({ isOpen, onClose, ta
                                     <div>
                                         <label className="text-xs font-medium text-gray-700 block mb-1">Estimated Start Date</label>
                                         <div className="bg-gray-50 border border-gray-300 rounded px-2 py-1.5 text-xs text-gray-900 flex items-center justify-between">
-                                            <span>{formatDate(taskData.sub_batch?.start_date)}</span>
+                                            <span>{formatNepaliDate(taskData.sub_batch?.start_date)}</span>
                                             <Calendar size={14} className="text-gray-500" />
                                         </div>
                                     </div>
                                     <div>
                                         <label className="text-xs font-medium text-gray-700 block mb-1">Due Date</label>
                                         <div className="bg-gray-50 border border-gray-300 rounded px-2 py-1.5 text-xs text-gray-900 flex items-center justify-between">
-                                            <span>{formatDate(taskData.sub_batch?.due_date)}</span>
+                                            <span>{formatNepaliDate(taskData.sub_batch?.due_date)}</span>
                                             <Calendar size={14} className="text-gray-500" />
                                         </div>
                                     </div>
@@ -1047,7 +1041,7 @@ const TaskDetailsModal: React.FC<TaskDetailsModalProps> = ({ isOpen, onClose, ta
                                                 <label className="text-xs font-semibold text-gray-600 uppercase tracking-wide block mb-1.5">Date Received</label>
                                                 <div className="flex items-center gap-2 text-sm text-gray-900 font-medium">
                                                     <Calendar size={16} className="text-gray-500" />
-                                                    <span>{formatDate(taskData.alteration_source.created_at || taskData.createdAt)}</span>
+                                                    <span>{formatNepaliDate(taskData.alteration_source.created_at || taskData.createdAt)}</span>
                                                 </div>
                                             </div>
 
@@ -1117,7 +1111,7 @@ const TaskDetailsModal: React.FC<TaskDetailsModalProps> = ({ isOpen, onClose, ta
                                                 <label className="text-xs font-semibold text-gray-600 uppercase tracking-wide block mb-1.5">Date Received</label>
                                                 <div className="flex items-center gap-2 text-sm text-gray-900 font-medium">
                                                     <Calendar size={16} className="text-gray-500" />
-                                                    <span>{formatDate(taskData.rejection_source.created_at || taskData.createdAt)}</span>
+                                                    <span>{formatNepaliDate(taskData.rejection_source.created_at || taskData.createdAt)}</span>
                                                 </div>
                                             </div>
 

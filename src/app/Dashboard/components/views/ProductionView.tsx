@@ -1,9 +1,10 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Calendar, ChevronRight, CheckCircle, RefreshCw, XCircle } from "lucide-react";
+import { ChevronRight } from "lucide-react";
 import Loader from "@/app/Components/Loader";
 import ProductionTaskDetailsModal from "./modals/ProductionTaskDetailsModal";
+import { formatNepaliDate } from "@/app/utils/dateUtils";
 
 // Add custom styles for animations
 const customStyles = `
@@ -95,15 +96,6 @@ const ProductionView = () => {
   const [visibleSubBatches, setVisibleSubBatches] = useState<number[]>([]);
   const [selectedTask, setSelectedTask] = useState<SubBatchInDepartment | null>(null);
   const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
-
-  // Format date helper
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString("en-US", {
-      month: "short",
-      day: "numeric",
-      year: "numeric",
-    });
-  };
 
   // Get status badge color
   const getStatusColor = (stage: string) => {
@@ -318,9 +310,8 @@ const ProductionView = () => {
 
       <div className="h-screen bg-gray-50 flex flex-col">
       {/* Header */}
-      <div className="bg-white border-b border-gray-200 p-6 shadow-sm">
-        <h1 className="text-2xl font-bold text-gray-900" style={{ letterSpacing: '-0.02em' }}>Production Dashboard</h1>
-        <p className="text-sm text-gray-500 mt-1">Monitor and manage production tasks across departments</p>
+      <div className="bg-white border-b border-gray-200 px-6 py-3">
+        <h1 className="text-sm font-bold text-gray-900">Production Dashboard</h1>
       </div>
 
       {/* Main Content */}
@@ -429,26 +420,21 @@ const ProductionView = () => {
                     {departmentsWithData.map(({ dept, visibleSubBatchesInDept }) => (
                       <div
                         key={dept.department_id}
-                        className="w-80 flex-shrink-0 bg-gray-50 rounded-xl flex flex-col overflow-hidden"
+                        className="w-80 flex-shrink-0 bg-gray-100 rounded-xl flex flex-col overflow-hidden"
                       >
                   {/* Department Header */}
-                  <div className="p-4 flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="w-2 h-2 rounded-full bg-blue-500"></div>
-                      <span className="text-sm font-semibold text-gray-700">{dept.department_name}</span>
-                      <span className="text-xs text-gray-500 font-medium">{visibleSubBatchesInDept.length}</span>
+                  <div className="px-4 py-3 bg-white border border-gray-200 rounded-lg mx-3 mt-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <div className="w-2.5 h-2.5 rounded-full bg-blue-500"></div>
+                        <span className="text-sm font-semibold text-gray-800">{dept.department_name}</span>
+                        <span className="text-xs text-gray-500 bg-white px-2 py-0.5 rounded-full border border-gray-200">{visibleSubBatchesInDept.length}</span>
+                      </div>
                     </div>
-                    <button className="text-gray-400 hover:text-gray-600 transition-colors">
-                      <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                        <circle cx="8" cy="3" r="1.5" fill="currentColor"/>
-                        <circle cx="8" cy="8" r="1.5" fill="currentColor"/>
-                        <circle cx="8" cy="13" r="1.5" fill="currentColor"/>
-                      </svg>
-                    </button>
                   </div>
 
                   {/* Department Content */}
-                  <div className="flex-1 overflow-y-auto px-3 pb-3 bg-gray-50">
+                  <div className="flex-1 overflow-y-auto p-3 space-y-2">
                     {visibleSubBatchesInDept.length === 0 ? (
                       <div className="text-center text-gray-400 text-sm py-8">
                         No tasks
@@ -458,168 +444,34 @@ const ProductionView = () => {
                         {visibleSubBatchesInDept.map((subBatchInDept, cardIndex) => {
                           const priority = getPriority(subBatchInDept.due_date);
 
-                          // Check if this is a rework card for styling
-                          const isReworkCard = !!subBatchInDept.alteration_source ||
-                            subBatchInDept.remarks === 'Altered' ||
-                            subBatchInDept.remarks?.toLowerCase().includes('alter');
-
                           return (
                             <div
                               key={`dept-${dept.department_id}-card-${subBatchInDept.id}-${subBatchInDept.remarks || 'main'}-${cardIndex}`}
                               onClick={() => handleCardClick(subBatchInDept, dept.department_id)}
-                              className={`rounded-lg p-4 cursor-pointer hover:shadow-lg transition-all duration-200 group border-l-4 ${
-                                isReworkCard
-                                  ? 'bg-amber-50 border-l-amber-500 border border-amber-200 hover:border-amber-300'
-                                  : `${getCardStyle(subBatchInDept.remarks)} border hover:border-gray-300`
-                              }`}
+                              className="bg-white rounded-lg p-4 cursor-pointer hover:shadow-md transition-all duration-200 border border-gray-200"
                             >
                               {/* Task Header */}
                               <div className="flex items-start justify-between mb-3">
-                                <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">SUB-{subBatchInDept.id}</span>
-                                {priority ? getPriorityBadge(priority) : (
-                                  <span className={`text-xs font-medium px-2.5 py-1 rounded-md ${
-                                    isReworkCard ? 'bg-amber-500 text-white' : getBadgeColor(subBatchInDept.remarks)
+                                <h4 className="font-bold text-[#2272B4] text-sm leading-snug">
+                                  {subBatchInDept.name}
+                                </h4>
+                                {priority && (
+                                  <span className={`text-xs font-medium px-2 py-0.5 rounded flex items-center gap-1 flex-shrink-0 ml-2 ${
+                                    priority === 'urgent'
+                                      ? 'bg-red-100 text-red-700'
+                                      : 'bg-amber-100 text-amber-700'
                                   }`}>
-                                    {isReworkCard ? 'Rework' : getBadgeText(subBatchInDept.remarks)}
+                                    {priority === 'urgent' ? '!' : '⚠'} {priority === 'urgent' ? 'Overdue' : 'At Risk'}
                                   </span>
                                 )}
                               </div>
 
-                              {/* Task Title */}
-                              <h4 className="font-semibold text-gray-900 mb-3 text-base leading-snug">{subBatchInDept.name}</h4>
-
-                              {/* Worker Name - Only for Assigned cards */}
-                              {subBatchInDept.remarks === "Assigned" && subBatchInDept.assigned_worker_name && (
-                                <div className="mb-3">
-                                  <span className="text-xs bg-blue-50 text-blue-700 px-2.5 py-1 rounded-md font-medium border border-blue-200">
-                                    👷 {subBatchInDept.assigned_worker_name}
-                                  </span>
-                                </div>
-                              )}
-
-                              {/* Quantity Display - Enhanced like DepartmentView */}
-                              {(() => {
-                                // Detect if this is a rework card (from alteration)
-                                const isReworkCard = !!subBatchInDept.alteration_source ||
-                                  subBatchInDept.remarks === 'Altered' ||
-                                  subBatchInDept.remarks?.toLowerCase().includes('alter');
-
-                                const received = subBatchInDept.quantity_received ?? subBatchInDept.estimated_pieces;
-                                const remaining = subBatchInDept.quantity_remaining ?? subBatchInDept.estimated_pieces;
-                                const altered = isReworkCard ? 0 : (subBatchInDept.total_altered ?? 0);
-                                const rejected = isReworkCard ? 0 : (subBatchInDept.total_rejected ?? 0);
-                                const processed = received - remaining - altered - rejected;
-
-                                // For rework cards, show rework quantity
-                                const reworkQuantity = isReworkCard ?
-                                  (subBatchInDept.alteration_source?.quantity ?? subBatchInDept.quantity_received ?? 0) : 0;
-
-                                return (
-                                  <div className="space-y-1.5 mb-3">
-                                    {/* Remaining */}
-                                    {remaining !== null && remaining >= 0 && (
-                                      <div className="flex items-center gap-2 text-sm text-gray-600">
-                                        <span className="text-xs font-medium">
-                                          Remaining: {remaining.toLocaleString()} pcs
-                                        </span>
-                                      </div>
-                                    )}
-
-                                    {/* Processed */}
-                                    {processed > 0 && (
-                                      <div className="flex items-center gap-2 text-sm text-green-600">
-                                        <CheckCircle size={14} className="text-green-500" />
-                                        <span className="text-xs font-medium">
-                                          Processed: {processed.toLocaleString()} pcs
-                                        </span>
-                                      </div>
-                                    )}
-
-                                    {/* Rework indicator for altered cards */}
-                                    {isReworkCard && reworkQuantity > 0 && (
-                                      <div className="flex items-center gap-2 text-sm text-amber-600">
-                                        <RefreshCw size={14} className="text-amber-500" />
-                                        <span className="text-xs font-medium">
-                                          Rework: {reworkQuantity.toLocaleString()} pcs
-                                        </span>
-                                      </div>
-                                    )}
-
-                                    {/* Altered - Only show if > 0 AND not a rework card */}
-                                    {!isReworkCard && altered > 0 && (
-                                      <div className="flex items-center gap-2 text-sm text-amber-600">
-                                        <RefreshCw size={14} className="text-amber-500" />
-                                        <span className="text-xs font-medium">
-                                          Altered: {altered.toLocaleString()} pcs
-                                        </span>
-                                      </div>
-                                    )}
-
-                                    {/* Rejected - Only show if > 0 AND not a rework card */}
-                                    {!isReworkCard && rejected > 0 && (
-                                      <div className="flex items-center gap-2 text-sm text-red-600">
-                                        <XCircle size={14} className="text-red-500" />
-                                        <span className="text-xs font-medium">
-                                          Rejected: {rejected.toLocaleString()} pcs
-                                        </span>
-                                      </div>
-                                    )}
-                                  </div>
-                                );
-                              })()}
-
-                              {/* Task Meta Info */}
-                              <div className="space-y-2 mb-4">
-                                <div className="flex items-center gap-2 text-xs text-gray-600">
-                                  <Calendar size={13} className="text-gray-400" />
-                                  <span>{formatDate(subBatchInDept.start_date)}</span>
-                                </div>
-                                <div className="flex items-center gap-2 text-xs">
-                                  <Calendar size={13} className={priority ? "text-red-400" : "text-gray-400"} />
-                                  <span className={priority ? "text-red-600 font-medium" : "text-gray-600"}>
-                                    {formatDate(subBatchInDept.due_date)}
-                                  </span>
-                                </div>
-                              </div>
-
-                              {/* Batch Tag */}
-                              {subBatchInDept.batch_name && (
-                                <div className="flex items-center gap-2 mb-4">
-                                  <span className="text-xs bg-gray-100 text-gray-700 px-2.5 py-1 rounded-md font-medium border border-gray-200">
-                                    {subBatchInDept.batch_name}
-                                  </span>
-                                </div>
-                              )}
-
-                              {/* Footer - Avatar & Stats */}
-                              <div className="flex items-center justify-between pt-3 border-t border-gray-100">
-                                <div className="flex items-center gap-2">
-                                  {/* Avatar placeholder */}
-                                  <div className="w-6 h-6 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white text-xs font-semibold">
-                                    {subBatchInDept.name.charAt(0)}
-                                  </div>
-                                  {/* Status badge */}
-                                  <span className={`text-xs font-medium px-2 py-0.5 rounded-md ${getStatusColor(subBatchInDept.department_stage)}`}>
-                                    {getStatusText(subBatchInDept.department_stage)}
-                                  </span>
-                                </div>
-                                <div className="flex items-center gap-3">
-                                  {/* Attachment icon */}
-                                  <div className="flex items-center gap-1 text-gray-500">
-                                    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" className="text-gray-400">
-                                      <path d="M14 10V12.5C14 13.88 12.88 15 11.5 15H4.5C3.12 15 2 13.88 2 12.5V3.5C2 2.12 3.12 1 4.5 1H7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
-                                      <path d="M14 1V6M14 1H9M14 1L8 7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
-                                    </svg>
-                                    <span className="text-xs font-medium">{subBatchInDept.attachments?.length || 0}</span>
-                                  </div>
-                                  {/* Size details icon */}
-                                  <div className="flex items-center gap-1 text-gray-500">
-                                    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" className="text-gray-400">
-                                      <path d="M14 10.5C14 11.3284 13.3284 12 12.5 12H4.5L2 14.5V3.5C2 2.67157 2.67157 2 3.5 2H12.5C13.3284 2 14 2.67157 14 3.5V10.5Z" stroke="currentColor" strokeWidth="1.5"/>
-                                    </svg>
-                                    <span className="text-xs font-medium">{subBatchInDept.size_details?.length || 0}</span>
-                                  </div>
-                                </div>
+                              {/* Info Lines */}
+                              <div className="space-y-1 text-xs text-gray-600">
+                                <p>Batch: {subBatchInDept.batch_name || '-'}</p>
+                                <p>Due date: {formatNepaliDate(subBatchInDept.due_date)}</p>
+                                <p>Start date: {formatNepaliDate(subBatchInDept.start_date)}</p>
+                                <p>Remaining: {(subBatchInDept.quantity_remaining ?? subBatchInDept.estimated_pieces).toLocaleString()} pcs</p>
                               </div>
                             </div>
                           );
@@ -631,25 +483,20 @@ const ProductionView = () => {
                     ))}
 
                     {/* Completed Card - Always show */}
-            <div className="w-80 flex-shrink-0 bg-gray-50 rounded-xl flex flex-col overflow-hidden">
+            <div className="w-80 flex-shrink-0 bg-gray-100 rounded-xl flex flex-col overflow-hidden">
               {/* Completed Header */}
-              <div className="p-4 flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-2 h-2 rounded-full bg-green-500"></div>
-                  <span className="text-sm font-semibold text-gray-700">Completed</span>
-                  <span className="text-xs text-gray-500 font-medium">{data.completed_sub_batches.length}</span>
+              <div className="px-4 py-3 bg-white border border-gray-200 rounded-lg mx-3 mt-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="w-2.5 h-2.5 rounded-full bg-green-500"></div>
+                    <span className="text-sm font-semibold text-gray-800">Completed</span>
+                    <span className="text-xs text-gray-500 bg-white px-2 py-0.5 rounded-full border border-gray-200">{data.completed_sub_batches.length}</span>
+                  </div>
                 </div>
-                <button className="text-gray-400 hover:text-gray-600 transition-colors">
-                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                    <circle cx="8" cy="3" r="1.5" fill="currentColor"/>
-                    <circle cx="8" cy="8" r="1.5" fill="currentColor"/>
-                    <circle cx="8" cy="13" r="1.5" fill="currentColor"/>
-                  </svg>
-                </button>
               </div>
 
               {/* Completed Content */}
-              <div className="flex-1 overflow-y-auto px-3 pb-3 bg-gray-50">
+              <div className="flex-1 overflow-y-auto p-3 space-y-2">
                 {data.completed_sub_batches.length === 0 ? (
                   <div className="text-center text-gray-400 text-sm py-12 border-2 border-dashed border-gray-200 rounded-lg bg-white">
                     No completed sub-batches
@@ -659,56 +506,23 @@ const ProductionView = () => {
                     {data.completed_sub_batches.map((sb) => (
                       <div
                         key={`completed-${sb.id}`}
-                        className="bg-white rounded-lg p-4 border border-gray-200 hover:shadow-lg transition-all duration-200 hover:border-gray-300"
+                        className="bg-white rounded-lg p-4 cursor-pointer hover:shadow-md transition-all duration-200 border border-gray-200"
                       >
                         {/* Task Header */}
                         <div className="flex items-start justify-between mb-3">
-                          <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">SUB-{sb.id}</span>
-                          <span className="text-xs font-medium px-2.5 py-1 rounded-md bg-green-50 text-green-600 border border-green-200">
-                            ✓ Completed
+                          <h4 className="font-bold text-[#2272B4] text-sm leading-snug">
+                            {sb.name}
+                          </h4>
+                          <span className="text-xs font-medium px-2 py-0.5 rounded bg-green-100 text-green-700 flex-shrink-0 ml-2">
+                            ✓ Done
                           </span>
                         </div>
 
-                        {/* Task Title */}
-                        <h4 className="font-semibold text-gray-900 mb-3 text-base leading-snug">{sb.name}</h4>
-
-                        {/* Task Meta Info */}
-                        <div className="space-y-2 mb-4">
-                          <div className="flex items-center gap-2 text-xs text-gray-600">
-                            <Calendar size={13} className="text-gray-400" />
-                            <span>{formatDate(sb.start_date)}</span>
-                          </div>
-                          <div className="flex items-center gap-2 text-xs text-gray-600">
-                            <Calendar size={13} className="text-gray-400" />
-                            <span>{formatDate(sb.due_date)}</span>
-                          </div>
-                        </div>
-
-                        {/* Batch Tag */}
-                        {sb.batch_name && (
-                          <div className="flex items-center gap-2 mb-4">
-                            <span className="text-xs bg-gray-100 text-gray-700 px-2.5 py-1 rounded-md font-medium border border-gray-200">
-                              {sb.batch_name}
-                            </span>
-                          </div>
-                        )}
-
-                        {/* Footer - Avatar */}
-                        <div className="flex items-center justify-between pt-3 border-t border-gray-100">
-                          <div className="flex items-center gap-2">
-                            <div className="w-6 h-6 rounded-full bg-gradient-to-br from-green-400 to-green-600 flex items-center justify-center text-white text-xs font-semibold">
-                              {sb.name.charAt(0)}
-                            </div>
-                          </div>
-                          <div className="flex items-center gap-3">
-                            <div className="flex items-center gap-1 text-gray-500">
-                              <svg width="14" height="14" viewBox="0 0 16 16" fill="none" className="text-gray-400">
-                                <path d="M14 10V12.5C14 13.88 12.88 15 11.5 15H4.5C3.12 15 2 13.88 2 12.5V3.5C2 2.12 3.12 1 4.5 1H7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
-                                <path d="M14 1V6M14 1H9M14 1L8 7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
-                              </svg>
-                              <span className="text-xs font-medium">0</span>
-                            </div>
-                          </div>
+                        {/* Info Lines */}
+                        <div className="space-y-1 text-xs text-gray-600">
+                          <p>Batch: {sb.batch_name || '-'}</p>
+                          <p>Due date: {formatNepaliDate(sb.due_date)}</p>
+                          <p>Start date: {formatNepaliDate(sb.start_date)}</p>
                         </div>
                       </div>
                     ))}

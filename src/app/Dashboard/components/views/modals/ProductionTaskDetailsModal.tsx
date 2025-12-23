@@ -3,6 +3,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Calendar, X, AlertTriangle, Edit3, Plus, Trash2 } from 'lucide-react';
 import RejectModal from './RejectModal';
 import AlterationModal from './AlterationModal';
+import { formatNepaliDate } from '@/app/utils/dateUtils';
 
 interface ProductionTaskDetailsModalProps {
     isOpen: boolean;
@@ -28,12 +29,6 @@ const ProductionTaskDetailsModal: React.FC<ProductionTaskDetailsModalProps> = ({
     const [workerDate, setWorkerDate] = useState(new Date().toISOString().split('T')[0]);
     const [availableWorkers, setAvailableWorkers] = useState<any[]>([]);
 
-    // Format date helper
-    const formatDate = (dateString: string) => {
-        if (!dateString) return '';
-        const date = new Date(dateString);
-        return date.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' });
-    };
 
     // Fetch task details from new API
     const fetchTaskDetails = useCallback(async () => {
@@ -256,7 +251,7 @@ const ProductionTaskDetailsModal: React.FC<ProductionTaskDetailsModalProps> = ({
                                             <div className="relative">
                                                 <input
                                                     type="text"
-                                                    value={formatDate(taskDetails.estimated_start_date)}
+                                                    value={formatNepaliDate(taskDetails.estimated_start_date)}
                                                     disabled
                                                     className="w-full px-3 py-2 pr-8 text-sm border border-gray-300 rounded bg-gray-50 text-gray-700"
                                                 />
@@ -270,7 +265,7 @@ const ProductionTaskDetailsModal: React.FC<ProductionTaskDetailsModalProps> = ({
                                             <div className="relative">
                                                 <input
                                                     type="text"
-                                                    value={formatDate(taskDetails.due_date)}
+                                                    value={formatNepaliDate(taskDetails.due_date)}
                                                     disabled
                                                     className="w-full px-3 py-2 pr-8 text-sm border border-gray-300 rounded bg-gray-50 text-gray-700"
                                                 />
@@ -457,7 +452,7 @@ const ProductionTaskDetailsModal: React.FC<ProductionTaskDetailsModalProps> = ({
                                                             <tr key={worker.id} className="border-t border-gray-200">
                                                                 <td className="px-3 py-2 text-gray-900">{worker.worker_name}</td>
                                                                 <td className="px-3 py-2 text-gray-900">{worker.quantity}</td>
-                                                                <td className="px-3 py-2 text-gray-900">{formatDate(worker.date)}</td>
+                                                                <td className="px-3 py-2 text-gray-900">{formatNepaliDate(worker.date)}</td>
                                                                 <td className="px-3 py-2 text-center">
                                                                     <button
                                                                         onClick={() => handleDeleteWorker(worker.id)}
@@ -486,7 +481,7 @@ const ProductionTaskDetailsModal: React.FC<ProductionTaskDetailsModalProps> = ({
                                                 <div key={idx} className="bg-gray-50 rounded-lg p-4 border border-gray-200">
                                                     <div className="flex items-start justify-between mb-3">
                                                         <h4 className="font-semibold text-gray-900">{record.worker_name}</h4>
-                                                        <span className="text-xs text-gray-500">{formatDate(record.date)}</span>
+                                                        <span className="text-xs text-gray-500">{formatNepaliDate(record.date)}</span>
                                                     </div>
                                                     <div className="text-sm text-gray-600 mb-3">
                                                         Assigned Quantity: {record.assigned_quantity || 0}

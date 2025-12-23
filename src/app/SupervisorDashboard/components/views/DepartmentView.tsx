@@ -17,6 +17,7 @@ import RejectedTaskDetailsModal from "../../depcomponents/rejected/RejectedTaskD
 import Loader from "@/app/Components/Loader";
 import { useToast } from "@/app/Components/ToastContext";
 import { useDepartment } from "../../contexts/DepartmentContext";
+import { formatNepaliDate } from "@/app/utils/dateUtils";
 
 interface SizeDetail {
   id: number;
@@ -180,15 +181,6 @@ const SupervisorKanban = () => {
   const [currentSupervisorId, setCurrentSupervisorId] = useState<number>(0);
   const [showSortMenu, setShowSortMenu] = useState(false);
   const [sortBy, setSortBy] = useState<'name' | 'startDate' | 'dueDate'>('name');
-
-  // Format date helper - Memoized
-  const formatDate = useCallback((dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
-    });
-  }, []);
 
   // Get card styling based on remarks field - Memoized
   const getCardStyle = useCallback((remarks: string | null | undefined) => {
@@ -747,13 +739,13 @@ const SupervisorKanban = () => {
                         {/* Start Date */}
                         <div className="flex items-center gap-2 text-sm text-gray-600 mb-2">
                           <Calendar size={14} className="text-gray-400" />
-                          <span className="text-xs">Start: {formatDate(item.sub_batch.start_date)}</span>
+                          <span className="text-xs">Start: {formatNepaliDate(item.sub_batch.start_date)}</span>
                         </div>
 
                         {/* Due Date */}
                         <div className="flex items-center gap-2 text-sm text-gray-600 mb-2">
                           <Clock size={14} className="text-gray-400" />
-                          <span className="text-xs">Due: {formatDate(item.sub_batch.due_date)}</span>
+                          <span className="text-xs">Due: {formatNepaliDate(item.sub_batch.due_date)}</span>
                         </div>
 
                         {/* Batch Info */}

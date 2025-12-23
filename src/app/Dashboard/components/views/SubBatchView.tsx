@@ -8,6 +8,7 @@ import { Plus, Edit2, Trash2, X, FileX, Layers, Package, Volleyball, PackageMinu
 import Loader from "@/app/Components/Loader";
 import NepaliDatePicker from "@/app/Components/NepaliDatePicker";
 import { useToast } from "@/app/Components/ToastContext";
+import { formatNepaliDate } from "@/app/utils/dateUtils";
 
 const API = process.env.NEXT_PUBLIC_API_URL ;
 
@@ -29,6 +30,7 @@ interface SubBatch {
 interface Roll {
   id: number;
   name: string;
+  color?: string;
 }
 
 interface Batch {
@@ -38,14 +40,44 @@ interface Batch {
   color?: string;
   unit?: string;
   roll_id?: number | null;
+  total_pieces?: number;
   roll?: {
     id: number;
     name: string;
+    color?: string;
   };
   vendor?: {
     id: number;
     name: string;
   };
+  batch_rolls?: BatchRoll[];
+  batch_sizes?: BatchSize[];
+}
+
+interface BatchRoll {
+  id: number;
+  roll_id: number;
+  weight: number;
+  units?: number;
+  roll: {
+    id: number;
+    name: string;
+    color: string;
+    unit: string;
+  };
+}
+
+interface BatchSize {
+  id: number;
+  size: string;
+  pieces: number;
+}
+
+interface BatchSizeAllocation {
+  size: string;
+  total: number;
+  allocated: number;
+  available: number;
 }
 
 interface Department {
@@ -142,71 +174,71 @@ const FilterDropdown = ({
       {/* Trigger Button */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className={`flex items-center gap-2 px-3 py-2 text-sm border rounded-md transition-all duration-200 ${
+        className={`flex items-center gap-1.5 px-2.5 py-1.5 text-xs border rounded-md transition-all duration-200 ${
           isActive
             ? "border-[#2272B4] bg-blue-50 text-[#2272B4]"
-            : "border-gray-300 bg-white text-gray-700 hover:border-gray-400"
+            : "border-gray-300 bg-white text-gray-600 hover:border-gray-400"
         }`}
       >
         {icon && <span className="flex-shrink-0">{icon}</span>}
-        <span className="max-w-[150px] truncate">{displayLabel}</span>
-        <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`} />
+        <span className="max-w-[120px] truncate">{displayLabel}</span>
+        <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`} />
       </button>
 
       {/* Dropdown Panel */}
       {isOpen && (
-        <div className="absolute top-full left-0 mt-2 w-72 bg-white rounded-lg shadow-lg border border-gray-200 z-50 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
+        <div className="absolute top-full left-0 mt-1.5 w-64 bg-white rounded-lg shadow-lg border border-gray-200 z-50 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
           {/* Arrow pointer */}
-          <div className="absolute -top-2 left-4 w-4 h-4 bg-white border-l border-t border-gray-200 transform rotate-45" />
+          <div className="absolute -top-2 left-4 w-3 h-3 bg-white border-l border-t border-gray-200 transform rotate-45" />
 
           {/* Search Input */}
           {searchable && (
-            <div className="p-3 border-b border-gray-100">
+            <div className="p-2 border-b border-gray-100">
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
                 <input
                   ref={searchInputRef}
                   type="text"
                   placeholder="Search..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-9 pr-3 py-2 text-sm border border-gray-200 rounded-full focus:outline-none focus:ring-2 focus:ring-[#2272B4] focus:border-transparent"
+                  className="w-full pl-8 pr-3 py-1.5 text-xs border border-gray-200 rounded-full focus:outline-none focus:ring-1 focus:ring-[#2272B4] focus:border-transparent"
                 />
               </div>
             </div>
           )}
 
           {/* Options List */}
-          <div className="max-h-64 overflow-y-auto">
+          <div className="max-h-56 overflow-y-auto">
             {filteredOptions.length === 0 ? (
-              <div className="px-4 py-3 text-sm text-gray-500 text-center">No options found</div>
+              <div className="px-3 py-2 text-xs text-gray-500 text-center">No options found</div>
             ) : (
               filteredOptions.map((option) => (
                 <button
                   key={option.value}
                   onClick={() => handleSelect(option.value)}
-                  className={`w-full px-4 py-3 text-left hover:bg-gray-50 transition-colors flex items-start gap-3 ${
+                  className={`w-full px-3 py-2 text-left hover:bg-gray-50 transition-colors flex items-start gap-2.5 ${
                     value === option.value ? "bg-blue-50" : ""
                   }`}
                 >
                   {/* Selection indicator */}
-                  <div className={`mt-0.5 w-4 h-4 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${
+                  <div className={`mt-0.5 w-3.5 h-3.5 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${
                     value === option.value
                       ? "border-[#2272B4] bg-[#2272B4]"
                       : "border-gray-300"
                   }`}>
                     {value === option.value && (
-                      <Check className="w-2.5 h-2.5 text-white" />
+                      <Check className="w-2 h-2 text-white" />
                     )}
                   </div>
 
                   {/* Option content */}
                   <div className="flex-1 min-w-0">
-                    <div className={`text-sm font-medium ${value === option.value ? "text-[#2272B4]" : "text-gray-900"}`}>
+                    <div className={`text-xs font-medium ${value === option.value ? "text-[#2272B4]" : "text-gray-900"}`}>
                       {option.label}
                     </div>
                     {option.description && (
-                      <div className="text-xs text-gray-500 mt-0.5">{option.description}</div>
+                      <div className="text-[11px] text-gray-500 mt-0.5">{option.description}</div>
                     )}
                   </div>
                 </button>
@@ -244,6 +276,12 @@ const SubBatchView = () => {
   const [selectedBatchFilter, setSelectedBatchFilter] = useState<string>("all");
   const [selectedRollFilter, setSelectedRollFilter] = useState<string>("all");
   const [selectedRows, setSelectedRows] = useState<Set<number>>(new Set());
+
+  // Date filter states
+  const [selectedDateFilter, setSelectedDateFilter] = useState<string>("all");
+  const [customDateFrom, setCustomDateFrom] = useState<string>("");
+  const [customDateTo, setCustomDateTo] = useState<string>("");
+  const [showCustomDateModal, setShowCustomDateModal] = useState(false);
 
   // Sorting states
   const [sortColumn, setSortColumn] = useState<string>("id");
@@ -285,6 +323,16 @@ const SubBatchView = () => {
   const [newCategoryName, setNewCategoryName] = useState("");
   const [isSavingCategory, setIsSavingCategory] = useState(false);
 
+  // Roll/Color Selection State (for multi-roll batches)
+  const [batchRolls, setBatchRolls] = useState<BatchRoll[]>([]);
+  const [selectedRollId, setSelectedRollId] = useState<number | null>(null);
+
+  // Size Allocation State
+  const [batchSizeAllocation, setBatchSizeAllocation] = useState<BatchSizeAllocation[]>([]);
+  const [sizeAllocations, setSizeAllocations] = useState<{[size: string]: number}>({});
+  const [loadingBatchSizes, setLoadingBatchSizes] = useState(false);
+  const [selectedBatchHasSizes, setSelectedBatchHasSizes] = useState(false);
+
   const [openMenuId, setOpenMenuId] = useState<number | null>(null);
 
   // Modal dropdown states
@@ -292,8 +340,72 @@ const SubBatchView = () => {
   const [batchSearchQuery, setBatchSearchQuery] = useState("");
   const batchDropdownRef = useRef<HTMLDivElement>(null);
 
+  // Date filter helper function
+  const isDateInRange = (dateStr: string | undefined): boolean => {
+    if (!dateStr) return true;
+
+    const subBatchDate = new Date(dateStr);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    switch (selectedDateFilter) {
+      case "all":
+        return true;
+      case "today":
+        const todayEnd = new Date(today);
+        todayEnd.setHours(23, 59, 59, 999);
+        return subBatchDate >= today && subBatchDate <= todayEnd;
+      case "last7days":
+        const last7 = new Date(today);
+        last7.setDate(last7.getDate() - 7);
+        return subBatchDate >= last7;
+      case "last30days":
+        const last30 = new Date(today);
+        last30.setDate(last30.getDate() - 30);
+        return subBatchDate >= last30;
+      case "thisMonth":
+        const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
+        return subBatchDate >= monthStart;
+      case "custom":
+        if (customDateFrom && customDateTo) {
+          const from = new Date(customDateFrom);
+          const to = new Date(customDateTo);
+          to.setHours(23, 59, 59, 999);
+          return subBatchDate >= from && subBatchDate <= to;
+        }
+        return true;
+      default:
+        return true;
+    }
+  };
+
+  // Date filter label helper
+  const getDateFilterLabel = (): string => {
+    switch (selectedDateFilter) {
+      case "all":
+        return "All Dates";
+      case "today":
+        return "Today";
+      case "last7days":
+        return "Last 7 Days";
+      case "last30days":
+        return "Last 30 Days";
+      case "thisMonth":
+        return "This Month";
+      case "custom":
+        if (customDateFrom && customDateTo) {
+          const from = new Date(customDateFrom).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+          const to = new Date(customDateTo).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+          return `${from} - ${to}`;
+        }
+        return "Custom Range";
+      default:
+        return "All Dates";
+    }
+  };
+
   // Filter, sort, and paginate sub batches using useMemo
-  const { filteredSubBatches, paginatedSubBatches, totalPages, totalFiltered } = useMemo(() => {
+  const { paginatedSubBatches, totalPages, totalFiltered } = useMemo(() => {
     // Step 1: Filter
     let filtered = subBatches.filter(sb => {
       // Status filter
@@ -302,6 +414,8 @@ const SubBatchView = () => {
       if (selectedBatchFilter !== "all" && sb.batch_id !== Number(selectedBatchFilter)) return false;
       // Roll filter
       if (selectedRollFilter !== "all" && sb.roll_id !== Number(selectedRollFilter)) return false;
+      // Date filter (using start_date)
+      if (selectedDateFilter !== "all" && !isDateInRange(sb.start_date)) return false;
 
       // Search filter
       if (tableSearchQuery.trim()) {
@@ -357,8 +471,8 @@ const SubBatchView = () => {
     const startIndex = (currentPage - 1) * itemsPerPage;
     const paginated = filtered.slice(startIndex, startIndex + itemsPerPage);
 
-    return { filteredSubBatches: filtered, paginatedSubBatches: paginated, totalPages, totalFiltered };
-  }, [subBatches, selectedStatus, selectedBatchFilter, selectedRollFilter, tableSearchQuery, sortColumn, sortDirection, currentPage, itemsPerPage, batches, rolls]);
+    return { paginatedSubBatches: paginated, totalPages, totalFiltered };
+  }, [subBatches, selectedStatus, selectedBatchFilter, selectedRollFilter, selectedDateFilter, customDateFrom, customDateTo, tableSearchQuery, sortColumn, sortDirection, currentPage, itemsPerPage, batches, rolls]);
 
   // Handle sort column click
   const handleSort = (column: string) => {
@@ -376,12 +490,15 @@ const SubBatchView = () => {
     setSelectedStatus("all");
     setSelectedBatchFilter("all");
     setSelectedRollFilter("all");
+    setSelectedDateFilter("all");
+    setCustomDateFrom("");
+    setCustomDateTo("");
     setTableSearchQuery("");
     setCurrentPage(1);
   };
 
   // Check if any filters are active
-  const hasActiveFilters = selectedStatus !== "all" || selectedBatchFilter !== "all" || selectedRollFilter !== "all" || tableSearchQuery.trim() !== "";
+  const hasActiveFilters = selectedStatus !== "all" || selectedBatchFilter !== "all" || selectedRollFilter !== "all" || selectedDateFilter !== "all" || tableSearchQuery.trim() !== "";
 
   // Toggle row selection
   const toggleRowSelection = (id: number) => {
@@ -403,11 +520,6 @@ const SubBatchView = () => {
     } else {
       setSelectedRows(new Set(paginatedSubBatches.map(sb => sb.id)));
     }
-  };
-
-  const formatDate = (isoString: string | null | undefined) => {
-    if (!isoString) return "";
-    return new Date(isoString).toISOString().split("T")[0];
   };
 
   // Helper function to get status badge styling
@@ -509,6 +621,126 @@ const SubBatchView = () => {
     } catch (error) {
       console.error("Error fetching departments:", error);
     }
+  };
+
+  // Handle batch selection - fetch batch details and size allocation
+  const handleBatchSelection = async (batchId: number) => {
+    const selectedBatch = batches.find(b => b.id === batchId);
+    if (!selectedBatch) return;
+
+    // Update form data
+    setFormData(prev => ({
+      ...prev,
+      batch_id: String(batchId),
+      roll_id: '', // Clear roll_id - user will select from batch rolls
+    }));
+
+    // Set batch rolls for color selection
+    if (selectedBatch.batch_rolls && selectedBatch.batch_rolls.length > 0) {
+      setBatchRolls(selectedBatch.batch_rolls);
+
+      // Auto-select if only one roll
+      if (selectedBatch.batch_rolls.length === 1) {
+        setSelectedRollId(selectedBatch.batch_rolls[0].roll.id);
+        setFormData(prev => ({
+          ...prev,
+          roll_id: String(selectedBatch.batch_rolls![0].roll.id),
+        }));
+      } else {
+        setSelectedRollId(null);
+      }
+    } else if (selectedBatch.roll_id) {
+      // Legacy single-roll batch
+      setSelectedRollId(selectedBatch.roll_id);
+      setFormData(prev => ({
+        ...prev,
+        roll_id: String(selectedBatch.roll_id),
+      }));
+      setBatchRolls([]);
+    } else {
+      setBatchRolls([]);
+      setSelectedRollId(null);
+    }
+
+    // Fetch size allocation
+    setLoadingBatchSizes(true);
+    try {
+      const response = await axios.get(`${API}/batches/${batchId}/size-allocation`);
+      const allocation = response.data;
+
+      if (allocation.sizes && allocation.sizes.length > 0) {
+        setBatchSizeAllocation(allocation.sizes);
+        setSelectedBatchHasSizes(true);
+        // Reset size allocations
+        setSizeAllocations({});
+      } else {
+        setBatchSizeAllocation([]);
+        setSelectedBatchHasSizes(false);
+      }
+    } catch (error) {
+      console.error("Error fetching batch size allocation:", error);
+      setBatchSizeAllocation([]);
+      setSelectedBatchHasSizes(false);
+    } finally {
+      setLoadingBatchSizes(false);
+    }
+
+    // Close dropdown
+    setShowBatchDropdown(false);
+    setBatchSearchQuery("");
+  };
+
+  // Auto-calculate estimated pieces from size allocations
+  const calculatedEstimatedPieces = useMemo(() => {
+    if (!selectedBatchHasSizes) return 0;
+    return Object.values(sizeAllocations).reduce((sum, val) => sum + (val || 0), 0);
+  }, [sizeAllocations, selectedBatchHasSizes]);
+
+  // Validation for size allocations
+  const sizeAllocationValidation = useMemo(() => {
+    const hasAllocations = calculatedEstimatedPieces > 0;
+    const hasOverAllocation = batchSizeAllocation.some(
+      size => (sizeAllocations[size.size] || 0) > size.available
+    );
+    const isValid = hasAllocations && !hasOverAllocation;
+
+    return { hasAllocations, hasOverAllocation, isValid };
+  }, [batchSizeAllocation, sizeAllocations, calculatedEstimatedPieces]);
+
+  // Handle size allocation change
+  const handleSizeAllocationChange = (size: string, value: string) => {
+    const numValue = parseInt(value) || 0;
+    setSizeAllocations(prev => ({
+      ...prev,
+      [size]: numValue,
+    }));
+  };
+
+  // Close modal and reset all states
+  const closeModal = () => {
+    setIsModalOpen(false);
+    setEditingSubBatch(null);
+    setIsPreview(false);
+    setFormData({
+      name: "",
+      roll_id: "",
+      batch_id: "",
+      estimatedPieces: "",
+      expectedItems: "",
+      startDate: "",
+      dueDate: "",
+      attachmentName: "",
+      quantity: "",
+    });
+    setCustomCategories([]);
+    setSizesList([]);
+    setAttachments([]);
+    // Reset new batch selection states
+    setBatchRolls([]);
+    setSelectedRollId(null);
+    setBatchSizeAllocation([]);
+    setSizeAllocations({});
+    setSelectedBatchHasSizes(false);
   };
 
   // Save new category
@@ -623,6 +855,8 @@ const SubBatchView = () => {
     setIsSending(true);
 
     try {
+      const token = localStorage.getItem("token");
+
       const payload = {
         subBatchId: selectedSubBatch.id,
         manualDepartments: validWorkflow.map(step => step.departmentId),
@@ -631,7 +865,11 @@ const SubBatchView = () => {
 
       console.log("Sending payload:", payload);
 
-      const response = await axios.post(`${API}/sub-batches/send-to-production`, payload);
+      const response = await axios.post(`${API}/sub-batches/send-to-production`, payload, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
 
       if (response.data.success) {
         const workflow = response.data.workflow;
@@ -666,21 +904,62 @@ const SubBatchView = () => {
   const handleSaveSubBatch = async () => {
     try {
       setSaveLoading(true);
-      
+
+      // Validation for batches with sizes
+      if (selectedBatchHasSizes) {
+        // Must select a roll/color when batch has multiple rolls
+        if (batchRolls.length > 1 && !selectedRollId) {
+          showToast("warning", "Please select a roll/color for this sub-batch");
+          setSaveLoading(false);
+          return;
+        }
+
+        // Must have valid size allocation
+        if (!sizeAllocationValidation.isValid) {
+          if (!sizeAllocationValidation.hasAllocations) {
+            showToast("warning", "Please allocate at least one size");
+          } else if (sizeAllocationValidation.hasOverAllocation) {
+            showToast("error", "Cannot save: Some size allocations exceed available quantities");
+          }
+          setSaveLoading(false);
+          return;
+        }
+      }
+
+      // Determine roll ID: use selectedRollId if batch has rolls, otherwise use form data
+      const rollIdToUse = selectedBatchHasSizes && batchRolls.length > 0
+        ? selectedRollId
+        : (formData.roll_id ? Number(formData.roll_id) : null);
+
+      // Determine estimated pieces: auto-calculated when batch has sizes
+      const estimatedPiecesToUse = selectedBatchHasSizes
+        ? calculatedEstimatedPieces
+        : (Number(formData.estimatedPieces) || 0);
+
+      // Determine size details: from allocation when batch has sizes
+      const sizeDetailsToUse = selectedBatchHasSizes
+        ? Object.entries(sizeAllocations)
+            .filter(([, pieces]) => pieces > 0)
+            .map(([size, pieces]) => ({
+              category: size,
+              pieces: pieces,
+            }))
+        : sizesList
+            .filter((s) => s.size !== "" && s.number_of_pieces !== "")
+            .map((s) => ({
+              category: s.size,
+              pieces: Number(s.number_of_pieces),
+            }));
+
       const payload = {
-        rollId: formData.roll_id ? Number(formData.roll_id) : null,
+        rollId: rollIdToUse,
         batchId: formData.batch_id ? Number(formData.batch_id) : null,
         name: formData.name || "",
-        estimatedPieces: Number(formData.estimatedPieces) || 0,
-        expectedItems: Number(formData.expectedItems) || 100,
+        estimatedPieces: estimatedPiecesToUse,
+        expectedItems: estimatedPiecesToUse || Number(formData.expectedItems) || 100,
         startDate: formData.startDate ? new Date(formData.startDate).toISOString() : null,
         dueDate: formData.dueDate ? new Date(formData.dueDate).toISOString() : null,
-        sizeDetails: sizesList
-          .filter((s) => s.size !== "" && s.number_of_pieces !== "")
-          .map((s) => ({
-            category: s.size,
-            pieces: Number(s.number_of_pieces),
-          })),
+        sizeDetails: sizeDetailsToUse,
         attachments: attachments
           .filter((a) => a.name !== "" && a.quantity !== "")
           .map((a) => ({
@@ -689,32 +968,18 @@ const SubBatchView = () => {
           })),
       };
 
-      console.log(payload);
+      console.log("Saving sub-batch payload:", payload);
 
-      if (editingSubBatch) {
+      const isEditing = !!editingSubBatch;
+      if (isEditing) {
         await axios.put(`${API}/sub-batches/${editingSubBatch.id}`, payload);
       } else {
         await axios.post(`${API}/sub-batches`, payload);
       }
 
-      setIsModalOpen(false);
-      setEditingSubBatch(null);
-      setIsPreview(false);
-      setFormData({
-        name: "",
-        roll_id: "",
-        batch_id: "",
-        estimatedPieces: "",
-        expectedItems: "",
-        startDate: "",
-        dueDate: "",
-        attachmentName: "",
-        quantity: "",
-      });
-      setCustomCategories([]);
-      setSizesList([]);
-      setAttachments([]);
+      closeModal();
       fetchSubBatches();
+      showToast("success", isEditing ? "Sub-batch updated successfully!" : "Sub-batch created successfully!");
     } catch (error) {
       console.error("Error saving subbatch:", error);
       showToast("error", "Failed to save subbatch. Check console for details.");
@@ -847,8 +1112,31 @@ const SubBatchView = () => {
     return batch ? batch.name : "Unknown Batch";
   };
 
-  const toggleMenu = (id: number) => {
-    setOpenMenuId(openMenuId === id ? null : id);
+  // Get roll color from roll_id - returns null if not found (for data integrity)
+  const getRollColor = (roll_id: number | null | undefined): string | null => {
+    if (!roll_id) return null;
+    const roll = rolls.find((r) => r.id === roll_id);
+    return roll?.color || null;
+  };
+
+  // Color badge helpers - same as Roll and Batch views
+  const getColorBg = (colorName: string): string => {
+    const colorMap: Record<string, string> = {
+      black: '#1f2937', red: '#ef4444', blue: '#3b82f6',
+      green: '#22c55e', yellow: '#fbbf24', pink: '#f472b6',
+      white: '#f3f4f6', orange: '#f97316', purple: '#a855f7',
+      brown: '#92400e', gray: '#6b7280', grey: '#6b7280',
+      navy: '#1e3a5f', maroon: '#7f1d1d', teal: '#14b8a6',
+      cyan: '#06b6d4', lime: '#84cc16', indigo: '#6366f1',
+      violet: '#8b5cf6', rose: '#f43f5e', amber: '#f59e0b',
+      emerald: '#10b981', sky: '#0ea5e9', slate: '#64748b',
+    };
+    return colorMap[colorName?.toLowerCase()] || '#e5e7eb';
+  };
+
+  const getColorText = (colorName: string): string => {
+    const darkColors = ['black', 'red', 'blue', 'green', 'purple', 'brown', 'gray', 'grey', 'navy', 'maroon', 'indigo', 'violet'];
+    return darkColors.includes(colorName?.toLowerCase()) ? '#ffffff' : '#1f2937';
   };
 
   // Categories & Sizes & Attachments handlers
@@ -1002,16 +1290,31 @@ const SubBatchView = () => {
             setIsPreview(false);
             setIsModalOpen(true);
           }}
-          className="flex items-center gap-2 bg-[#2272B4] text-white px-5 py-2.5 rounded font-medium hover:bg-[#1a5a8a]"
+          className="flex items-center gap-1.5 bg-gray-900 text-white px-3 py-1.5 rounded-md text-sm font-medium hover:bg-gray-800 transition-colors"
         >
-          <Plus className="w-4 h-4" />
+          <Plus className="w-3.5 h-3.5" />
           Add Sub Batch
         </button>
       </div>
 
-      {/* HubSpot-style Horizontal Filter Bar */}
-      <div className="mb-4 flex items-center gap-3 flex-wrap">
-        {/* Status Filter Dropdown */}
+      {/* HubSpot-style Horizontal Filter Bar - Compact */}
+      <div className="mb-3 flex items-center gap-2 flex-wrap">
+        {/* 1. Search Input - Quick find (PRIMARY) */}
+        <div className="relative">
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
+          <input
+            type="text"
+            placeholder="Search..."
+            value={tableSearchQuery}
+            onChange={(e) => {
+              setTableSearchQuery(e.target.value);
+              setCurrentPage(1);
+            }}
+            className="pl-8 pr-3 py-1.5 text-xs border border-gray-300 rounded-md w-64 focus:outline-none focus:ring-1 focus:ring-[#2272B4] focus:border-[#2272B4]"
+          />
+        </div>
+
+        {/* 2. Status Filter Dropdown */}
         <FilterDropdown
           label="All Status"
           value={selectedStatus}
@@ -1025,7 +1328,7 @@ const SubBatchView = () => {
           ]}
         />
 
-        {/* Batch Filter Dropdown */}
+        {/* 3. Batch Filter Dropdown */}
         <FilterDropdown
           label="All Batches"
           value={selectedBatchFilter}
@@ -1040,7 +1343,7 @@ const SubBatchView = () => {
           ]}
         />
 
-        {/* Roll Filter Dropdown */}
+        {/* 4. Roll Filter Dropdown */}
         <FilterDropdown
           label="All Rolls"
           value={selectedRollFilter}
@@ -1055,7 +1358,32 @@ const SubBatchView = () => {
           ]}
         />
 
-        {/* Sort Dropdown */}
+        {/* 5. Date Filter - Time-based filtering */}
+        <FilterDropdown
+          label={getDateFilterLabel()}
+          value={selectedDateFilter}
+          onChange={(val) => {
+            if (val === "custom") {
+              setShowCustomDateModal(true);
+            } else {
+              setSelectedDateFilter(val);
+              setCustomDateFrom("");
+              setCustomDateTo("");
+              setCurrentPage(1);
+            }
+          }}
+          searchable={false}
+          options={[
+            { value: "all", label: "All Dates", description: "Show sub-batches from any date" },
+            { value: "today", label: "Today", description: "Sub-batches started today" },
+            { value: "last7days", label: "Last 7 Days", description: "Sub-batches from the past week" },
+            { value: "last30days", label: "Last 30 Days", description: "Sub-batches from the past month" },
+            { value: "thisMonth", label: "This Month", description: "Sub-batches started this month" },
+            { value: "custom", label: "Custom Range...", description: "Select specific date range" },
+          ]}
+        />
+
+        {/* 6. Sort Dropdown */}
         <FilterDropdown
           label="Sort"
           value={`${sortColumn}-${sortDirection}`}
@@ -1083,39 +1411,26 @@ const SubBatchView = () => {
           ]}
         />
 
-        {/* Advanced Filters Link */}
-        <button className="flex items-center gap-1.5 text-sm text-gray-600 hover:text-[#2272B4] transition-colors">
-          <SlidersHorizontal className="w-4 h-4" />
-          Advanced filters
+        {/* 7. Advanced Filters - Icon only with tooltip */}
+        <button
+          className="p-1.5 rounded-md border border-gray-300 text-gray-500 hover:text-[#2272B4] hover:border-[#2272B4] transition-colors"
+          title="Advanced filters"
+        >
+          <SlidersHorizontal className="w-3.5 h-3.5" />
         </button>
-
-        {/* Search Input */}
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-          <input
-            type="text"
-            placeholder="Search..."
-            value={tableSearchQuery}
-            onChange={(e) => {
-              setTableSearchQuery(e.target.value);
-              setCurrentPage(1);
-            }}
-            className="pl-9 pr-3 py-2 text-sm border border-gray-300 rounded-md w-48 focus:outline-none focus:ring-1 focus:ring-[#2272B4] focus:border-[#2272B4]"
-          />
-        </div>
 
         {/* Clear Filters */}
         {hasActiveFilters && (
           <button
             onClick={clearAllFilters}
-            className="text-sm text-red-600 hover:text-red-700 font-medium transition-colors"
+            className="text-xs text-red-500 hover:text-red-600 font-medium transition-colors"
           >
             Clear all
           </button>
         )}
 
         {/* Results Count */}
-        <span className="text-sm text-gray-500 ml-auto">
+        <span className="text-xs text-gray-400 ml-auto">
           {totalFiltered} {totalFiltered === 1 ? "result" : "results"}
         </span>
       </div>
@@ -1147,10 +1462,10 @@ const SubBatchView = () => {
         ) : (
           <>
             <div className="overflow-x-auto">
-              <table className="w-full min-w-full">
+              <table className="min-w-max w-full">
                 <thead>
-                  <tr className="border-b border-gray-200 bg-gray-50">
-                    <th className="px-4 py-2 text-left w-12">
+                  <tr className="border-b border-gray-200" style={{ backgroundColor: 'rgb(247, 242, 242)' }}>
+                    <th className="px-4 py-2 text-left w-12 whitespace-nowrap border-r border-gray-200">
                       <input
                         type="checkbox"
                         checked={paginatedSubBatches.length > 0 && paginatedSubBatches.every(sb => selectedRows.has(sb.id))}
@@ -1158,20 +1473,22 @@ const SubBatchView = () => {
                         className="w-4 h-4 rounded border-gray-300 text-[#2272B4] focus:ring-[#2272B4]"
                       />
                     </th>
-                    {/* Sortable Headers */}
+                    {/* Sortable Headers - Order: ID, Name, Pieces, Color, Parent Batch, Parent Roll, Status, Start Date, Due Date, Actions */}
                     <th
-                      className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors"
+                      className="px-4 py-2 text-left text-xs font-medium cursor-pointer hover:bg-gray-100 transition-colors whitespace-nowrap border-r border-gray-200"
+                      style={{ color: '#141414', fontWeight: 500 }}
                       onClick={() => handleSort("id")}
                     >
                       <div className="flex items-center gap-1">
-                        ID
+                        Id
                         {sortColumn === "id" && (
                           sortDirection === "asc" ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />
                         )}
                       </div>
                     </th>
                     <th
-                      className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors"
+                      className="px-4 py-2 text-left text-xs font-medium cursor-pointer hover:bg-gray-100 transition-colors whitespace-nowrap border-r border-gray-200"
+                      style={{ color: '#141414', fontWeight: 500 }}
                       onClick={() => handleSort("name")}
                     >
                       <div className="flex items-center gap-1">
@@ -1181,14 +1498,30 @@ const SubBatchView = () => {
                         )}
                       </div>
                     </th>
-                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Parent Roll
+                    <th
+                      className="px-4 py-2 text-left text-xs font-medium cursor-pointer hover:bg-gray-100 transition-colors whitespace-nowrap border-r border-gray-200"
+                      style={{ color: '#141414', fontWeight: 500 }}
+                      onClick={() => handleSort("estimated_pieces")}
+                    >
+                      <div className="flex items-center gap-1">
+                        Pieces
+                        {sortColumn === "estimated_pieces" && (
+                          sortDirection === "asc" ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />
+                        )}
+                      </div>
                     </th>
-                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-4 py-2 text-left text-xs font-medium whitespace-nowrap border-r border-gray-200" style={{ color: '#141414', fontWeight: 500 }}>
+                      Color
+                    </th>
+                    <th className="px-4 py-2 text-left text-xs font-medium whitespace-nowrap border-r border-gray-200" style={{ color: '#141414', fontWeight: 500 }}>
                       Parent Batch
                     </th>
+                    <th className="px-4 py-2 text-left text-xs font-medium whitespace-nowrap border-r border-gray-200" style={{ color: '#141414', fontWeight: 500 }}>
+                      Parent Roll
+                    </th>
                     <th
-                      className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors"
+                      className="px-4 py-2 text-left text-xs font-medium cursor-pointer hover:bg-gray-100 transition-colors whitespace-nowrap border-r border-gray-200"
+                      style={{ color: '#141414', fontWeight: 500 }}
                       onClick={() => handleSort("status")}
                     >
                       <div className="flex items-center gap-1">
@@ -1199,18 +1532,8 @@ const SubBatchView = () => {
                       </div>
                     </th>
                     <th
-                      className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors"
-                      onClick={() => handleSort("estimated_pieces")}
-                    >
-                      <div className="flex items-center gap-1">
-                        Pieces
-                        {sortColumn === "estimated_pieces" && (
-                          sortDirection === "asc" ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />
-                        )}
-                      </div>
-                    </th>
-                    <th
-                      className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors"
+                      className="px-4 py-2 text-left text-xs font-medium cursor-pointer hover:bg-gray-100 transition-colors whitespace-nowrap border-r border-gray-200"
+                      style={{ color: '#141414', fontWeight: 500 }}
                       onClick={() => handleSort("start_date")}
                     >
                       <div className="flex items-center gap-1">
@@ -1221,7 +1544,8 @@ const SubBatchView = () => {
                       </div>
                     </th>
                     <th
-                      className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors"
+                      className="px-4 py-2 text-left text-xs font-medium cursor-pointer hover:bg-gray-100 transition-colors whitespace-nowrap border-r border-gray-200"
+                      style={{ color: '#141414', fontWeight: 500 }}
                       onClick={() => handleSort("due_date")}
                     >
                       <div className="flex items-center gap-1">
@@ -1231,7 +1555,7 @@ const SubBatchView = () => {
                         )}
                       </div>
                     </th>
-                    <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-4 py-2 text-right text-xs font-medium whitespace-nowrap" style={{ color: '#141414', fontWeight: 500 }}>
                       Actions
                     </th>
                   </tr>
@@ -1242,7 +1566,7 @@ const SubBatchView = () => {
                       key={sb.id}
                       className={`transition-colors ${selectedRows.has(sb.id) ? 'bg-blue-50' : 'hover:bg-gray-50'}`}
                     >
-                      <td className="px-4 py-2">
+                      <td className="px-4 py-1.5 whitespace-nowrap border-r border-gray-200">
                         <input
                           type="checkbox"
                           checked={selectedRows.has(sb.id)}
@@ -1250,17 +1574,34 @@ const SubBatchView = () => {
                           className="w-4 h-4 rounded border-gray-300 text-[#2272B4] focus:ring-[#2272B4]"
                         />
                       </td>
-                      <td className="px-4 py-2 text-sm text-gray-500">SB{String(sb.id).padStart(3, '0')}</td>
-                      <td className="px-4 py-2">
-                        <span className="text-sm font-medium text-[#2272B4] hover:underline cursor-pointer">{sb.name}</span>
+                      {/* Order: ID, Name, Pieces, Color, Parent Batch, Parent Roll, Status, Start Date, Due Date */}
+                      <td className="px-4 py-1.5 text-sm text-gray-500 whitespace-nowrap border-r border-gray-200 font-light">SB{String(sb.id).padStart(3, '0')}</td>
+                      <td className="px-4 py-1.5 whitespace-nowrap border-r border-gray-200">
+                        <span className="text-sm font-medium text-[#2272B4] hover:underline cursor-pointer" onClick={() => handlePreview(sb.id)}>{sb.name}</span>
                       </td>
-                      <td className="px-4 py-2 text-sm text-gray-600">{getRollName(sb.roll_id)}</td>
-                      <td className="px-4 py-2 text-sm text-gray-600">{getBatchName(sb.batch_id)}</td>
-                      <td className="px-4 py-2 text-sm">{getStatusBadge(sb.status)}</td>
-                      <td className="px-4 py-2 text-sm text-gray-600">{sb.estimated_pieces}</td>
-                      <td className="px-4 py-2 text-sm text-gray-600">{formatDate(sb.start_date)}</td>
-                      <td className="px-4 py-2 text-sm text-gray-600">{formatDate(sb.due_date)}</td>
-                      <td className="px-4 py-2 text-right">
+                      <td className="px-4 py-1.5 text-sm text-gray-600 whitespace-nowrap border-r border-gray-200 font-light">{sb.estimated_pieces}</td>
+                      <td className="px-4 py-1.5 text-sm whitespace-nowrap border-r border-gray-200">
+                        {(() => {
+                          const color = getRollColor(sb.roll_id);
+                          if (color) {
+                            return (
+                              <span
+                                className="px-2 py-0.5 rounded text-xs font-medium"
+                                style={{ backgroundColor: getColorBg(color), color: getColorText(color) }}
+                              >
+                                {color}
+                              </span>
+                            );
+                          }
+                          return <span className="text-gray-400 font-light">—</span>;
+                        })()}
+                      </td>
+                      <td className="px-4 py-1.5 text-sm text-gray-600 whitespace-nowrap border-r border-gray-200 font-light">{getBatchName(sb.batch_id)}</td>
+                      <td className="px-4 py-1.5 text-sm text-gray-600 whitespace-nowrap border-r border-gray-200 font-light">{getRollName(sb.roll_id)}</td>
+                      <td className="px-4 py-1.5 text-sm whitespace-nowrap border-r border-gray-200">{getStatusBadge(sb.status)}</td>
+                      <td className="px-4 py-1.5 text-sm text-gray-600 whitespace-nowrap border-r border-gray-200 font-light">{formatNepaliDate(sb.start_date)}</td>
+                      <td className="px-4 py-1.5 text-sm text-gray-600 whitespace-nowrap border-r border-gray-200 font-light">{formatNepaliDate(sb.due_date)}</td>
+                      <td className="px-4 py-1.5 text-right whitespace-nowrap">
                         <div className="flex items-center justify-end gap-1">
                           <button
                             onClick={() => handlePreview(sb.id)}
@@ -1284,12 +1625,16 @@ const SubBatchView = () => {
                           >
                             <Trash2 size={16} />
                           </button>
+                          {/* Divider */}
+                          <div className="w-px h-4 bg-gray-300 mx-1"></div>
+                          {/* Send to Production - Prominent Green Pill Button */}
                           <button
                             onClick={() => handleSend(sb)}
-                            className="p-1.5 rounded hover:bg-gray-100 text-gray-400 hover:text-green-600 transition-colors"
+                            className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-green-600 text-white text-xs font-medium hover:bg-green-700 transition-colors"
                             title="Send to Production"
                           >
-                            <Package size={16} />
+                            <Package size={12} />
+                            Send
                           </button>
                         </div>
                       </td>
@@ -1726,7 +2071,7 @@ const SubBatchView = () => {
                 </p>
                 <p className="text-gray-500">
                   {selectedSubBatch.start_date && selectedSubBatch.due_date
-                    ? `${new Date(selectedSubBatch.start_date).toLocaleDateString()} - ${new Date(selectedSubBatch.due_date).toLocaleDateString()}`
+                    ? `${formatNepaliDate(selectedSubBatch.start_date)} - ${formatNepaliDate(selectedSubBatch.due_date)}`
                     : "-"}
                 </p>
               </div>
@@ -1833,15 +2178,14 @@ const SubBatchView = () => {
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex">
           <div
-            className="absolute inset-0 bg-white/30 transition-opacity duration-300"
-            style={{ backdropFilter: 'blur(4px)' }}
-            onClick={() => setIsModalOpen(false)}
+            className="absolute inset-0 bg-black/20 transition-opacity duration-300"
+            onClick={closeModal}
           />
 
           <div className={`ml-auto w-full max-w-xl bg-white shadow-lg p-4 relative h-screen overflow-y-auto transition-transform duration-300 ease-in-out ${isModalOpen ? 'translate-x-0' : 'translate-x-full'}`}>
             <button
               className="absolute top-4 right-4 text-gray-500 hover:text-gray-700"
-              onClick={() => setIsModalOpen(false)}
+              onClick={closeModal}
             >
               <X size={20} />
             </button>
@@ -1934,13 +2278,13 @@ const SubBatchView = () => {
                     {/* Start Date */}
                     <div className="flex justify-between items-center py-2 border-b border-gray-100">
                       <span className="font-medium text-black">Start Date</span>
-                      <span className="text-sm text-gray-500">{formatDate(formData.startDate)}</span>
+                      <span className="text-sm text-gray-500">{formatNepaliDate(formData.startDate)}</span>
                     </div>
 
                     {/* End Date */}
                     <div className="flex justify-between items-center py-2 border-b border-gray-100">
                       <span className="font-medium text-black">End Date</span>
-                      <span className="text-sm text-gray-500">{formatDate(formData.dueDate)}</span>
+                      <span className="text-sm text-gray-500">{formatNepaliDate(formData.dueDate)}</span>
                     </div>
 
                     
@@ -1986,13 +2330,26 @@ const SubBatchView = () => {
                         isPreview ? 'bg-gray-100 cursor-not-allowed' : 'bg-white hover:border-gray-300'
                       }`}
                     >
-                      <span className={formData.batch_id ? 'text-gray-900 truncate' : 'text-gray-400'}>
+                      <span className={formData.batch_id ? 'text-gray-900 truncate flex items-center gap-2' : 'text-gray-400'}>
                         {formData.batch_id
                           ? (() => {
                               const batch = batches.find(b => b.id === Number(formData.batch_id));
-                              return batch
-                                ? `${batch.name} (B${String(batch.id).padStart(3, '0')}) | ${batch.quantity} ${batch.unit || 'pcs'}`
-                                : 'Select batch...';
+                              if (!batch) return 'Select batch...';
+                              const hasSizes = batch.batch_sizes && batch.batch_sizes.length > 0;
+                              return (
+                                <>
+                                  {batch.name} (B{String(batch.id).padStart(3, '0')}) | {batch.quantity} {batch.unit || 'pcs'}
+                                  {hasSizes ? (
+                                    <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-xs bg-green-100 text-green-700">
+                                      ✓ {batch.batch_sizes!.length} sizes
+                                    </span>
+                                  ) : (
+                                    <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-xs bg-amber-100 text-amber-700">
+                                      ⚠ No sizes
+                                    </span>
+                                  )}
+                                </>
+                              );
                             })()
                           : 'Select batch...'}
                       </span>
@@ -2028,15 +2385,7 @@ const SubBatchView = () => {
                               <button
                                 key={batch.id}
                                 type="button"
-                                onClick={() => {
-                                  setFormData({
-                                    ...formData,
-                                    batch_id: String(batch.id),
-                                    roll_id: batch.roll_id ? String(batch.roll_id) : ''
-                                  });
-                                  setShowBatchDropdown(false);
-                                  setBatchSearchQuery("");
-                                }}
+                                onClick={() => handleBatchSelection(batch.id)}
                                 className={`w-full px-3 py-2.5 text-left hover:bg-gray-50 transition-colors flex items-start gap-3 ${
                                   formData.batch_id === String(batch.id) ? 'bg-blue-50' : ''
                                 }`}
@@ -2047,11 +2396,23 @@ const SubBatchView = () => {
                                   {formData.batch_id === String(batch.id) && <Check className="w-2.5 h-2.5 text-white" />}
                                 </div>
                                 <div className="flex-1 min-w-0">
-                                  <div className={`text-sm font-medium ${formData.batch_id === String(batch.id) ? 'text-[#2272B4]' : 'text-gray-900'}`}>
-                                    {batch.name} (B{String(batch.id).padStart(3, '0')})
+                                  <div className="flex items-center gap-2">
+                                    <span className={`text-sm font-medium ${formData.batch_id === String(batch.id) ? 'text-[#2272B4]' : 'text-gray-900'}`}>
+                                      {batch.name} (B{String(batch.id).padStart(3, '0')})
+                                    </span>
+                                    {batch.batch_sizes && batch.batch_sizes.length > 0 ? (
+                                      <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-xs bg-green-100 text-green-700">
+                                        ✓ {batch.batch_sizes.length} sizes
+                                      </span>
+                                    ) : (
+                                      <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-xs bg-amber-100 text-amber-700">
+                                        ⚠ No sizes
+                                      </span>
+                                    )}
                                   </div>
                                   <div className="text-xs text-gray-500">
                                     Qty: {batch.quantity} {batch.unit || 'pcs'} | Color: {batch.color || 'N/A'} | Vendor: {batch.vendor?.name || 'No Vendor'}
+                                    {batch.total_pieces ? ` | ${batch.total_pieces} pcs` : ''}
                                   </div>
                                 </div>
                               </button>
@@ -2069,34 +2430,73 @@ const SubBatchView = () => {
                     )}
                   </div>
 
-                      {/* Roll - AUTO-FILLED */}
-                      <div>
-                        <label className="block text-sm font-medium text-gray-900 mb-1.5">
-                          Roll Name <span className="text-xs text-gray-500">(Auto-filled from Batch)</span>
-                        </label>
-                        <select
-                          value={formData.roll_id}
-                          onChange={(e) => setFormData({ ...formData, roll_id: e.target.value })}
-                          className="w-full border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm bg-gray-100 cursor-not-allowed"
-                          disabled={true} // Always disabled - auto-filled from batch
-                        >
-                          <option value="">Select batch first to auto-fill roll...</option>
-                          {rolls.map((roll) => <option key={roll.id} value={roll.id}>{roll.name}</option>)}
-                        </select>
-                      </div>
+                      {/* Roll/Color Selection - For multi-roll batches */}
+                      {batchRolls.length > 1 ? (
+                        <div>
+                          <label className="block text-sm font-medium text-gray-900 mb-1.5">
+                            Select Roll / Color <span className="text-red-500">*</span>
+                          </label>
+                          <div className="border border-gray-200 rounded-lg overflow-hidden">
+                            {batchRolls.map((br) => (
+                              <button
+                                key={br.roll.id}
+                                type="button"
+                                onClick={() => {
+                                  setSelectedRollId(br.roll.id);
+                                  setFormData(prev => ({ ...prev, roll_id: String(br.roll.id) }));
+                                }}
+                                className={`w-full px-3 py-2 text-left flex items-center gap-3 transition-colors ${
+                                  selectedRollId === br.roll.id ? 'bg-blue-50 border-l-2 border-[#2272B4]' : 'hover:bg-gray-50'
+                                }`}
+                                disabled={isPreview}
+                              >
+                                <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${
+                                  selectedRollId === br.roll.id ? 'border-[#2272B4] bg-[#2272B4]' : 'border-gray-300'
+                                }`}>
+                                  {selectedRollId === br.roll.id && <Check className="w-2.5 h-2.5 text-white" />}
+                                </div>
+                                <div className="flex-1">
+                                  <span className="text-sm font-medium text-gray-900">{br.roll.name}</span>
+                                  <span className="text-xs text-gray-500 ml-2">| {br.roll.color} | {br.weight} {br.roll.unit}</span>
+                                </div>
+                              </button>
+                            ))}
+                          </div>
+                          {!selectedRollId && formData.batch_id && (
+                            <p className="text-xs text-amber-600 mt-1">Please select a roll/color</p>
+                          )}
+                        </div>
+                      ) : (
+                        <div>
+                          <label className="block text-sm font-medium text-gray-900 mb-1.5">
+                            Roll Name <span className="text-xs text-gray-500">(Auto-filled from Batch)</span>
+                          </label>
+                          <select
+                            value={formData.roll_id}
+                            onChange={(e) => setFormData({ ...formData, roll_id: e.target.value })}
+                            className="w-full border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm bg-gray-100 cursor-not-allowed"
+                            disabled={true}
+                          >
+                            <option value="">Select batch first to auto-fill roll...</option>
+                            {rolls.map((roll) => <option key={roll.id} value={roll.id}>{roll.name}</option>)}
+                          </select>
+                        </div>
+                      )}
 
-                  {/* Estimated Pieces */}
+                  {/* Estimated Pieces - Auto-calculated when sizes allocated */}
                   <div>
                     <label className="block text-sm font-medium text-gray-900 mb-1.5">
-                      Estimated Pieces
+                      Estimated Pieces {selectedBatchHasSizes && <span className="text-xs text-gray-500">(Auto-calculated from sizes)</span>}
                     </label>
                     <input
                       type="number"
                       placeholder="Enter estimated pieces"
-                      value={formData.estimatedPieces}
+                      value={selectedBatchHasSizes ? calculatedEstimatedPieces : formData.estimatedPieces}
                       onChange={(e) => setFormData({ ...formData, estimatedPieces: e.target.value })}
-                      className="w-full border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
-                      disabled={isPreview}
+                      className={`w-full border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm ${
+                        selectedBatchHasSizes ? 'bg-gray-100 cursor-not-allowed' : ''
+                      }`}
+                      disabled={isPreview || selectedBatchHasSizes}
                     />
                   </div>
 
@@ -2136,7 +2536,78 @@ const SubBatchView = () => {
                     )}
                   </div>
 
-                  {/* Items */}
+                  {/* Size Allocation - Show when batch has sizes */}
+                  {selectedBatchHasSizes && formData.batch_id && (
+                    <div className="bg-gray-50 rounded-lg p-3 border border-gray-200">
+                      <label className="block text-sm font-medium text-gray-900 mb-2">
+                        Allocate Sizes from Batch <span className="text-red-500">*</span>
+                      </label>
+
+                      {loadingBatchSizes ? (
+                        <div className="text-sm text-gray-500 text-center py-4">Loading sizes...</div>
+                      ) : batchSizeAllocation.length > 0 ? (
+                        <>
+                          <div className="space-y-2">
+                            {batchSizeAllocation.map((size) => {
+                              const allocation = sizeAllocations[size.size] || 0;
+                              const isOverAllocated = allocation > size.available;
+                              return (
+                                <div key={size.size} className="flex items-center gap-3">
+                                  <div className="w-16 text-sm font-medium text-gray-700">{size.size}</div>
+                                  <div className="text-xs text-gray-500">
+                                    Available: {size.available}/{size.total}
+                                  </div>
+                                  <div className="flex-1">
+                                    <input
+                                      type="number"
+                                      min="0"
+                                      max={size.available}
+                                      value={allocation || ''}
+                                      onChange={(e) => handleSizeAllocationChange(size.size, e.target.value)}
+                                      placeholder="0"
+                                      className={`w-full border rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                                        isOverAllocated ? 'border-red-300 bg-red-50' : 'border-gray-200'
+                                      }`}
+                                      disabled={isPreview}
+                                    />
+                                  </div>
+                                  {isOverAllocated && (
+                                    <span className="text-xs text-red-500">Exceeds available</span>
+                                  )}
+                                </div>
+                              );
+                            })}
+                          </div>
+
+                          {/* Allocation Summary */}
+                          <div className={`mt-3 pt-3 border-t border-gray-200 flex items-center justify-between ${
+                            sizeAllocationValidation.hasOverAllocation ? 'text-red-600' :
+                            sizeAllocationValidation.hasAllocations ? 'text-green-600' : 'text-gray-500'
+                          }`}>
+                            <span className="text-sm font-medium">
+                              Total Allocated: {calculatedEstimatedPieces} pieces
+                            </span>
+                            {sizeAllocationValidation.hasOverAllocation && (
+                              <span className="text-xs">⚠️ Over-allocation detected</span>
+                            )}
+                            {!sizeAllocationValidation.hasAllocations && (
+                              <span className="text-xs">Allocate at least one size</span>
+                            )}
+                            {sizeAllocationValidation.isValid && (
+                              <span className="text-xs">✓ Valid allocation</span>
+                            )}
+                          </div>
+                        </>
+                      ) : (
+                        <div className="text-sm text-amber-600 text-center py-4">
+                          This batch has no size breakdown defined. Please add sizes to the batch first.
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Items - Show only when batch doesn't have sizes */}
+                  {!selectedBatchHasSizes && (
                   <div>
                     <div className="flex items-center justify-between mb-1.5">
                       <label className="block text-sm font-medium text-gray-900">Items</label>
@@ -2199,6 +2670,7 @@ const SubBatchView = () => {
                       </div>
                     )}
                   </div>
+                  )}
 
                   {/* Attachment */}
                   <div>
@@ -2258,7 +2730,7 @@ const SubBatchView = () => {
                         Start Date
                       </label>
                       <NepaliDatePicker
-                        value={formatDate(formData.startDate)}
+                        value={formData.startDate || ""}
                         onChange={(value) =>
                           setFormData({
                             ...formData,
@@ -2277,7 +2749,7 @@ const SubBatchView = () => {
                         Due Date
                       </label>
                       <NepaliDatePicker
-                        value={formatDate(formData.dueDate)}
+                        value={formData.dueDate || ""}
                         onChange={(value) =>
                           setFormData({
                             ...formData,
@@ -2296,7 +2768,7 @@ const SubBatchView = () => {
                     {/* Footer Buttons */}
                     <div className="flex justify-end gap-3 mt-4 pt-4 border-t border-gray-200 sticky bottom-0 bg-white">
                       <button
-                        onClick={() => setIsModalOpen(false)}
+                        onClick={closeModal}
                         className="px-6 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 font-medium transition-colors"
                       >
                         Cancel
@@ -2321,6 +2793,82 @@ const SubBatchView = () => {
                     </div>
                   </>
                 )}
+          </div>
+        </div>
+      )}
+
+      {/* Custom Date Range Modal */}
+      {showCustomDateModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div
+            className="absolute inset-0 bg-black/20"
+            onClick={() => setShowCustomDateModal(false)}
+          />
+          <div className="relative bg-white rounded-lg shadow-xl w-full max-w-sm mx-4 p-5">
+            <button
+              className="absolute top-3 right-3 text-gray-400 hover:text-gray-600"
+              onClick={() => setShowCustomDateModal(false)}
+            >
+              <X size={18} />
+            </button>
+
+            <h3 className="text-base font-semibold text-gray-900 mb-4">
+              Custom Date Range
+            </h3>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                  From Date
+                </label>
+                <input
+                  type="date"
+                  value={customDateFrom}
+                  onChange={(e) => setCustomDateFrom(e.target.value)}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#2272B4] focus:border-transparent"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                  To Date
+                </label>
+                <input
+                  type="date"
+                  value={customDateTo}
+                  onChange={(e) => setCustomDateTo(e.target.value)}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#2272B4] focus:border-transparent"
+                />
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-3 mt-5">
+              <button
+                className="px-4 py-2 text-sm font-medium text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                onClick={() => {
+                  setCustomDateFrom("");
+                  setCustomDateTo("");
+                  setSelectedDateFilter("all");
+                  setShowCustomDateModal(false);
+                  setCurrentPage(1);
+                }}
+              >
+                Clear
+              </button>
+              <button
+                className="px-4 py-2 text-sm font-medium text-white bg-[#2272B4] rounded-lg hover:bg-[#1b5a8a] transition-colors disabled:opacity-50"
+                disabled={!customDateFrom || !customDateTo}
+                onClick={() => {
+                  if (customDateFrom && customDateTo) {
+                    setSelectedDateFilter("custom");
+                    setShowCustomDateModal(false);
+                    setCurrentPage(1);
+                  }
+                }}
+              >
+                Apply
+              </button>
+            </div>
           </div>
         </div>
       )}

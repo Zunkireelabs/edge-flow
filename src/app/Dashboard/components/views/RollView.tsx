@@ -20,6 +20,32 @@ import {
 } from "lucide-react";
 import Loader from "@/app/Components/Loader";
 import { useToast } from "@/app/Components/ToastContext";
+import { formatNepaliDate } from "@/app/utils/dateUtils";
+
+// Helper function to get background color from color name
+const getColorBg = (colorName: string): string => {
+  const colorMap: Record<string, string> = {
+    black: '#1f2937',
+    red: '#ef4444',
+    blue: '#3b82f6',
+    green: '#22c55e',
+    yellow: '#fbbf24',
+    pink: '#f472b6',
+    white: '#f3f4f6',
+    orange: '#f97316',
+    purple: '#a855f7',
+    brown: '#92400e',
+    gray: '#6b7280',
+    grey: '#6b7280',
+  };
+  return colorMap[colorName?.toLowerCase()] || '#e5e7eb';
+};
+
+// Helper function to determine if text should be white or black
+const getColorText = (colorName: string): string => {
+  const darkColors = ['black', 'red', 'blue', 'green', 'purple', 'brown', 'gray', 'grey', 'orange'];
+  return darkColors.includes(colorName?.toLowerCase()) ? '#ffffff' : '#1f2937';
+};
 
 // Filter Dropdown Option Interface
 interface FilterOption {
@@ -83,58 +109,58 @@ const FilterDropdown = ({
     <div className="relative" ref={dropdownRef}>
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className={`flex items-center gap-2 px-3 py-2 text-sm border rounded-md transition-all duration-200 ${
+        className={`flex items-center gap-1.5 px-2.5 py-1.5 text-xs border rounded-md transition-all duration-200 ${
           isActive
             ? "border-[#2272B4] bg-blue-50 text-[#2272B4]"
-            : "border-gray-300 bg-white text-gray-700 hover:border-gray-400"
+            : "border-gray-300 bg-white text-gray-600 hover:border-gray-400"
         }`}
       >
         {icon && <span className="flex-shrink-0">{icon}</span>}
-        <span className="max-w-[150px] truncate">{displayLabel}</span>
-        <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`} />
+        <span className="max-w-[120px] truncate">{displayLabel}</span>
+        <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`} />
       </button>
 
       {isOpen && (
-        <div className="absolute top-full left-0 mt-2 w-72 bg-white rounded-lg shadow-lg border border-gray-200 z-50 overflow-hidden">
-          <div className="absolute -top-2 left-4 w-4 h-4 bg-white border-l border-t border-gray-200 transform rotate-45" />
+        <div className="absolute top-full left-0 mt-1.5 w-64 bg-white rounded-lg shadow-lg border border-gray-200 z-50 overflow-hidden">
+          <div className="absolute -top-2 left-4 w-3 h-3 bg-white border-l border-t border-gray-200 transform rotate-45" />
           {searchable && (
-            <div className="p-3 border-b border-gray-100">
+            <div className="p-2 border-b border-gray-100">
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
                 <input
                   ref={searchInputRef}
                   type="text"
                   placeholder="Search..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-9 pr-3 py-2 text-sm border border-gray-200 rounded-full focus:outline-none focus:ring-2 focus:ring-[#2272B4] focus:border-transparent"
+                  className="w-full pl-8 pr-3 py-1.5 text-xs border border-gray-200 rounded-full focus:outline-none focus:ring-1 focus:ring-[#2272B4] focus:border-transparent"
                 />
               </div>
             </div>
           )}
-          <div className="max-h-64 overflow-y-auto">
+          <div className="max-h-56 overflow-y-auto">
             {filteredOptions.length === 0 ? (
-              <div className="px-4 py-3 text-sm text-gray-500 text-center">No options found</div>
+              <div className="px-3 py-2 text-xs text-gray-500 text-center">No options found</div>
             ) : (
               filteredOptions.map((option) => (
                 <button
                   key={option.value}
                   onClick={() => handleSelect(option.value)}
-                  className={`w-full px-4 py-3 text-left hover:bg-gray-50 transition-colors flex items-start gap-3 ${
+                  className={`w-full px-3 py-2 text-left hover:bg-gray-50 transition-colors flex items-start gap-2.5 ${
                     value === option.value ? "bg-blue-50" : ""
                   }`}
                 >
-                  <div className={`mt-0.5 w-4 h-4 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${
+                  <div className={`mt-0.5 w-3.5 h-3.5 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${
                     value === option.value ? "border-[#2272B4] bg-[#2272B4]" : "border-gray-300"
                   }`}>
-                    {value === option.value && <Check className="w-2.5 h-2.5 text-white" />}
+                    {value === option.value && <Check className="w-2 h-2 text-white" />}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className={`text-sm font-medium ${value === option.value ? "text-[#2272B4]" : "text-gray-900"}`}>
+                    <div className={`text-xs font-medium ${value === option.value ? "text-[#2272B4]" : "text-gray-900"}`}>
                       {option.label}
                     </div>
                     {option.description && (
-                      <div className="text-xs text-gray-500 mt-0.5">{option.description}</div>
+                      <div className="text-[11px] text-gray-500 mt-0.5">{option.description}</div>
                     )}
                   </div>
                 </button>
@@ -166,6 +192,7 @@ interface Roll {
   unit: string;
   color: string;
   vendor: Vendor | null;
+  created_at?: string;  // Date when roll was created
 }
 
 // ✅ .env API variables
@@ -190,6 +217,12 @@ const RollView = () => {
   const [selectedUnit, setSelectedUnit] = useState<string>("all");
   const [selectedColor, setSelectedColor] = useState<string>("all");
   const [selectedVendorFilter, setSelectedVendorFilter] = useState<string>("all");
+
+  // Date filter states
+  const [selectedDateFilter, setSelectedDateFilter] = useState<string>("all");
+  const [customDateFrom, setCustomDateFrom] = useState<string>("");
+  const [customDateTo, setCustomDateTo] = useState<string>("");
+  const [showCustomDateModal, setShowCustomDateModal] = useState(false);
 
   // Sorting states
   const [sortColumn, setSortColumn] = useState<string>("id");
@@ -249,6 +282,44 @@ const RollView = () => {
   const uniqueUnits = Array.from(new Set(rolls.map(r => r.unit).filter(Boolean)));
   const uniqueColors = Array.from(new Set(rolls.map(r => r.color).filter(Boolean)));
 
+  // Helper function to check if date is within filter range
+  const isDateInRange = (dateStr: string | undefined): boolean => {
+    if (!dateStr) return true; // If no date, include it
+    const rollDate = new Date(dateStr);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    switch (selectedDateFilter) {
+      case "all":
+        return true;
+      case "today":
+        const todayEnd = new Date(today);
+        todayEnd.setHours(23, 59, 59, 999);
+        return rollDate >= today && rollDate <= todayEnd;
+      case "last7days":
+        const last7 = new Date(today);
+        last7.setDate(last7.getDate() - 7);
+        return rollDate >= last7;
+      case "last30days":
+        const last30 = new Date(today);
+        last30.setDate(last30.getDate() - 30);
+        return rollDate >= last30;
+      case "thisMonth":
+        const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
+        return rollDate >= monthStart;
+      case "custom":
+        if (customDateFrom && customDateTo) {
+          const from = new Date(customDateFrom);
+          const to = new Date(customDateTo);
+          to.setHours(23, 59, 59, 999);
+          return rollDate >= from && rollDate <= to;
+        }
+        return true;
+      default:
+        return true;
+    }
+  };
+
   // Filter, sort, and paginate rolls using useMemo
   const { paginatedRolls, totalPages, totalFiltered } = useMemo(() => {
     // Step 1: Filter
@@ -256,6 +327,9 @@ const RollView = () => {
       if (selectedUnit !== "all" && roll.unit !== selectedUnit) return false;
       if (selectedColor !== "all" && roll.color !== selectedColor) return false;
       if (selectedVendorFilter !== "all" && roll.vendor?.id.toString() !== selectedVendorFilter) return false;
+
+      // Date filter
+      if (selectedDateFilter !== "all" && !isDateInRange(roll.created_at)) return false;
 
       // Search filter
       if (tableSearchQuery.trim()) {
@@ -297,7 +371,8 @@ const RollView = () => {
     const paginated = filtered.slice(startIndex, startIndex + itemsPerPage);
 
     return { paginatedRolls: paginated, totalPages, totalFiltered };
-  }, [rolls, selectedUnit, selectedColor, selectedVendorFilter, tableSearchQuery, sortColumn, sortDirection, currentPage, itemsPerPage]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rolls, selectedUnit, selectedColor, selectedVendorFilter, selectedDateFilter, customDateFrom, customDateTo, tableSearchQuery, sortColumn, sortDirection, currentPage, itemsPerPage]);
 
   // Handle sort column click
   const handleSort = (column: string) => {
@@ -324,12 +399,34 @@ const RollView = () => {
     setSelectedUnit("all");
     setSelectedColor("all");
     setSelectedVendorFilter("all");
+    setSelectedDateFilter("all");
+    setCustomDateFrom("");
+    setCustomDateTo("");
     setTableSearchQuery("");
     setCurrentPage(1);
   };
 
   // Check if any filters are active
-  const hasActiveFilters = selectedUnit !== "all" || selectedColor !== "all" || selectedVendorFilter !== "all" || tableSearchQuery.trim() !== "";
+  const hasActiveFilters = selectedUnit !== "all" || selectedColor !== "all" || selectedVendorFilter !== "all" || selectedDateFilter !== "all" || tableSearchQuery.trim() !== "";
+
+  // Get date filter display label
+  const getDateFilterLabel = (): string => {
+    switch (selectedDateFilter) {
+      case "all": return "All Dates";
+      case "today": return "Today";
+      case "last7days": return "Last 7 Days";
+      case "last30days": return "Last 30 Days";
+      case "thisMonth": return "This Month";
+      case "custom":
+        if (customDateFrom && customDateTo) {
+          const from = new Date(customDateFrom).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+          const to = new Date(customDateTo).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+          return `${from} - ${to}`;
+        }
+        return "Custom Range";
+      default: return "All Dates";
+    }
+  };
 
   // Reset form data
   const resetFormData = () => {
@@ -677,7 +774,7 @@ const RollView = () => {
           <p className="text-gray-500 text-sm">Manage production rolls and track progress</p>
         </div>
         <button
-          className="flex items-center gap-2 bg-[#2272B4] text-white px-5 py-2.5 rounded font-medium hover:bg-[#1a5a8a]"
+          className="flex items-center gap-1.5 bg-gray-900 text-white px-3 py-1.5 rounded-md text-sm font-medium hover:bg-gray-800 transition-colors"
           onClick={() => {
             resetFormData();
             setIsDrawerOpen(true);
@@ -685,43 +782,53 @@ const RollView = () => {
             setIsPreview(false);
           }}
         >
-          <Plus size={18} /> Add Roll
+          <Plus size={14} /> Add Roll
         </button>
       </div>
 
-      {/* HubSpot-style Horizontal Filter Bar */}
-      <div className="mb-4 flex items-center gap-3 flex-wrap">
-        {/* Unit Filter */}
+      {/* HubSpot-style Horizontal Filter Bar - Compact */}
+      <div className="mb-3 flex items-center gap-2 flex-wrap">
+        {/* 1. Search Input - Quick find (PRIMARY) */}
+        <div className="relative">
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
+          <input
+            type="text"
+            placeholder="Search..."
+            value={tableSearchQuery}
+            onChange={(e) => {
+              setTableSearchQuery(e.target.value);
+              setCurrentPage(1);
+            }}
+            className="pl-8 pr-3 py-1.5 text-xs border border-gray-300 rounded-md w-64 focus:outline-none focus:ring-1 focus:ring-[#2272B4] focus:border-[#2272B4]"
+          />
+        </div>
+
+        {/* 2. Date Filter - Time-based filtering */}
         <FilterDropdown
-          label="All Units"
-          value={selectedUnit}
-          onChange={(val) => { setSelectedUnit(val); setCurrentPage(1); }}
+          label={getDateFilterLabel()}
+          value={selectedDateFilter}
+          onChange={(val) => {
+            if (val === "custom") {
+              setShowCustomDateModal(true);
+            } else {
+              setSelectedDateFilter(val);
+              setCustomDateFrom("");
+              setCustomDateTo("");
+              setCurrentPage(1);
+            }
+          }}
+          searchable={false}
           options={[
-            { value: "all", label: "All Units", description: "Show rolls with any unit" },
-            ...uniqueUnits.map(unit => ({
-              value: unit,
-              label: unit,
-              description: `Filter by ${unit}`
-            }))
+            { value: "all", label: "All Dates", description: "Show rolls from any date" },
+            { value: "today", label: "Today", description: "Rolls created today" },
+            { value: "last7days", label: "Last 7 Days", description: "Rolls from the past week" },
+            { value: "last30days", label: "Last 30 Days", description: "Rolls from the past month" },
+            { value: "thisMonth", label: "This Month", description: "Rolls created this month" },
+            { value: "custom", label: "Custom Range...", description: "Select specific date range" },
           ]}
         />
 
-        {/* Color Filter */}
-        <FilterDropdown
-          label="All Colors"
-          value={selectedColor}
-          onChange={(val) => { setSelectedColor(val); setCurrentPage(1); }}
-          options={[
-            { value: "all", label: "All Colors", description: "Show rolls with any color" },
-            ...uniqueColors.map(color => ({
-              value: color,
-              label: color,
-              description: `Filter by ${color} color`
-            }))
-          ]}
-        />
-
-        {/* Vendor Filter */}
+        {/* 3. Vendor Filter - Source/supplier filter */}
         <FilterDropdown
           label="All Vendors"
           value={selectedVendorFilter}
@@ -736,7 +843,37 @@ const RollView = () => {
           ]}
         />
 
-        {/* Sort Dropdown */}
+        {/* 4. Color Filter - Visual attribute */}
+        <FilterDropdown
+          label="All Colors"
+          value={selectedColor}
+          onChange={(val) => { setSelectedColor(val); setCurrentPage(1); }}
+          options={[
+            { value: "all", label: "All Colors", description: "Show rolls with any color" },
+            ...uniqueColors.map(color => ({
+              value: color,
+              label: color,
+              description: `Filter by ${color} color`
+            }))
+          ]}
+        />
+
+        {/* 5. Unit Filter - Measurement type */}
+        <FilterDropdown
+          label="All Units"
+          value={selectedUnit}
+          onChange={(val) => { setSelectedUnit(val); setCurrentPage(1); }}
+          options={[
+            { value: "all", label: "All Units", description: "Show rolls with any unit" },
+            ...uniqueUnits.map(unit => ({
+              value: unit,
+              label: unit,
+              description: `Filter by ${unit}`
+            }))
+          ]}
+        />
+
+        {/* 6. Sort Dropdown - Ordering after filtering */}
         <FilterDropdown
           label="Sort"
           value={`${sortColumn}-${sortDirection}`}
@@ -758,39 +895,26 @@ const RollView = () => {
           ]}
         />
 
-        {/* Advanced Filters Link */}
-        <button className="flex items-center gap-1.5 text-sm text-gray-600 hover:text-[#2272B4] transition-colors">
-          <SlidersHorizontal className="w-4 h-4" />
-          Advanced filters
+        {/* 7. Advanced Filters - Icon only with tooltip */}
+        <button
+          className="p-1.5 rounded-md border border-gray-300 text-gray-500 hover:text-[#2272B4] hover:border-[#2272B4] transition-colors"
+          title="Advanced filters"
+        >
+          <SlidersHorizontal className="w-3.5 h-3.5" />
         </button>
-
-        {/* Search Input */}
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-          <input
-            type="text"
-            placeholder="Search..."
-            value={tableSearchQuery}
-            onChange={(e) => {
-              setTableSearchQuery(e.target.value);
-              setCurrentPage(1);
-            }}
-            className="pl-9 pr-3 py-2 text-sm border border-gray-300 rounded-md w-48 focus:outline-none focus:ring-1 focus:ring-[#2272B4] focus:border-[#2272B4]"
-          />
-        </div>
 
         {/* Clear Filters */}
         {hasActiveFilters && (
           <button
             onClick={clearAllFilters}
-            className="text-sm text-red-600 hover:text-red-700 font-medium transition-colors"
+            className="text-xs text-red-500 hover:text-red-600 font-medium transition-colors"
           >
             Clear all
           </button>
         )}
 
         {/* Results Count */}
-        <span className="text-sm text-gray-500 ml-auto">
+        <span className="text-xs text-gray-400 ml-auto">
           {totalFiltered} {totalFiltered === 1 ? "result" : "results"}
         </span>
       </div>
@@ -815,10 +939,10 @@ const RollView = () => {
         ) : (
           <>
             <div className="overflow-x-auto">
-              <table className="w-full min-w-full">
+              <table className="min-w-max w-full">
                 <thead>
-                  <tr className="border-b border-gray-200 bg-gray-50">
-                    <th className="px-4 py-2 text-left w-12">
+                  <tr className="border-b border-gray-200" style={{ backgroundColor: 'rgb(247, 242, 242)' }}>
+                    <th className="px-4 py-2 text-left w-12 whitespace-nowrap border-r border-gray-200">
                       <input
                         type="checkbox"
                         checked={paginatedRolls.length > 0 && paginatedRolls.every(r => selectedRows.has(r.id))}
@@ -826,68 +950,88 @@ const RollView = () => {
                         className="w-4 h-4 rounded border-gray-300 text-[#2272B4] focus:ring-[#2272B4]"
                       />
                     </th>
-                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100" onClick={() => handleSort("id")}>
-                      <div className="flex items-center gap-1">ID {sortColumn === "id" && (sortDirection === "asc" ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)}</div>
+                    <th className="px-4 py-2 text-left text-xs font-medium cursor-pointer hover:bg-gray-100 whitespace-nowrap border-r border-gray-200" style={{ color: '#141414', fontWeight: 500 }} onClick={() => handleSort("id")}>
+                      <div className="flex items-center gap-1">Id {sortColumn === "id" && (sortDirection === "asc" ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)}</div>
                     </th>
-                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100" onClick={() => handleSort("name")}>
+                    <th className="px-4 py-2 text-left text-xs font-medium cursor-pointer hover:bg-gray-100 whitespace-nowrap border-r border-gray-200" style={{ color: '#141414', fontWeight: 500 }} onClick={() => handleSort("name")}>
                       <div className="flex items-center gap-1">Name {sortColumn === "name" && (sortDirection === "asc" ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)}</div>
                     </th>
-                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100" onClick={() => handleSort("quantity")}>
+                    <th className="px-4 py-2 text-left text-xs font-medium cursor-pointer hover:bg-gray-100 whitespace-nowrap border-r border-gray-200" style={{ color: '#141414', fontWeight: 500 }} onClick={() => handleSort("quantity")}>
                       <div className="flex items-center gap-1">Total Qty {sortColumn === "quantity" && (sortDirection === "asc" ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)}</div>
                     </th>
-                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-4 py-2 text-left text-xs font-medium whitespace-nowrap border-r border-gray-200" style={{ color: '#141414', fontWeight: 500 }}>
                       <div className="flex items-center gap-1">Remaining</div>
                     </th>
-                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Unit</th>
-                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Roll Units</th>
-                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Remaining Units</th>
-                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Color</th>
-                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Vendor</th>
-                    <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                    <th className="px-4 py-2 text-left text-xs font-medium whitespace-nowrap border-r border-gray-200" style={{ color: '#141414', fontWeight: 500 }}>Unit</th>
+                    <th className="px-4 py-2 text-left text-xs font-medium whitespace-nowrap border-r border-gray-200" style={{ color: '#141414', fontWeight: 500 }}>Roll Units</th>
+                    <th className="px-4 py-2 text-left text-xs font-medium whitespace-nowrap border-r border-gray-200" style={{ color: '#141414', fontWeight: 500 }}>Remaining Units</th>
+                    <th className="px-4 py-2 text-left text-xs font-medium whitespace-nowrap border-r border-gray-200" style={{ color: '#141414', fontWeight: 500 }}>Color</th>
+                    <th className="px-4 py-2 text-left text-xs font-medium whitespace-nowrap border-r border-gray-200" style={{ color: '#141414', fontWeight: 500 }}>Vendor</th>
+                    <th className="px-4 py-2 text-left text-xs font-medium cursor-pointer hover:bg-gray-100 whitespace-nowrap border-r border-gray-200" style={{ color: '#141414', fontWeight: 500 }} onClick={() => handleSort("created_at")}>
+                      <div className="flex items-center gap-1">Created {sortColumn === "created_at" && (sortDirection === "asc" ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)}</div>
+                    </th>
+                    <th className="px-4 py-2 text-right text-xs font-medium whitespace-nowrap" style={{ color: '#141414', fontWeight: 500 }}>Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200">
                   {paginatedRolls.map((roll) => (
                     <tr key={roll.id} className={`transition-colors ${selectedRows.has(roll.id) ? 'bg-blue-50' : 'hover:bg-gray-50'}`}>
-                      <td className="px-4 py-2">
+                      <td className="px-4 py-1.5 whitespace-nowrap border-r border-gray-200">
                         <input type="checkbox" checked={selectedRows.has(roll.id)} onChange={() => toggleRowSelection(roll.id)} className="w-4 h-4 rounded border-gray-300 text-[#2272B4] focus:ring-[#2272B4]" />
                       </td>
-                      <td className="px-4 py-2 text-sm text-gray-500">R{String(roll.id).padStart(3, '0')}</td>
-                      <td className="px-4 py-2"><span className="text-sm font-medium text-[#2272B4] hover:underline cursor-pointer">{roll.name}</span></td>
-                      <td className="px-4 py-2 text-sm text-gray-600">{roll.quantity}</td>
-                      <td className="px-4 py-2 text-sm">
+                      <td className="px-4 py-1.5 text-sm text-gray-500 font-light whitespace-nowrap border-r border-gray-200">R{String(roll.id).padStart(3, '0')}</td>
+                      <td className="px-4 py-1.5 whitespace-nowrap border-r border-gray-200"><span className="text-sm font-medium text-[#2272B4] hover:underline cursor-pointer" onClick={() => handlePreview(roll)}>{roll.name}</span></td>
+                      <td className="px-4 py-1.5 text-sm text-gray-600 font-light whitespace-nowrap border-r border-gray-200">{roll.quantity}</td>
+                      <td className="px-4 py-1.5 text-sm whitespace-nowrap border-r border-gray-200">
                         {(() => {
                           const remaining = roll.remaining_quantity ?? roll.quantity;
                           const isLow = remaining < roll.quantity * 0.2; // Less than 20% remaining
                           const isEmpty = remaining <= 0;
                           return (
-                            <span className={`font-medium ${isEmpty ? 'text-red-600' : isLow ? 'text-amber-600' : 'text-green-600'}`}>
+                            <span className={`font-light ${isEmpty ? 'text-red-600' : isLow ? 'text-amber-600' : 'text-green-600'}`}>
                               {remaining.toFixed(2)}
                             </span>
                           );
                         })()}
                       </td>
-                      <td className="px-4 py-2 text-sm text-gray-600">{roll.unit}</td>
-                      <td className="px-4 py-2 text-sm text-gray-600">{roll.roll_unit_count || <span className="text-gray-400">—</span>}</td>
-                      <td className="px-4 py-2 text-sm">
+                      <td className="px-4 py-1.5 text-sm text-gray-600 font-light whitespace-nowrap border-r border-gray-200">{roll.unit}</td>
+                      <td className="px-4 py-1.5 text-sm text-gray-600 font-light whitespace-nowrap border-r border-gray-200">{roll.roll_unit_count || <span className="text-gray-400">—</span>}</td>
+                      <td className="px-4 py-1.5 text-sm whitespace-nowrap border-r border-gray-200">
                         {(() => {
                           // Only show remaining if roll has unit count
                           if (!roll.roll_unit_count) {
-                            return <span className="text-gray-400">—</span>;
+                            return <span className="text-gray-400 font-light">—</span>;
                           }
                           const remainingUnits = roll.remaining_unit_count ?? roll.roll_unit_count;
                           const isLow = remainingUnits < roll.roll_unit_count * 0.2; // Less than 20% remaining
                           const isEmpty = remainingUnits <= 0;
                           return (
-                            <span className={`font-medium ${isEmpty ? 'text-red-600' : isLow ? 'text-amber-600' : 'text-green-600'}`}>
+                            <span className={`font-light ${isEmpty ? 'text-red-600' : isLow ? 'text-amber-600' : 'text-green-600'}`}>
                               {remainingUnits}
                             </span>
                           );
                         })()}
                       </td>
-                      <td className="px-4 py-2 text-sm text-gray-600">{roll.color}</td>
-                      <td className="px-4 py-2 text-sm text-gray-600">{roll.vendor ? roll.vendor.name : <span className="text-gray-400">—</span>}</td>
-                      <td className="px-4 py-2 text-right">
+                      <td className="px-4 py-1.5 text-sm whitespace-nowrap border-r border-gray-200">
+                        {roll.color ? (
+                          <span
+                            className="px-2 py-0.5 rounded text-xs font-medium"
+                            style={{
+                              backgroundColor: getColorBg(roll.color),
+                              color: getColorText(roll.color)
+                            }}
+                          >
+                            {roll.color}
+                          </span>
+                        ) : (
+                          <span className="text-gray-400 font-light">—</span>
+                        )}
+                      </td>
+                      <td className="px-4 py-1.5 text-sm text-gray-600 font-light whitespace-nowrap border-r border-gray-200">{roll.vendor ? roll.vendor.name : <span className="text-gray-400">—</span>}</td>
+                      <td className="px-4 py-1.5 text-sm text-gray-500 font-light whitespace-nowrap border-r border-gray-200">
+                        {formatNepaliDate(roll.created_at)}
+                      </td>
+                      <td className="px-4 py-1.5 text-right whitespace-nowrap">
                         <div className="flex items-center justify-end gap-1">
                           <button onClick={() => handlePreview(roll)} className="p-1.5 rounded hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors" title="Preview"><Eye size={16} /></button>
                           <button onClick={() => handleEdit(roll)} className="p-1.5 rounded hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors" title="Edit"><Edit2 size={16} /></button>
@@ -932,8 +1076,7 @@ const RollView = () => {
       {isDrawerOpen && (
         <div className="fixed inset-0 z-50 flex">
           <div
-            className="absolute inset-0 bg-white/30 transition-opacity duration-300"
-            style={{ backdropFilter: 'blur(4px)' }}
+            className="absolute inset-0 bg-black/20 transition-opacity duration-300"
             onClick={closeDrawer}
           />
           <div className={`ml-auto w-full max-w-xl bg-white shadow-lg p-4 relative h-screen overflow-y-auto transition-transform duration-300 ease-in-out ${isDrawerOpen ? 'translate-x-0' : 'translate-x-full'}`}>
@@ -945,54 +1088,52 @@ const RollView = () => {
             </button>
 
             {isPreview ? (
-              // Preview Layout
+              // Preview Layout - Compact
               <>
-                <h3 className="text-lg font-semibold text-gray-900 mb-5 flex items-center gap-2">
-                  <Package size={20} className="text-blue-600" />
+                <h3 className="text-base font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                  <Package size={18} className="text-blue-600" />
                   Roll Details
                 </h3>
 
-                <div className="space-y-4">
+                <div className="space-y-0">
                   {/* ID */}
-                  <div className="flex justify-between items-center py-2 border-b border-gray-100">
-                    <span className="font-medium text-black">ID</span>
+                  <div className="flex justify-between items-center py-1.5 border-b border-gray-100">
+                    <span className="text-sm font-medium text-gray-700">ID</span>
                     <span className="text-sm text-gray-500">R00{formData.id}</span>
                   </div>
 
                   {/* Name */}
-                  <div className="flex justify-between items-center py-2 border-b border-gray-100">
-                    <span className="font-medium text-black">Name</span>
+                  <div className="flex justify-between items-center py-1.5 border-b border-gray-100">
+                    <span className="text-sm font-medium text-gray-700">Name</span>
                     <span className="text-sm text-gray-500">{formData.name}</span>
                   </div>
 
                   {/* Quantity */}
-                  <div className="flex justify-between items-center py-2 border-b border-gray-100">
-                    <span className="font-medium text-black">Quantity</span>
+                  <div className="flex justify-between items-center py-1.5 border-b border-gray-100">
+                    <span className="text-sm font-medium text-gray-700">Quantity</span>
                     <span className="text-sm text-gray-500">{formData.quantity} {formData.unit}</span>
                   </div>
 
                   {/* Roll Units */}
-                  <div className="flex justify-between items-center py-2 border-b border-gray-100">
-                    <span className="font-medium text-black">Roll Units</span>
+                  <div className="flex justify-between items-center py-1.5 border-b border-gray-100">
+                    <span className="text-sm font-medium text-gray-700">Roll Units</span>
                     <span className="text-sm text-gray-500">{formData.roll_unit_count || "-"}</span>
                   </div>
 
                   {/* Color */}
-                  <div className="flex justify-between items-center py-2 border-b border-gray-100">
-                    <span className="font-medium text-black">Color</span>
+                  <div className="flex justify-between items-center py-1.5 border-b border-gray-100">
+                    <span className="text-sm font-medium text-gray-700">Color</span>
                     <span className="text-sm text-gray-500">{formData.color || "-"}</span>
                   </div>
 
                   {/* Vendor */}
-                  <div className="flex justify-between items-center py-2 border-b border-gray-100">
-                    <span className="font-medium text-black">Vendor</span>
+                  <div className="flex justify-between items-center py-1.5 border-b border-gray-100">
+                    <span className="text-sm font-medium text-gray-700">Vendor</span>
                     <span className="text-sm text-gray-500">
                       {vendors.find(v => v.id.toString() === formData.vendorId)?.name || "-"}
                     </span>
                   </div>
                 </div>
-
-               
               </>
             ) : (
               // Edit/Add Layout
@@ -1404,6 +1545,82 @@ const RollView = () => {
                 disabled={saveVendorLoading}
               >
                 {saveVendorLoading ? "Saving..." : "Save Vendor"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Custom Date Range Modal */}
+      {showCustomDateModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div
+            className="absolute inset-0 bg-black/20"
+            onClick={() => setShowCustomDateModal(false)}
+          />
+          <div className="relative bg-white rounded-lg shadow-xl w-full max-w-sm mx-4 p-5">
+            <button
+              className="absolute top-3 right-3 text-gray-400 hover:text-gray-600"
+              onClick={() => setShowCustomDateModal(false)}
+            >
+              <X size={18} />
+            </button>
+
+            <h3 className="text-base font-semibold text-gray-900 mb-4">
+              Custom Date Range
+            </h3>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                  From Date
+                </label>
+                <input
+                  type="date"
+                  value={customDateFrom}
+                  onChange={(e) => setCustomDateFrom(e.target.value)}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#2272B4] focus:border-transparent"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                  To Date
+                </label>
+                <input
+                  type="date"
+                  value={customDateTo}
+                  onChange={(e) => setCustomDateTo(e.target.value)}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#2272B4] focus:border-transparent"
+                />
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-3 mt-5">
+              <button
+                className="px-4 py-2 text-sm font-medium text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                onClick={() => {
+                  setCustomDateFrom("");
+                  setCustomDateTo("");
+                  setSelectedDateFilter("all");
+                  setShowCustomDateModal(false);
+                  setCurrentPage(1);
+                }}
+              >
+                Clear
+              </button>
+              <button
+                className="px-4 py-2 text-sm font-medium text-white bg-[#2272B4] rounded-lg hover:bg-[#1b5a8a] transition-colors disabled:opacity-50"
+                disabled={!customDateFrom || !customDateTo}
+                onClick={() => {
+                  if (customDateFrom && customDateTo) {
+                    setSelectedDateFilter("custom");
+                    setShowCustomDateModal(false);
+                    setCurrentPage(1);
+                  }
+                }}
+              >
+                Apply
               </button>
             </div>
           </div>
