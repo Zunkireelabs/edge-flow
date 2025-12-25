@@ -1807,6 +1807,60 @@ const BatchView = () => {
                     <span className="text-sm text-gray-500">{editingBatch?.vendor?.name || "-"}</span>
                   </div>
 
+                  {/* Total Pieces */}
+                  <div className="flex justify-between items-center py-1.5 border-b border-gray-100">
+                    <span className="text-sm font-medium text-gray-700">Total Pieces</span>
+                    <span className="text-sm text-gray-500">{editingBatch?.total_pieces || "-"}</span>
+                  </div>
+
+                  {/* Created Date */}
+                  <div className="flex justify-between items-center py-1.5 border-b border-gray-100">
+                    <span className="text-sm font-medium text-gray-700">Created Date</span>
+                    <span className="text-sm text-gray-500">
+                      {editingBatch?.created_at
+                        ? new Date(editingBatch.created_at).toLocaleDateString('en-US', {
+                            year: 'numeric',
+                            month: 'short',
+                            day: 'numeric'
+                          })
+                        : "-"}
+                    </span>
+                  </div>
+
+                  {/* Size Breakdown Section */}
+                  {editingBatch?.batch_sizes && editingBatch.batch_sizes.length > 0 && (
+                    <div className="pt-3">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-sm font-medium text-gray-700">Size Breakdown</span>
+                      </div>
+                      <div className="border border-gray-200 rounded-lg overflow-hidden">
+                        <table className="w-full text-xs">
+                          <thead className="bg-gray-50">
+                            <tr>
+                              <th className="px-2 py-1.5 text-left font-medium text-gray-600">Size</th>
+                              <th className="px-2 py-1.5 text-right font-medium text-gray-600">Pieces</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-gray-100">
+                            {editingBatch.batch_sizes.map((size, idx) => (
+                              <tr key={idx}>
+                                <td className="px-2 py-1.5 text-gray-700">{size.size}</td>
+                                <td className="px-2 py-1.5 text-right text-gray-600">{size.pieces}</td>
+                              </tr>
+                            ))}
+                            {/* Total Row */}
+                            <tr className="bg-gray-50 font-medium text-xs">
+                              <td className="px-2 py-1.5 text-gray-600">Total</td>
+                              <td className="px-2 py-1.5 text-right text-[#2272B4]">
+                                {editingBatch.batch_sizes.reduce((sum, s) => sum + s.pieces, 0)}
+                              </td>
+                            </tr>
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  )}
+
                   {/* Rolls Section - Multi-roll or Legacy */}
                   {previewBatchRolls.length > 0 ? (
                     // Multi-roll batch - show compact table
