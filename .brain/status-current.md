@@ -1,7 +1,7 @@
 # BlueShark - Current Status
 
-**Last Updated:** December 21, 2025
-**Phase:** Production v1.0 - Dev v2 Active Development
+**Last Updated:** December 25, 2025
+**Phase:** Production v1.0 - v3 Batch Workflow Development
 **Overall Health:** Production Live + Active Feature Development
 
 ---
@@ -14,45 +14,37 @@
 | Backend | Running | localhost:5000 (dev) |
 | Database | Clean | Production Neon - ready for real data |
 | Deployment | Complete | v1.0 + Bug Fixes |
-| Active Branch | dev-v2 | New features in development |
+| Active Branch | feature/v3-batch-workflow | New UI/UX improvements |
 
 ---
 
-## Recent Work (Dec 21, 2025)
+## Recent Work (Dec 25, 2025)
 
 ### Completed Today
 
-#### 1. Local Search Bars for All Admin Views
-- Added table-specific search functionality to 7 views
-- Search filters data within each specific view (not global)
-- **Files Modified:**
-  - `src/app/Dashboard/components/views/RollView.tsx`
-  - `src/app/Dashboard/components/views/BatchView.tsx`
-  - `src/app/Dashboard/components/views/SubBatchView.tsx`
-  - `src/app/Dashboard/components/views/GenericView.tsx` (Vendor)
-  - `src/app/Dashboard/components/views/Worker.tsx`
-  - `src/app/Dashboard/components/views/DepartmentForm.tsx`
-  - `src/app/Dashboard/components/views/CreateSupervisor.tsx`
-
-#### 2. Removed "pcs" Suffix from Batch View
-- NO OF UNIT column now shows just the number (e.g., "5" instead of "5 pcs")
+#### 1. Batch Details Modal - Full Data Display
+- Added **Total Pieces** field to Batch Details modal
+- Added **Created Date** field with locale formatting
+- Added **Size Breakdown** section with table showing sizes, pieces, and total
+- Updated all field styling: `py-1.5` → `py-2.5`, `text-gray-500` → `text-gray-600`
 - **File:** `src/app/Dashboard/components/views/BatchView.tsx`
 
-#### 3. Fixed SubBatchView TypeScript Error
-- SubBatch interface doesn't have nested `batch` and `roll` objects
-- Changed search to look up names from `batches` and `rolls` arrays using IDs
-- **File:** `src/app/Dashboard/components/views/SubBatchView.tsx`
+#### 2. Roll Details Modal - Full Data Display (Previous Session)
+- Added **Remaining Quantity** with color-coded status (green/amber/red)
+- Added **Remaining Units** with color-coded status
+- Added **Created Date** field
+- Updated all field styling for consistency
+- **File:** `src/app/Dashboard/components/views/RollView.tsx`
 
-#### 4. Fixed Super Supervisor Worker Assignment Bug
-- **Issue:** Worker dropdown was empty when Super Supervisor tried to assign workers
-- **Root Cause:** `AddRecordModal.tsx` used `localStorage.getItem("departmentId")` which doesn't work for Super Supervisors who switch between departments
-- **Fix:** Changed to use `subBatch?.department_id || localStorage.getItem("departmentId")`
-- **File:** `src/app/SupervisorDashboard/depcomponents/AddRecordModal.tsx`
+#### 3. Fixed UTF-8 Encoding Corruption in RollView.tsx
+- **Issue:** Garbled characters (`ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â` and `â€"`) displayed in Roll Units columns
+- **Root Cause:** Em-dash characters got corrupted during previous file edits
+- **Fix:** Replaced 7 occurrences of corrupted characters with proper em-dash "—"
+- **Lines Fixed:** 998, 1003, 1136, 1144, 1172, 1180, 1188
+- **File:** `src/app/Dashboard/components/views/RollView.tsx`
 
-### Key Commits
-- `0fa5d8f` - fix: Use subBatch department_id for worker fetch in Super Supervisor mode
-- `44632c2` - fix: Correct SubBatch search to use batch_id and roll_id lookups
-- `6bacea8` - feat: Add local search bar to all admin views and remove pcs suffix
+### Key Pattern: View Modal ↔ Table Data Consistency
+When updating tables with new columns, ensure the "View Details" modal (eye icon) also shows all the same data fields. Use consistent styling across all preview modals.
 
 ---
 
@@ -82,15 +74,15 @@ Admin: admin@gmail.com / admin
 │                    DEVELOPMENT WORKFLOW                      │
 ├─────────────────────────────────────────────────────────────┤
 │                                                              │
-│  [dev-v2] → [Test Locally] → [Push] → [Merge to Main]       │
+│  [feature/*] → [Test Locally] → [Push] → [Merge to Main]   │
 │                                                              │
 └─────────────────────────────────────────────────────────────┘
 ```
 
 **Branches:**
 - `main` - Production (https://edge-flow-gamma.vercel.app)
-- `dev-v2` - Active development branch
-- `dev` - Legacy development branch
+- `dev` - Development staging
+- `feature/v3-batch-workflow` - Current feature branch (UI/UX improvements)
 
 ---
 
@@ -113,9 +105,12 @@ Admin: admin@gmail.com / admin
 - Inventory management with categories
 - Wage calculation module
 
-### Added (Dec 21, 2025)
+### Added (Dec 21-25, 2025)
 - Local search bars in all admin views
-- Super Supervisor multi-department support (worker assignment fix)
+- Super Supervisor multi-department support
+- Pieces, Sizes, multi-roll columns in Batch table
+- Full data display in Roll Details modal
+- Full data display in Batch Details modal (Total Pieces, Created, Size Breakdown)
 
 ### Pending (Backlog)
 - Dashboard analytics/reports
@@ -140,13 +135,15 @@ Admin: admin@gmail.com / admin
 - ✅ Activity History missing alteration events (now displays correctly)
 - ✅ Kanban cards missing Altered/Rejected info (now shows counts)
 - ✅ Task Management showing 0 items for supervisors (fixed userId→departmentId bug)
-- ✅ **Super Supervisor worker dropdown empty** (fixed to use subBatch.department_id)
-- ✅ **SubBatchView build error** (fixed TypeScript property access)
+- ✅ Super Supervisor worker dropdown empty (fixed to use subBatch.department_id)
+- ✅ SubBatchView build error (fixed TypeScript property access)
+- ✅ **RollView UTF-8 encoding corruption** (replaced corrupted em-dash characters)
 
 ### Minor (Non-blocking)
 - Neon free tier: databases auto-suspend after 5 min inactivity
 - UI-S2-001: Data doesn't auto-refresh after worker assignment
 - Date picker shows "Jan 1, 1970" (needs proper date handling)
+- Console logs in RollView.tsx have corrupted emoji characters (non-user-facing)
 
 ---
 
@@ -163,7 +160,13 @@ Admin: admin@gmail.com / admin
 |-------------|----------|---------|
 | Production | edge-flow-gamma.vercel.app | edge-flow-backend.onrender.com |
 | Development | edge-flow-git-dev-*.vercel.app | localhost:5000 |
-| Local | localhost:3000 | localhost:5000 |
+| Local | localhost:3000/3002 | localhost:5000 |
+
+### Database Instances
+| Purpose | Endpoint |
+|---------|----------|
+| Development | ep-orange-rice-a1w8omkg (Neon) |
+| Production | ep-odd-sunset-a15pegww (Neon) |
 
 ---
 
@@ -178,10 +181,11 @@ Admin: admin@gmail.com / admin
 
 ## Next Actions
 
-1. Continue testing Super Supervisor workflow
-2. Monitor Vercel deployment for any issues
-3. Continue with backlog items as needed
+1. Test Batch Details modal with real data (Total Pieces, Size Breakdown)
+2. Continue v3-batch-workflow UI improvements
+3. Ensure table ↔ modal data consistency across all views
+4. Consider fixing console log emoji corruption (low priority)
 
 ---
 
-**Status updated: December 21, 2025 - Feature Development + Bug Fixes**
+**Status updated: December 25, 2025 - Modal Data Display Improvements**

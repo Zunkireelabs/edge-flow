@@ -1,11 +1,27 @@
 # BlueShark - Technical Decisions Log
 
 **Purpose:** Track major technical decisions and their rationale
-**Last Updated:** December 21, 2025
+**Last Updated:** December 25, 2025
 
 ---
 
 ## Bug Fixes
+
+### Bug Fix: UTF-8 Encoding Corruption in RollView.tsx
+**Date:** December 25, 2025
+**Issue:** Garbled characters displayed in Roll Units columns - showing `ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â` instead of em-dash "—"
+**Root Cause:** Em-dash characters got corrupted during previous file edit operations, likely due to OneDrive sync or encoding mismatches between edit sessions
+**Fix:** Replaced 7 occurrences of corrupted characters with proper em-dash "—"
+**Lines Fixed:** 998, 1003, 1136, 1144, 1172, 1180, 1188
+**File:** `src/app/Dashboard/components/views/RollView.tsx`
+**Impact:**
+- Table columns now display clean "—" for empty values
+- Preview modal shows correct fallback characters
+- User no longer sees garbled text
+
+**Prevention:** When editing files with special characters, prefer using simple ASCII alternatives like "-" or explicitly check file encoding after edits.
+
+---
 
 ### Bug Fix: Super Supervisor Worker Assignment Dropdown Empty
 **Date:** December 21, 2025
@@ -166,6 +182,23 @@
 - Batch dropdown moved to top of form
 - Roll dropdown disabled (auto-filled)
 - Roll labeled "(Auto-filled from Batch)"
+
+---
+
+### Decision: View Modal ↔ Table Data Consistency
+**Date:** December 25, 2025
+**Decision:** Preview modals (eye icon) must display ALL fields shown in the table
+**Rationale:**
+- Users expect to see all available data when clicking "View Details"
+- Prevents confusion when table shows fields that modal doesn't
+- Establishes consistent UX pattern across all views
+**Implementation:**
+- When adding new table columns, always update the preview modal section
+- Use consistent styling: `py-2.5` spacing, `text-gray-600` for values
+- For complex data (like Size Breakdown), use nested tables with totals
+**Files Updated:**
+- `BatchView.tsx` - Added Total Pieces, Created Date, Size Breakdown
+- `RollView.tsx` - Added Remaining Quantity, Remaining Units, Created Date
 
 ---
 

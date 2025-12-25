@@ -995,12 +995,12 @@ const RollView = () => {
                         })()}
                       </td>
                       <td className="px-4 py-1.5 text-sm text-gray-600 font-light whitespace-nowrap border-r border-gray-200">{roll.unit}</td>
-                      <td className="px-4 py-1.5 text-sm text-gray-600 font-light whitespace-nowrap border-r border-gray-200">{roll.roll_unit_count || <span className="text-gray-400">—</span>}</td>
+                      <td className="px-4 py-1.5 text-sm text-gray-600 font-light whitespace-nowrap border-r border-gray-200">{roll.roll_unit_count || <span className="text-gray-400">-</span>}</td>
                       <td className="px-4 py-1.5 text-sm whitespace-nowrap border-r border-gray-200">
                         {(() => {
                           // Only show remaining if roll has unit count
                           if (!roll.roll_unit_count) {
-                            return <span className="text-gray-400 font-light">—</span>;
+                            return <span className="text-gray-400 font-light">-</span>;
                           }
                           const remainingUnits = roll.remaining_unit_count ?? roll.roll_unit_count;
                           const isLow = remainingUnits < roll.roll_unit_count * 0.2; // Less than 20% remaining
@@ -1024,10 +1024,10 @@ const RollView = () => {
                             {roll.color}
                           </span>
                         ) : (
-                          <span className="text-gray-400 font-light">—</span>
+                          <span className="text-gray-400 font-light">-</span>
                         )}
                       </td>
-                      <td className="px-4 py-1.5 text-sm text-gray-600 font-light whitespace-nowrap border-r border-gray-200">{roll.vendor ? roll.vendor.name : <span className="text-gray-400">—</span>}</td>
+                      <td className="px-4 py-1.5 text-sm text-gray-600 font-light whitespace-nowrap border-r border-gray-200">{roll.vendor ? roll.vendor.name : <span className="text-gray-400">-</span>}</td>
                       <td className="px-4 py-1.5 text-sm text-gray-500 font-light whitespace-nowrap border-r border-gray-200">
                         {formatNepaliDate(roll.created_at)}
                       </td>
