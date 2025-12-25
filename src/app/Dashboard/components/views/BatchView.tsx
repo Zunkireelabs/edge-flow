@@ -1553,7 +1553,7 @@ const BatchView = () => {
                         {(() => {
                           const colors = getBatchColors(batch);
                           if (colors.length === 0) {
-                            return <span className="text-gray-400 font-light">—</span>;
+                            return <span className="text-gray-400 font-light">-</span>;
                           }
                           if (colors.length === 1) {
                             // Single color - show regular badge
@@ -1608,7 +1608,7 @@ const BatchView = () => {
                           );
                         })()}
                       </td>
-                      <td className="px-4 py-1.5 text-sm text-gray-600 font-light whitespace-nowrap border-r border-gray-200">{batch.unit_count || <span className="text-gray-400">—</span>}</td>
+                      <td className="px-4 py-1.5 text-sm text-gray-600 font-light whitespace-nowrap border-r border-gray-200">{batch.unit_count || <span className="text-gray-400">-</span>}</td>
                       <td className="px-4 py-1.5 text-sm whitespace-nowrap border-r border-gray-200">
                         {(() => {
                           const batchRolls = batch.batch_rolls || [];
@@ -1616,7 +1616,7 @@ const BatchView = () => {
                           if (batchRolls.length > 0) {
                             if (batchRolls.length === 1) {
                               // Single roll from batch_rolls
-                              return <span className="text-gray-600 font-light">{batchRolls[0].roll?.name || '—'}</span>;
+                              return <span className="text-gray-600 font-light">{batchRolls[0].roll?.name || '-'}</span>;
                             }
                             // Multiple rolls - show count with tooltip
                             return (
@@ -1658,16 +1658,16 @@ const BatchView = () => {
                           return batch.roll?.name ? (
                             <span className="text-gray-600 font-light">{batch.roll.name}</span>
                           ) : (
-                            <span className="text-gray-400 font-light">—</span>
+                            <span className="text-gray-400 font-light">-</span>
                           );
                         })()}
                       </td>
-                      <td className="px-4 py-1.5 text-sm text-gray-600 font-light whitespace-nowrap border-r border-gray-200">{batch.total_pieces || <span className="text-gray-400">—</span>}</td>
+                      <td className="px-4 py-1.5 text-sm text-gray-600 font-light whitespace-nowrap border-r border-gray-200">{batch.total_pieces || <span className="text-gray-400">-</span>}</td>
                       <td className="px-4 py-1.5 text-sm whitespace-nowrap border-r border-gray-200">
                         {(() => {
                           const sizes = batch.batch_sizes || [];
                           if (sizes.length === 0) {
-                            return <span className="text-gray-400 font-light">—</span>;
+                            return <span className="text-gray-400 font-light">-</span>;
                           }
                           // Show count with tooltip
                           return (
@@ -2012,7 +2012,7 @@ const BatchView = () => {
                                     {roll.remaining_quantity ?? roll.quantity} {roll.unit}
                                   </td>
                                   <td className="px-3 py-2 text-gray-500">
-                                    {roll.remaining_unit_count ?? roll.roll_unit_count ?? '—'}
+                                    {roll.remaining_unit_count ?? roll.roll_unit_count ?? '-'}
                                   </td>
                                   <td className="px-3 py-2 text-center">
                                     <button
