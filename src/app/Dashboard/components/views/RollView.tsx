@@ -1133,6 +1133,52 @@ const RollView = () => {
                       {vendors.find(v => v.id.toString() === formData.vendorId)?.name || "-"}
                     </span>
                   </div>
+
+                  {/* Remaining Quantity */}
+                  <div className="flex justify-between items-center py-1.5 border-b border-gray-100">
+                    <span className="text-sm font-medium text-gray-700">Remaining Quantity</span>
+                    <span className="text-sm">
+                      {(() => {
+                        const remaining = editingRoll?.remaining_quantity ?? Number(formData.quantity);
+                        const total = Number(formData.quantity);
+                        const isLow = remaining < total * 0.2;
+                        const isEmpty = remaining <= 0;
+                        return (
+                          <span className={`${isEmpty ? 'text-red-600' : isLow ? 'text-amber-600' : 'text-green-600'}`}>
+                            {remaining.toFixed(2)} {formData.unit}
+                          </span>
+                        );
+                      })()}
+                    </span>
+                  </div>
+
+                  {/* Remaining Units */}
+                  {formData.roll_unit_count && (
+                    <div className="flex justify-between items-center py-1.5 border-b border-gray-100">
+                      <span className="text-sm font-medium text-gray-700">Remaining Units</span>
+                      <span className="text-sm">
+                        {(() => {
+                          const remainingUnits = editingRoll?.remaining_unit_count ?? Number(formData.roll_unit_count);
+                          const totalUnits = Number(formData.roll_unit_count);
+                          const isLow = remainingUnits < totalUnits * 0.2;
+                          const isEmpty = remainingUnits <= 0;
+                          return (
+                            <span className={`${isEmpty ? 'text-red-600' : isLow ? 'text-amber-600' : 'text-green-600'}`}>
+                              {remainingUnits}
+                            </span>
+                          );
+                        })()}
+                      </span>
+                    </div>
+                  )}
+
+                  {/* Created Date */}
+                  <div className="flex justify-between items-center py-1.5 border-b border-gray-100">
+                    <span className="text-sm font-medium text-gray-700">Created Date</span>
+                    <span className="text-sm text-gray-500">
+                      {editingRoll?.created_at ? formatNepaliDate(editingRoll.created_at) : "-"}
+                    </span>
+                  </div>
                 </div>
               </>
             ) : (
