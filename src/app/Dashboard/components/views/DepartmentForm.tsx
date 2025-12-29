@@ -423,16 +423,14 @@ const DepartmentForm = () => {
         showToast("warning", "Department name is required");
         return;
       }
-      if (!formData.supervisor.trim()) {
-        showToast("warning", "Supervisor is required");
-        return;
-      }
+      // Supervisor is optional - Super Supervisor has access to all departments
 
       // Fixed payload for Prisma
       const payload = {
         name: formData.name.trim(),
         remarks: formData.remarks.trim(),
-        supervisorId: Number(formData.supervisor), 
+        // Only include supervisorId if a supervisor is selected
+        ...(formData.supervisor.trim() ? { supervisorId: Number(formData.supervisor) } : {}),
         workers: formData.workers?.map((w) => ({
           id: Number(w.id),
           assignedDate: w.date ? new Date(w.date).toISOString() : undefined,
@@ -763,10 +761,10 @@ const DepartmentForm = () => {
                 />
               </div>
 
-              {/* Supervisor */}
+              {/* Supervisor - Optional (Super Supervisor has access to all departments) */}
               <div>
                 <label className="block text-sm font-medium text-gray-900 mb-1.5">
-                  Supervisor <span className="text-red-500">*</span>
+                  Supervisor <span className="text-gray-400 text-xs font-normal">(Optional)</span>
                 </label>
                 <select
                   name="supervisor"
@@ -777,7 +775,7 @@ const DepartmentForm = () => {
                   disabled={isPreview}
                   className="w-full border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm bg-white"
                 >
-                  <option value="">Select Supervisor</option>
+                  <option value="">No Supervisor (Super Supervisor will manage)</option>
                   {supervisors.map((sup) => (
                     <option key={sup.id} value={sup.id}>
                       {sup.name} ({sup.email})
