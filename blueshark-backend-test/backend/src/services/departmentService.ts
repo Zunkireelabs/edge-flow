@@ -2,7 +2,7 @@ import prisma from "../config/db";
 
 interface DepartmentPayload {
   name: string;
-  supervisorId: number;
+  supervisorId?: number;  // Optional - Super Supervisor has access to all departments
   remarks?: string;
 
   sub_batches?: { id: number }[];
