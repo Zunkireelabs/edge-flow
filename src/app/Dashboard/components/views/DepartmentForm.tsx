@@ -654,7 +654,16 @@ const DepartmentForm = () => {
                       <td className="px-4 py-2">
                         <span className="text-sm font-medium text-[#2272B4] hover:underline cursor-pointer">{dept.name}</span>
                       </td>
-                      <td className="px-4 py-2 text-sm text-gray-600">{getSupervisorName(dept.supervisor)}</td>
+                      <td className="px-4 py-2 text-sm">
+                        {dept.supervisor ? (
+                          <span className="text-gray-600">{getSupervisorName(dept.supervisor)}</span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200">
+                            <Users size={12} />
+                            All Super Supervisors
+                          </span>
+                        )}
+                      </td>
                       <td className="px-4 py-2 text-sm text-gray-600">{dept.workers?.length || 0} workers</td>
                       <td className="px-4 py-2 text-sm text-gray-600">{dept.remarks || <span className="text-gray-400">—</span>}</td>
                       <td className="px-4 py-2 text-right">
@@ -766,22 +775,38 @@ const DepartmentForm = () => {
                 <label className="block text-sm font-medium text-gray-900 mb-1.5">
                   Supervisor <span className="text-gray-400 text-xs font-normal">(Optional)</span>
                 </label>
-                <select
-                  name="supervisor"
-                  value={formData.supervisor}
-                  onChange={(e) =>
-                    setFormData((p) => ({ ...p, supervisor: e.target.value }))
-                  }
-                  disabled={isPreview}
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm bg-white"
-                >
-                  <option value="">No Supervisor (Super Supervisor will manage)</option>
-                  {supervisors.map((sup) => (
-                    <option key={sup.id} value={sup.id}>
-                      {sup.name} ({sup.email})
-                    </option>
-                  ))}
-                </select>
+                {isPreview ? (
+                  // Preview mode - show badge or name
+                  formData.supervisor ? (
+                    <div className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm bg-gray-50 text-gray-700">
+                      {supervisors.find(s => s.id.toString() === formData.supervisor)?.name || formData.supervisor}
+                    </div>
+                  ) : (
+                    <div className="pt-1">
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200">
+                        <Users size={12} />
+                        All Super Supervisors
+                      </span>
+                    </div>
+                  )
+                ) : (
+                  // Edit mode - show dropdown
+                  <select
+                    name="supervisor"
+                    value={formData.supervisor}
+                    onChange={(e) =>
+                      setFormData((p) => ({ ...p, supervisor: e.target.value }))
+                    }
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm bg-white"
+                  >
+                    <option value="">No Supervisor (Super Supervisor will manage)</option>
+                    {supervisors.map((sup) => (
+                      <option key={sup.id} value={sup.id}>
+                        {sup.name} ({sup.email})
+                      </option>
+                    ))}
+                  </select>
+                )}
               </div>
 
               {/* Workers */}
