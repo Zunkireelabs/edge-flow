@@ -348,18 +348,16 @@ const WorkerPage = () => {
         try {
             setSaveLoading(true);
 
-            // Validation
-            if (!formData.name.trim()) { showToast("warning", "Name required"); return; }
-            if (!formData.pan.trim()) { showToast("warning", "PAN required"); return; }
-            if (!formData.address.trim()) { showToast("warning", "Address required"); return; }
-            if (!formData.wage_rate_input || Number(formData.wage_rate_input) <= 0) { showToast("warning", "Valid wage rate required"); return; }
+            // Validation - only name is required
+            if (!formData.name.trim()) { showToast("warning", "Name is required"); return; }
 
             const payload = {
                 name: formData.name.trim(),
-                pan: formData.pan.trim(),
-                address: formData.address.trim(),
-                wage_type: formData.wage_type,
-                wage_rate: Number(formData.wage_rate_input),
+                // Optional fields - only include if provided
+                ...(formData.pan.trim() ? { pan: formData.pan.trim() } : { pan: "" }),
+                ...(formData.address.trim() ? { address: formData.address.trim() } : { address: "" }),
+                wage_type: formData.wage_type || "HOURLY",
+                wage_rate: formData.wage_rate_input ? Number(formData.wage_rate_input) : 0,
             };
 
             if (editingWorker) {
@@ -659,7 +657,7 @@ const WorkerPage = () => {
                             {/* PAN */}
                             <div>
                                 <label className="block text-sm font-medium text-gray-900 mb-1.5">
-                                    PAN <span className="text-red-500">*</span>
+                                    PAN <span className="text-gray-400 text-xs font-normal">(Optional)</span>
                                 </label>
                                 <input
                                     type="text"
@@ -675,7 +673,7 @@ const WorkerPage = () => {
                             {/* Address */}
                             <div className="sm:col-span-2">
                                 <label className="block text-sm font-medium text-gray-900 mb-1.5">
-                                    Address <span className="text-red-500">*</span>
+                                    Address <span className="text-gray-400 text-xs font-normal">(Optional)</span>
                                 </label>
                                 <input
                                     type="text"
@@ -691,7 +689,7 @@ const WorkerPage = () => {
                             {/* Wage Type */}
                             <div className="relative" ref={wageTypeDropdownRef}>
                                 <label className="block text-sm font-medium text-gray-900 mb-1.5">
-                                    Wage Type
+                                    Wage Type <span className="text-gray-400 text-xs font-normal">(Optional)</span>
                                 </label>
                                 <button
                                     type="button"
@@ -742,7 +740,7 @@ const WorkerPage = () => {
                             {/* Wage Rate */}
                             <div>
                                 <label className="block text-sm font-medium text-gray-900 mb-1.5">
-                                    Wage Rate <span className="text-red-500">*</span>
+                                    Wage Rate <span className="text-gray-400 text-xs font-normal">(Optional)</span>
                                 </label>
                                 <input
                                     type="number"

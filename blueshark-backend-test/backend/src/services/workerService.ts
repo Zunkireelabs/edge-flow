@@ -3,14 +3,21 @@ import prisma from "../config/db";
 // ✅ Create Worker
 export const createWorker = async (data: {
   name: string;
-  pan: string;
-  address: string;
+  pan?: string;      // Optional
+  address?: string;  // Optional
   department_id?: number;
-  wage_type: string;
-  wage_rate: number;
+  wage_type?: string;  // Optional - defaults to HOURLY
+  wage_rate?: number;  // Optional - defaults to 0
 }) => {
   return await prisma.workers.create({
-    data,
+    data: {
+      name: data.name,
+      pan: data.pan || "",           // Default to empty string
+      address: data.address || "",   // Default to empty string
+      wage_type: data.wage_type || "HOURLY",  // Default to HOURLY
+      wage_rate: data.wage_rate || 0,  // Default to 0
+      department_id: data.department_id,
+    },
   });
 };
 
