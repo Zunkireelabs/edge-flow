@@ -52,8 +52,8 @@ export const DepartmentProvider = ({ children }: { children: ReactNode }) => {
           setUserDepartmentId(deptId);
           setSelectedDepartmentId(deptId);
         }
-      } catch (error) {
-        console.error("Error initializing department context:", error);
+      } catch {
+        // Department context initialization failed
       } finally {
         setIsLoading(false);
       }

@@ -212,8 +212,8 @@ const WageCalculation = () => {
     try {
       const res = await axios.get(`${API}/departments`);
       setDepartments(res.data);
-    } catch (error) {
-      console.error("Failed to fetch departments:", error);
+    } catch {
+      // Departments fetch failed silently
     }
   }, [API]);
 
@@ -257,10 +257,8 @@ const WageCalculation = () => {
       if (dept !== 'all') params.append('department_id', dept);
 
       const url = `${API}/wages/all?${params.toString()}`;
-      console.log('Fetching wages from:', url);
 
       const response = await axios.get(url);
-      console.log('Wages API response:', response.data);
 
       const data: WorkerWageSummary[] = response.data;
       setAllWorkersWages(data);
@@ -278,8 +276,7 @@ const WageCalculation = () => {
         totalWorkers: data.length,
         topEarner,
       });
-    } catch (error) {
-      console.error("Failed to fetch wages:", error);
+    } catch {
       showToast("error", "Failed to fetch wages data. Please try again.");
     } finally {
       setLoading(false);
@@ -301,8 +298,7 @@ const WageCalculation = () => {
       );
 
       setWorkerDetailedLogs(response.data.detailed_logs || []);
-    } catch (error) {
-      console.error("Failed to fetch worker details:", error);
+    } catch {
       showToast("error", "Failed to fetch worker details.");
     } finally {
       setDetailLoading(false);

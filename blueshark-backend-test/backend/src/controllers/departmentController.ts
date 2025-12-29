@@ -107,8 +107,7 @@ export const deleteWorkerFromDepartment = async (
     }
 
     return res.json({ message: "Worker removed from department successfully" });
-  } catch (error: any) {
-    console.error(error);
+  } catch {
     return res.status(500).json({ message: "Internal server error" });
   }
 };
@@ -132,8 +131,7 @@ export const fetchProductionSubBatches = async (
       message: "Production sub-batches fetched successfully",
       data: subBatches.map((dsb) => dsb.sub_batch), // send only sub_batches if frontend doesn’t need junction info
     });
-  } catch (error: any) {
-    console.error(error);
+  } catch {
     return res.status(500).json({ message: "Internal server error" });
   }
 };

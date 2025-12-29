@@ -183,8 +183,8 @@ export default function DepartmentWorkloadView() {
         setLoading(true);
         const response = await axios.get(`${API}/departments`);
         setDepartments(response.data);
-      } catch (error) {
-        console.error("Failed to fetch departments:", error);
+      } catch {
+        // Departments fetch failed
       } finally {
         setLoading(false);
       }
@@ -245,8 +245,8 @@ export default function DepartmentWorkloadView() {
               (kanbanData.newArrival || []).forEach((dsb: any) => allTasks.newArrival.push(transformToTask(dsb)));
               (kanbanData.inProgress || []).forEach((dsb: any) => allTasks.inProgress.push(transformToTask(dsb)));
               (kanbanData.completed || []).forEach((dsb: any) => allTasks.completed.push(transformToTask(dsb)));
-            } catch (err) {
-              console.error(`Failed to fetch tasks for department ${dept.id}:`, err);
+            } catch {
+              // Failed to fetch tasks for this department
             }
           }));
 
@@ -255,8 +255,7 @@ export default function DepartmentWorkloadView() {
             { id: 'in-progress', title: 'In Progress', tasks: allTasks.inProgress },
             { id: 'completed', title: 'Completed', tasks: allTasks.completed }
           ]);
-        } catch (error) {
-          console.error("Failed to fetch all department tasks:", error);
+        } catch {
           setColumns(initialColumns);
         }
       } else {
@@ -302,8 +301,7 @@ export default function DepartmentWorkloadView() {
             { id: 'in-progress', title: 'In Progress', tasks: (kanbanData.inProgress || []).map(transformToTask) },
             { id: 'completed', title: 'Completed', tasks: (kanbanData.completed || []).map(transformToTask) }
           ]);
-        } catch (error) {
-          console.error("Failed to fetch department tasks:", error);
+        } catch {
           setColumns(initialColumns);
         }
       }

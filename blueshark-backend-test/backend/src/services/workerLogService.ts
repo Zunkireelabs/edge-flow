@@ -408,16 +408,8 @@ export const deleteWorkerLog = async (id: number) => {
       throw new Error(`Worker log ${id} not found`);
     }
 
-    console.log(`=== Deleting Worker Log ${id} ===`);
-    console.log(`Rejected entries: ${workerLog.rejected_entry?.length || 0}`);
-    console.log(`Altered entries: ${workerLog.altered_entry?.length || 0}`);
-    console.log(`Department sub-batch ID: ${workerLog.department_sub_batch_id}`);
-
     // 1.5️⃣ Handle the department_sub_batch (reverse quantity changes)
     if (workerLog.department_sub_batch_id && workerLog.quantity_worked) {
-      console.log(`\n--- Reversing Assignment ---`);
-      console.log(`Department Sub-Batch ID: ${workerLog.department_sub_batch_id}`);
-      console.log(`Quantity to restore: ${workerLog.quantity_worked}`);
 
       // Fetch current values to safely handle nulls
       const deptSubBatch = await tx.department_sub_batches.findUnique({
@@ -439,19 +431,12 @@ export const deleteWorkerLog = async (id: number) => {
             // ✅ Don't change assigned_worker_id (other workers may still be assigned)
           },
         });
-
-        console.log(`✓ Restored ${workerLog.quantity_worked} pieces to department_sub_batch ${workerLog.department_sub_batch_id}`);
       }
     }
 
     // 2️⃣ Reverse rejected entries
     if (workerLog.rejected_entry && workerLog.rejected_entry.length > 0) {
       for (const rejectedRecord of workerLog.rejected_entry) {
-        console.log(`\n--- Processing Rejected Entry ${rejectedRecord.id} ---`);
-        console.log(`Quantity: ${rejectedRecord.quantity}`);
-        console.log(`Source entry ID: ${rejectedRecord.source_department_sub_batch_id}`);
-        console.log(`Created entry ID: ${rejectedRecord.created_department_sub_batch_id}`);
-
         // ✅ DELETE the created entry completely (don't just mark inactive)
         if (rejectedRecord.created_department_sub_batch_id) {
           const createdEntry = await tx.department_sub_batches.findUnique({
@@ -463,9 +448,6 @@ export const deleteWorkerLog = async (id: number) => {
             await tx.department_sub_batches.delete({
               where: { id: rejectedRecord.created_department_sub_batch_id },
             });
-            console.log(`✓ Deleted rejected department entry ${rejectedRecord.created_department_sub_batch_id} completely`);
-          } else {
-            console.warn(`⚠ Created entry ${rejectedRecord.created_department_sub_batch_id} not found (already deleted?)`);
           }
         }
 
@@ -483,30 +465,19 @@ export const deleteWorkerLog = async (id: number) => {
                 quantity_remaining: { increment: rejectedRecord.quantity },
               },
             });
-            console.log(`✓ Restored ${rejectedRecord.quantity} to source entry ${rejectedRecord.source_department_sub_batch_id}`);
-          } else {
-            console.error(`❌ Source entry ${rejectedRecord.source_department_sub_batch_id} not found! Cannot restore quantity.`);
           }
-        } else {
-          console.error(`❌ No source_department_sub_batch_id stored! Cannot restore quantity precisely.`);
         }
 
         // Delete the sub_batch_rejected record
         await tx.sub_batch_rejected.delete({
           where: { id: rejectedRecord.id },
         });
-        console.log(`✓ Deleted rejected record ${rejectedRecord.id}`);
       }
     }
 
     // 3️⃣ Reverse altered entries
     if (workerLog.altered_entry && workerLog.altered_entry.length > 0) {
       for (const alteredRecord of workerLog.altered_entry) {
-        console.log(`\n--- Processing Altered Entry ${alteredRecord.id} ---`);
-        console.log(`Quantity: ${alteredRecord.quantity}`);
-        console.log(`Source entry ID: ${alteredRecord.source_department_sub_batch_id}`);
-        console.log(`Created entry ID: ${alteredRecord.created_department_sub_batch_id}`);
-
         // ✅ DELETE the created entry completely (don't just mark inactive)
         if (alteredRecord.created_department_sub_batch_id) {
           const createdEntry = await tx.department_sub_batches.findUnique({
@@ -518,9 +489,6 @@ export const deleteWorkerLog = async (id: number) => {
             await tx.department_sub_batches.delete({
               where: { id: alteredRecord.created_department_sub_batch_id },
             });
-            console.log(`✓ Deleted altered department entry ${alteredRecord.created_department_sub_batch_id} completely`);
-          } else {
-            console.warn(`⚠ Created entry ${alteredRecord.created_department_sub_batch_id} not found (already deleted?)`);
           }
         }
 
@@ -538,29 +506,20 @@ export const deleteWorkerLog = async (id: number) => {
                 quantity_remaining: { increment: alteredRecord.quantity },
               },
             });
-            console.log(`✓ Restored ${alteredRecord.quantity} to source entry ${alteredRecord.source_department_sub_batch_id}`);
-          } else {
-            console.error(`❌ Source entry ${alteredRecord.source_department_sub_batch_id} not found! Cannot restore quantity.`);
           }
-        } else {
-          console.error(`❌ No source_department_sub_batch_id stored! Cannot restore quantity precisely.`);
         }
 
         // Delete the sub_batch_altered record
         await tx.sub_batch_altered.delete({
           where: { id: alteredRecord.id },
         });
-        console.log(`✓ Deleted altered record ${alteredRecord.id}`);
       }
     }
 
     // 4️⃣ Finally, delete the worker log
-    console.log(`\n✓ Deleting worker log ${id}`);
     const deletedLog = await tx.worker_logs.delete({
       where: { id },
-      // ✅ FIXED: Removed include - delete() doesn't support it
     });
-    console.log(`✓ Worker log ${id} deleted successfully`);
     return deletedLog;
   });
 };

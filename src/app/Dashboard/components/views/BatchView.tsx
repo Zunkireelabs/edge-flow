@@ -541,8 +541,7 @@ const BatchView = () => {
       setLoading(true);
       const res = await axios.get(`${API}/batches`);
       setBatches(res.data);
-    } catch (err) {
-      console.error("Failed to fetch batches:", err);
+    } catch {
       showToast("error", "Failed to fetch batches. Please try again.");
     } finally {
       setLoading(false);
@@ -554,8 +553,7 @@ const BatchView = () => {
     try {
       const res = await axios.get(`${API}/rolls`);
       setRolls(res.data);
-    } catch (err) {
-      console.error("Failed to fetch rolls:", err);
+    } catch {
       showToast("error", "Failed to fetch rolls.");
     }
   }, [API]);
@@ -565,9 +563,7 @@ const BatchView = () => {
     try {
       const res = await axios.get(`${API}/vendors`);
       setVendors(res.data);
-      console.log("✅ Vendors fetched:", res.data);
-    } catch (err) {
-      console.error("Failed to fetch vendors:", err);
+    } catch {
       showToast("error", "Failed to fetch vendors.");
     }
   }, [API]);
@@ -717,14 +713,10 @@ const BatchView = () => {
         payload.vendor_id = formData.vendor_id;
       }
 
-      console.log("🔥 Payload being sent:", payload);
-
       if (editingBatch) {
-        console.log("🔄 Updating batch with ID:", editingBatch.id);
         await axios.put(`${API}/batches/${editingBatch.id}`, payload);
         showToast("success", "Batch updated successfully!");
       } else {
-        console.log("➕ Creating new batch");
         await axios.post(`${API}/batches`, payload);
         showToast("success", "Batch created successfully!");
       }
@@ -738,7 +730,6 @@ const BatchView = () => {
       await fetchRolls(); // Refresh rolls to update remaining_quantity
 
     } catch (err: unknown) {
-      console.error("Save error:", err);
       // Check if it's an axios error with a response message
       const axiosError = err as { response?: { data?: { error?: string } } };
       const errorMessage = axiosError?.response?.data?.error ||
@@ -750,7 +741,6 @@ const BatchView = () => {
   };
 
   const handleEdit = async (batch: Batch) => {
-    console.log("🔧 Editing batch:", batch);
     setIsDrawerOpen(true);
     setOpenMenuId(null);
     setIsPreview(false);
@@ -760,7 +750,6 @@ const BatchView = () => {
       // Fetch full batch data with batch_rolls
       const response = await axios.get(`${API}/batches/${batch.id}/with-rolls`);
       const fullBatch = response.data;
-      console.log("🔧 Full batch data:", fullBatch);
 
       setEditingBatch(fullBatch);
       setFormData({
@@ -776,8 +765,7 @@ const BatchView = () => {
 
       // Load multi-roll data for editing
       await loadBatchForEdit(fullBatch);
-    } catch (err) {
-      console.error("Error fetching batch details:", err);
+    } catch {
       showToast("error", "Failed to load batch details. Please try again.");
       setIsDrawerOpen(false);
     } finally {
@@ -796,7 +784,6 @@ const BatchView = () => {
       // Fetch full batch data with batch_rolls
       const response = await axios.get(`${API}/batches/${batch.id}/with-rolls`);
       const fullBatch = response.data;
-      console.log("👁️ Preview batch data:", fullBatch);
 
       setEditingBatch(fullBatch);
       setFormData({
@@ -814,8 +801,7 @@ const BatchView = () => {
       if (fullBatch.batch_rolls && fullBatch.batch_rolls.length > 0) {
         setPreviewBatchRolls(fullBatch.batch_rolls);
       }
-    } catch (err) {
-      console.error("Error fetching batch details:", err);
+    } catch {
       showToast("error", "Failed to load batch details. Please try again.");
       setIsDrawerOpen(false);
     } finally {
@@ -839,8 +825,7 @@ const BatchView = () => {
       await fetchBatches();
       await fetchRolls(); // Refresh rolls to update remaining_quantity
       showToast("success", "Batch deleted successfully!");
-    } catch (err) {
-      console.error("Delete error:", err);
+    } catch {
       showToast("error", "Failed to delete batch. Please try again.");
     }
   };
@@ -889,8 +874,7 @@ const BatchView = () => {
         // Go directly to type-to-confirm modal
         setShowDeleteConfirm(true);
       }
-    } catch (err) {
-      console.error("Error in bulk delete:", err);
+    } catch {
       showToast("error", "An unexpected error occurred. Please try again.");
     }
   };
@@ -925,8 +909,7 @@ const BatchView = () => {
       setCleanBatches([]);
 
       showToast("success", `Successfully deleted ${selectedBatchIds.length} batch(es)`);
-    } catch (err) {
-      console.error("Bulk delete error:", err);
+    } catch {
       showToast("error", "Failed to delete some batches. Please try again.");
     } finally {
       setIsDeleting(false);
@@ -950,8 +933,8 @@ const BatchView = () => {
     try {
       const response = await axios.get(`${API}/batches/fabric-names`);
       setFabricNameSuggestions(response.data);
-    } catch (err) {
-      console.error("Error fetching fabric names:", err);
+    } catch {
+      // Silently fail - fabric name suggestions are optional
     }
   }, [API]);
 
@@ -980,8 +963,7 @@ const BatchView = () => {
       if (rollsWithRemaining.length === 0) {
         showToast("warning", `No rolls found with fabric name "${fabricName}"`);
       }
-    } catch (err) {
-      console.error("Error searching rolls:", err);
+    } catch {
       showToast("error", "Failed to search rolls");
     } finally {
       setIsSearchingRolls(false);
@@ -1195,8 +1177,6 @@ const BatchView = () => {
           : undefined,
       };
 
-      console.log("🔥 Multi-roll batch payload:", payload);
-
       if (editingBatch) {
         await axios.put(`${API}/batches/${editingBatch.id}/with-rolls`, payload);
         showToast("success", "Batch updated successfully!");
@@ -1211,7 +1191,6 @@ const BatchView = () => {
       await fetchRolls();
 
     } catch (err: unknown) {
-      console.error("Save error:", err);
       const axiosError = err as { response?: { data?: { message?: string } } };
       const errorMessage = axiosError?.response?.data?.message ||
         `Error ${editingBatch ? 'updating' : 'creating'} batch. Please try again.`;

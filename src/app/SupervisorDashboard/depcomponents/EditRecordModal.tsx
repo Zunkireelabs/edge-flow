@@ -121,11 +121,9 @@ const EditRecordModal: React.FC<EditRecordModalProps> = ({ isOpen, onClose, reco
         const workersData = await response.json();
         setWorkers(workersData);
       } else {
-        console.error('Failed to fetch workers');
         showToast('error', 'Failed to load workers. Please try again.');
       }
-    } catch (error) {
-      console.error('Error fetching workers:', error);
+    } catch {
       showToast('error', 'Error loading workers. Please check your connection.');
     } finally {
       setLoading(false);
@@ -138,11 +136,9 @@ const EditRecordModal: React.FC<EditRecordModalProps> = ({ isOpen, onClose, reco
       if (response.ok) {
         const departmentsData = await response.json();
         setDepartments(departmentsData);
-      } else {
-        console.error('Failed to fetch departments');
       }
-    } catch (error) {
-      console.error('Error fetching departments:', error);
+    } catch {
+      // Department fetch failed silently
     }
   };
 
@@ -230,8 +226,7 @@ const EditRecordModal: React.FC<EditRecordModalProps> = ({ isOpen, onClose, reco
         const errorData = await response.json().catch(() => ({}));
         showToast('error', `Failed to update worker log: ${errorData.message || 'Unknown error'}`);
       }
-    } catch (error) {
-      console.error('Error updating worker log:', error);
+    } catch {
       showToast('error', 'Error updating worker log. Please check your connection and try again.');
     } finally {
       setIsSubmitting(false);

@@ -33,9 +33,8 @@ export default function UserbackProvider() {
           department_id: departmentId,
         },
       });
-      console.log("Userback initialized successfully");
-    } catch (error) {
-      console.error("Failed to initialize Userback:", error);
+    } catch {
+      // Failed to initialize Userback
     }
   }, []);
 

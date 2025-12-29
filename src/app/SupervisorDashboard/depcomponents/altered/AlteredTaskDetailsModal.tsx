@@ -111,8 +111,6 @@ const AlteredTaskDetailsModal: React.FC<AlteredTaskDetailsModalProps> = ({
         const subBatchId = taskData?.sub_batch?.id;
 
         if (!subBatchId) {
-            console.error('Sub-batch ID not found in taskData');
-            console.log('Available taskData:', taskData);
             return;
         }
 
@@ -121,20 +119,16 @@ const AlteredTaskDetailsModal: React.FC<AlteredTaskDetailsModalProps> = ({
         try {
             const response = await fetch(apiUrl);
             if (!response.ok) {
-                console.error('Error fetching sub-batch history:', response.status);
                 return;
             }
 
             const result = await response.json();
-            console.log('======= SUB-BATCH HISTORY API RESPONSE (ALTERED) =======');
-            console.log('API Result:', result);
-            console.log('========================================================');
 
             if (result.success) {
                 setSubBatchHistory(result);
             }
-        } catch (error) {
-            console.error('Error fetching sub-batch history:', error);
+        } catch {
+            // Error fetching sub-batch history
         }
     }, [taskData]);
 
@@ -145,8 +139,8 @@ const AlteredTaskDetailsModal: React.FC<AlteredTaskDetailsModalProps> = ({
                 const data = await response.json();
                 setDepartments(data);
             }
-        } catch (error) {
-            console.error('Error fetching departments:', error);
+        } catch {
+            // Error fetching departments
         }
     }, []);
 
@@ -156,23 +150,18 @@ const AlteredTaskDetailsModal: React.FC<AlteredTaskDetailsModalProps> = ({
             const departmentId = localStorage.getItem("departmentId");
 
             if (!departmentId) {
-                console.error('No department ID found in localStorage');
                 setWorkers([]);
                 setLoadingWorkers(false);
                 return;
             }
 
-            console.log('Fetching workers for department:', departmentId);
             const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/workers/department/${departmentId}`);
             if (res.ok) {
                 const data = await res.json();
-                console.log('Workers data received:', data);
                 setWorkers(data);
-            } else {
-                console.error('Failed to fetch workers. Status:', res.status);
             }
-        } catch (e) {
-            console.error('Error fetching workers:', e);
+        } catch {
+            // Error fetching workers
         } finally {
             setLoadingWorkers(false);
         }
@@ -190,24 +179,18 @@ const AlteredTaskDetailsModal: React.FC<AlteredTaskDetailsModalProps> = ({
             const contentType = response.headers.get('content-type');
 
             if (!contentType || !contentType.includes('application/json')) {
-                const text = await response.text();
-                console.error('Backend returned non-JSON:', text);
                 return;
             }
 
             if (!response.ok) {
-                const text = await response.text();
-                console.error('Error fetching worker logs:', response.status, text);
                 setWorkerRecords([]);
                 return;
             }
 
             const result = await response.json();
-            console.log('Worker Logs API Response:', result);
 
             // Get current department ID
             const currentDepartmentId = localStorage.getItem("departmentId");
-            console.log('Current Department ID:', currentDepartmentId);
 
             if (result.success && Array.isArray(result.data)) {
                 // Filter to show ONLY workers assigned to THIS SPECIFIC department_sub_batch card
@@ -226,8 +209,6 @@ const AlteredTaskDetailsModal: React.FC<AlteredTaskDetailsModalProps> = ({
                     return isAltered && (isThisCard || isCurrentDepartment);
                 });
 
-                console.log('Filtered ALTERED workers for this card (dept_sub_batch_id:', currentDeptSubBatchId, '):', filteredData);
-
                 const mappedRecords = filteredData.map((r: any) => ({
                     id: r.id,
                     worker_name: r.worker_name || r.worker?.name || '-',
@@ -239,8 +220,7 @@ const AlteredTaskDetailsModal: React.FC<AlteredTaskDetailsModalProps> = ({
             } else {
                 setWorkerRecords([]);
             }
-        } catch (err) {
-            console.error('Fetch error:', err);
+        } catch {
             setWorkerRecords([]);
         } finally {
             setLoadingWorkers(false);
@@ -249,17 +229,6 @@ const AlteredTaskDetailsModal: React.FC<AlteredTaskDetailsModalProps> = ({
 
     useEffect(() => {
         if (taskData) {
-            console.log('======= ALTERED TASK DATA =======');
-            console.log('Full Task Data:', JSON.stringify(taskData, null, 2));
-            console.log('ID:', taskData.id);
-            console.log('Sent from Department:', taskData.sent_from_department);
-            console.log('Altered Quantity:', taskData.altered_quantity);
-            console.log('Altered By:', taskData.altered_by);
-            console.log('Alteration Date:', taskData.alteration_date);
-            console.log('Alteration Reason:', taskData.alter_reason);
-            console.log('Sub-batch:', taskData.sub_batch);
-            console.log('================================');
-
             setStatus(taskData.status || 'NEW_ARRIVAL');
             // Load assigned workers for this altered task
             fetchWorkerRecords();
@@ -324,7 +293,6 @@ const AlteredTaskDetailsModal: React.FC<AlteredTaskDetailsModalProps> = ({
 
         if (!taskData?.sub_batch?.id) {
             showToast('error', 'Sub-batch ID is missing');
-            console.error('taskData.sub_batch:', taskData?.sub_batch);
             return;
         }
 
@@ -334,14 +302,6 @@ const AlteredTaskDetailsModal: React.FC<AlteredTaskDetailsModalProps> = ({
             // Get department ID - ensure it's an integer
             const departmentId = taskData.sub_batch?.department_id || localStorage.getItem("departmentId");
             const parsedDepartmentId = typeof departmentId === 'string' ? parseInt(departmentId) : departmentId;
-
-            console.log('======= WORKER ASSIGNMENT DEBUG =======');
-            console.log('Selected Worker:', selectedWorker);
-            console.log('Quantity:', newWorkerQuantity);
-            console.log('Date:', newWorkerDate);
-            console.log('Sub-batch ID:', taskData.sub_batch?.id);
-            console.log('Department ID (raw):', departmentId);
-            console.log('Department ID (parsed):', parsedDepartmentId);
 
             if (!parsedDepartmentId) {
                 showToast('error', 'Department ID is missing!');
@@ -363,25 +323,13 @@ const AlteredTaskDetailsModal: React.FC<AlteredTaskDetailsModalProps> = ({
                 unit_price: parsedUnitPrice,  // Required for wage calculation
             };
 
-            console.log('Final Payload:', JSON.stringify(payload, null, 2));
-            console.log('API URL:', process.env.NEXT_PUBLIC_CREATE_WORKER_LOGS);
-            console.log('======================================');
-
             const response = await fetch(`${process.env.NEXT_PUBLIC_CREATE_WORKER_LOGS}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload),
             });
 
-            console.log('Response status:', response.status);
-            console.log('Response OK:', response.ok);
-
             if (response.ok) {
-                const result = await response.json();
-                console.log('======= SUCCESS RESPONSE =======');
-                console.log('Result:', JSON.stringify(result, null, 2));
-                console.log('================================');
-
                 // Refresh worker records
                 await fetchWorkerRecords();
 
@@ -393,11 +341,6 @@ const AlteredTaskDetailsModal: React.FC<AlteredTaskDetailsModalProps> = ({
                 setUnitPrice('');
             } else {
                 const errorText = await response.text();
-                console.error('======= ERROR RESPONSE =======');
-                console.error('Status:', response.status);
-                console.error('Status Text:', response.statusText);
-                console.error('Error Body:', errorText);
-                console.error('==============================');
 
                 let errorMessage = 'Unknown error';
                 try {
@@ -409,10 +352,6 @@ const AlteredTaskDetailsModal: React.FC<AlteredTaskDetailsModalProps> = ({
                 showToast('error', `Failed to save worker! Error: ${errorMessage}`);
             }
         } catch (e) {
-            console.error('======= EXCEPTION =======');
-            console.error('Exception while saving:', e);
-            console.error('Stack:', e instanceof Error ? e.stack : 'No stack trace');
-            console.error('=========================');
             showToast('error', `Error saving record! ${e instanceof Error ? e.message : 'Unknown error'}`);
         } finally {
             setSaving(false);
@@ -429,9 +368,6 @@ const AlteredTaskDetailsModal: React.FC<AlteredTaskDetailsModalProps> = ({
             setSaving(true);
             const apiUrl = `${process.env.NEXT_PUBLIC_DELETE_WORKER_LOG}/${workerId}`;
 
-            console.log('Deleting worker log:', workerId);
-            console.log('API URL:', apiUrl);
-
             const response = await fetch(apiUrl, {
                 method: 'DELETE',
             });
@@ -441,11 +377,9 @@ const AlteredTaskDetailsModal: React.FC<AlteredTaskDetailsModalProps> = ({
                 await fetchWorkerRecords();
             } else {
                 const errorText = await response.text();
-                console.error('Error deleting worker:', errorText);
                 showToast('error', `Failed to delete worker: ${errorText}`);
             }
-        } catch (error) {
-            console.error('Error deleting worker:', error);
+        } catch {
             showToast('error', 'Error deleting worker. Please try again.');
         } finally {
             setSaving(false);
@@ -511,10 +445,6 @@ const AlteredTaskDetailsModal: React.FC<AlteredTaskDetailsModalProps> = ({
                 work_date: editDate,
             };
 
-            console.log('Updating worker log:', workerId);
-            console.log('Payload:', payload);
-            console.log('API URL:', apiUrl);
-
             const response = await fetch(apiUrl, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
@@ -527,11 +457,9 @@ const AlteredTaskDetailsModal: React.FC<AlteredTaskDetailsModalProps> = ({
                 handleCancelEdit();
             } else {
                 const errorText = await response.text();
-                console.error('Error updating worker:', errorText);
                 showToast('error', `Failed to update worker: ${errorText}`);
             }
-        } catch (error) {
-            console.error('Error updating worker:', error);
+        } catch {
             showToast('error', 'Error updating worker. Please try again.');
         } finally {
             setSaving(false);
@@ -602,8 +530,6 @@ const AlteredTaskDetailsModal: React.FC<AlteredTaskDetailsModalProps> = ({
                     quantityBeingSent: quantity,
                 };
 
-                console.log('Sending altered task to another department:', requestBody);
-
                 const response = await fetch(apiUrl!, {
                     method: 'POST',
                     headers: {
@@ -637,7 +563,6 @@ const AlteredTaskDetailsModal: React.FC<AlteredTaskDetailsModalProps> = ({
                     throw new Error(result.message || 'Failed to send to department');
                 }
             } catch (error) {
-                console.error('Error sending to department:', error);
                 showToast('error', `Failed to send to department: ${error instanceof Error ? error.message : 'Unknown error'}`);
             } finally {
                 setSaving(false);
@@ -703,7 +628,6 @@ const AlteredTaskDetailsModal: React.FC<AlteredTaskDetailsModalProps> = ({
                     throw new Error(result.message || 'Failed to update stage');
                 }
             } catch (error) {
-                console.error('Error updating stage:', error);
                 showToast('error', error instanceof Error ? error.message : 'Failed to update status. Please try again.');
             } finally {
                 setSaving(false);
@@ -773,7 +697,6 @@ const AlteredTaskDetailsModal: React.FC<AlteredTaskDetailsModalProps> = ({
                 throw new Error(result.message || 'Failed to mark sub-batch as completed');
             }
         } catch (error: any) {
-            console.error('Error marking as completed:', error);
             showToast('error', `Failed to mark as completed: ${error.message}`);
         } finally {
             setSaving(false);

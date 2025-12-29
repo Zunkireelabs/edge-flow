@@ -72,8 +72,8 @@ const Header: React.FC<HeaderProps> = ({ activeView }) => {
         if (storedEmail) {
           setUserEmail(storedEmail);
         }
-      } catch (error) {
-        console.error("Error fetching department name:", error);
+      } catch {
+        // Error fetching department name
       }
     };
 

@@ -327,19 +327,12 @@ export const createRejection = async (data: AdminRejectionInput) => {
  * @param data - Alteration input data
  */
 export const createAlteration = async (data: AdminAlterationInput) => {
-  console.log('=== Create Alteration Debug ===');
-  console.log('Input data:', JSON.stringify(data, null, 2));
-
   try {
     return await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
-      console.log('Transaction started...');
-
       // 1️⃣ Find and validate the worker_log
       const workerLog = await tx.worker_logs.findUnique({
         where: { id: data.worker_log_id },
       });
-
-      console.log('Worker log found:', workerLog);
 
       if (!workerLog) {
         throw new Error(`Worker log ${data.worker_log_id} not found`);
@@ -359,8 +352,6 @@ export const createAlteration = async (data: AdminAlterationInput) => {
           is_current: true,
         },
       });
-
-      console.log('Source entry found:', sourceEntry);
 
       if (!sourceEntry) {
         throw new Error(
@@ -429,8 +420,6 @@ export const createAlteration = async (data: AdminAlterationInput) => {
       },
     });
 
-      console.log('Alteration completed successfully');
-
       return {
         alteration_id: altered.id,
         sub_batch_id: altered.sub_batch_id,
@@ -442,9 +431,6 @@ export const createAlteration = async (data: AdminAlterationInput) => {
       };
     });
   } catch (error: any) {
-    console.error('=== Alteration Error ===');
-    console.error('Error message:', error.message);
-    console.error('Error stack:', error.stack);
     throw error;
   }
 };

@@ -564,8 +564,8 @@ const SubBatchView = () => {
       setLoading(true);
       const res = await axios.get(`${API}/sub-batches`);
       setSubBatches(res.data);
-    } catch (error) {
-      console.error("Error fetching subbatches:", error);
+    } catch {
+      // Silently fail - will show empty list
     } finally {
       setLoading(false);
     }
@@ -575,8 +575,8 @@ const SubBatchView = () => {
     try {
       const res = await axios.get(`${API}/rolls`);
       setRolls(res.data);
-    } catch (error) {
-      console.error("Error fetching rolls:", error);
+    } catch {
+      // Silently fail
     }
   };
 
@@ -584,8 +584,8 @@ const SubBatchView = () => {
     try {
       const res = await axios.get(`${API}/batches`);
       setBatches(res.data);
-    } catch (error) {
-      console.error("Error fetching batches:", error);
+    } catch {
+      // Silently fail
     }
   };
 
@@ -603,13 +603,10 @@ const SubBatchView = () => {
         options = res.data.categories.map((c: any) =>
           typeof c === "string" ? c : c.category_name || c.name || c.category || JSON.stringify(c)
         );
-      } else {
-        console.warn("Unexpected categories response format:", res.data);
       }
 
       setCategoryOptions(options);
-    } catch (error) {
-      console.error("Error fetching categories:", error);
+    } catch {
       setCategoryOptions([]);
     }
   };
@@ -618,8 +615,8 @@ const SubBatchView = () => {
     try {
       const res = await axios.get(`${API}/departments`);
       setDepartments(res.data);
-    } catch (error) {
-      console.error("Error fetching departments:", error);
+    } catch {
+      // Silently fail
     }
   };
 
@@ -677,8 +674,7 @@ const SubBatchView = () => {
         setBatchSizeAllocation([]);
         setSelectedBatchHasSizes(false);
       }
-    } catch (error) {
-      console.error("Error fetching batch size allocation:", error);
+    } catch {
       setBatchSizeAllocation([]);
       setSelectedBatchHasSizes(false);
     } finally {
@@ -782,8 +778,6 @@ const SubBatchView = () => {
           showToast("error", "Failed to save category. Please try again.");
         }
       } else {
-        // Generic fallback for unknown errors
-        console.error("Unknown error:", err);
         showToast("error", "An unexpected error occurred. Please try again.");
       }
     } finally {
@@ -863,8 +857,6 @@ const SubBatchView = () => {
         total_quantity: selectedSubBatch.total_quantity || selectedSubBatch.estimated_pieces || 0
       };
 
-      console.log("Sending payload:", payload);
-
       const response = await axios.post(`${API}/sub-batches/send-to-production`, payload, {
         headers: {
           Authorization: `Bearer ${token}`,
@@ -874,9 +866,6 @@ const SubBatchView = () => {
       if (response.data.success) {
         const workflow = response.data.workflow;
         showToast("success", `Sub-batch sent to production! Workflow ID: ${workflow.id}, Steps: ${workflow.steps.length} departments`);
-
-        console.log("Workflow created:", workflow);
-        console.log("Department workflow steps:", workflow.steps);
 
         setIsSendModalOpen(false);
         setSelectedSubBatch(null);
@@ -888,7 +877,6 @@ const SubBatchView = () => {
         showToast("error", "Failed to send sub-batch to production");
       }
     } catch (error) {
-      console.error("Error sending sub-batch to production:", error);
       if (axios.isAxiosError(error)) {
         const errorMessage = error.response?.data?.message || error.message || "Unknown error occurred";
         showToast("error", `Failed to send sub-batch to production: ${errorMessage}`);
@@ -968,8 +956,6 @@ const SubBatchView = () => {
           })),
       };
 
-      console.log("Saving sub-batch payload:", payload);
-
       const isEditing = !!editingSubBatch;
       if (isEditing) {
         await axios.put(`${API}/sub-batches/${editingSubBatch.id}`, payload);
@@ -980,9 +966,8 @@ const SubBatchView = () => {
       closeModal();
       fetchSubBatches();
       showToast("success", isEditing ? "Sub-batch updated successfully!" : "Sub-batch created successfully!");
-    } catch (error) {
-      console.error("Error saving subbatch:", error);
-      showToast("error", "Failed to save subbatch. Check console for details.");
+    } catch {
+      showToast("error", "Failed to save subbatch. Please try again.");
     } finally {
       setSaveLoading(false);
     }
@@ -1007,12 +992,7 @@ const SubBatchView = () => {
       showToast("success", "Subbatch deleted successfully!");
       await fetchSubBatches();
     } catch (error) {
-      console.error("Error deleting subbatch:", error);
       if (axios.isAxiosError(error)) {
-        // Log the full error response for debugging
-        console.error("Error response data:", error.response?.data);
-        console.error("Error status:", error.response?.status);
-
         const errorData = error.response?.data;
         const errorMessage =
           errorData?.message ||
@@ -1077,8 +1057,7 @@ const SubBatchView = () => {
     try {
       const res = await axios.get(`${API}/sub-batches/${id}`);
       return res.data; // returns the sub-batch data
-    } catch (error) {
-      console.error("Error fetching sub-batch by ID:", error);
+    } catch {
       return null;
     }
   };
@@ -1191,8 +1170,7 @@ const SubBatchView = () => {
 
       // Show warning modal
       setShowDeleteWarning(true);
-    } catch (error) {
-      console.error("Error checking dependencies:", error);
+    } catch {
       showToast("error", "Failed to check sub-batch deletion eligibility. Please try again.");
     }
   };
@@ -1245,9 +1223,8 @@ const SubBatchView = () => {
 
       // Refresh sub-batches list
       await fetchSubBatches();
-    } catch (error) {
-      console.error("Error deleting sub-batches:", error);
-      showToast("error", "Failed to delete some sub-batches. Please check console for details.");
+    } catch {
+      showToast("error", "Failed to delete some sub-batches. Please try again.");
     } finally {
       setIsDeleting(false);
     }

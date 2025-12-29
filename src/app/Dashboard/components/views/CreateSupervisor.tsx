@@ -212,8 +212,7 @@ const CreateSupervisor = () => {
         ? data
         : data?.data || data?.supervisors || [];
       setSupervisors(supervisorsArray);
-    } catch (err) {
-      console.error(err);
+    } catch {
       showToast("error", "Error fetching supervisors.");
     } finally {
       setLoading(false);
@@ -235,11 +234,9 @@ const CreateSupervisor = () => {
         const data = await res.json();
         setDepartments(data || []);
       } else {
-        console.error("Failed to fetch departments:", res.status);
         showToast("warning", "Could not load departments");
       }
-    } catch (err) {
-      console.error("Error fetching departments:", err);
+    } catch {
       showToast("warning", "Could not load departments");
     }
   };
@@ -338,7 +335,6 @@ const CreateSupervisor = () => {
       resetForm();
       setIsDrawerOpen(false);
     } catch (err: any) {
-      console.error(err);
       showToast("error", err.message || "Error saving supervisor.");
     } finally {
       setSaveLoading(false);
@@ -379,7 +375,6 @@ const CreateSupervisor = () => {
       await fetchSupervisors();
       showToast("success", "Supervisor deleted successfully!");
     } catch (err: any) {
-      console.error(err);
       showToast("error", err.message || "Error deleting supervisor.");
     }
   };

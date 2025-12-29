@@ -189,8 +189,7 @@ const WorkerPage = () => {
             setLoading(true);
             const res = await axios.get(API.getAll!);
             setWorkers(res.data);
-        } catch (error) {
-            console.error(error);
+        } catch {
             showToast("error", "Failed to fetch workers.");
         } finally {
             setLoading(false);
@@ -338,8 +337,7 @@ const WorkerPage = () => {
             await axios.delete(API.delete(id));
             fetchWorkers();
             showToast("success", "Worker deleted successfully!");
-        } catch (error) {
-            console.error(error);
+        } catch {
             showToast("error", "Failed to delete worker.");
         }
     };
@@ -370,8 +368,7 @@ const WorkerPage = () => {
 
             fetchWorkers();
             closeDrawer();
-        } catch (error) {
-            console.error(error);
+        } catch {
             showToast("error", "Failed to save worker.");
         } finally {
             setSaveLoading(false);

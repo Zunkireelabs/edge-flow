@@ -110,7 +110,6 @@ const RejectionModal: React.FC<RejectionModalProps> = ({
         showToast('error', `Failed to reject items: ${result.message || 'Unknown error'}`);
       }
     } catch (error: unknown) {
-      console.error('Error rejecting items:', error);
       showToast('error', `Error: ${error instanceof Error ? error.message : 'Failed to reject items'}`);
     } finally {
       setLoading(false);

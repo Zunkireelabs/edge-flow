@@ -64,8 +64,7 @@ export const formatNepaliDate = (
     const day = String(nepaliDate.getDate()).padStart(2, "0");
 
     return `${year}-${month}-${day}`;
-  } catch (error) {
-    console.error("[DateUtils] Error converting to Nepali:", error);
+  } catch {
     return "-";
   }
 };
@@ -89,8 +88,7 @@ export const nepaliToGregorian = (
     }
     // Already Gregorian - just convert to ISO
     return new Date(nepaliDateStr).toISOString();
-  } catch (error) {
-    console.error("[DateUtils] Error converting Nepali to Gregorian:", error);
+  } catch {
     return null;
   }
 };

@@ -270,8 +270,7 @@ const VendorView = () => {
       setLoading(true);
       const res = await axios.get(API);
       setVendors(res.data);
-    } catch (err) {
-      console.error("Failed to fetch vendors:", err);
+    } catch {
       showToast("error", "Failed to fetch vendors.");
     } finally {
       setLoading(false);
@@ -312,8 +311,7 @@ const VendorView = () => {
       setIsPreview(false);
       resetForm();
       await fetchVendors();
-    } catch (err) {
-      console.error("Save error:", err);
+    } catch {
       showToast("error", "Error saving vendor.");
     } finally {
       setSaveLoading(false);
@@ -336,8 +334,7 @@ const VendorView = () => {
       await axios.delete(`${API}/${id}`);
       await fetchVendors();
       showToast("success", "Vendor deleted successfully!");
-    } catch (err) {
-      console.error("Delete error:", err);
+    } catch {
       showToast("error", "Failed to delete vendor.");
     }
   };

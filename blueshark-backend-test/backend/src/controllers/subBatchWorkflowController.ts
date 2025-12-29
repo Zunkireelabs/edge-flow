@@ -24,7 +24,6 @@ export const getWorkflowStatus = async (req: Request, res: Response) => {
 
     return res.json({ success: true, data: workflow });
   } catch (error: any) {
-    console.error("Error fetching workflow status:", error);
     return res.status(500).json({ success: false, message: error.message });
   }
 };

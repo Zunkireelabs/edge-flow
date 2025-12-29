@@ -74,8 +74,8 @@ const AlterationModal: React.FC<AlterationModalProps> = ({
         setDepartments(data);
         filterDepartments(data);
       }
-    } catch (error) {
-      console.error('Error fetching departments:', error);
+    } catch {
+      // Department fetch failed
     }
   };
 
@@ -172,7 +172,6 @@ const AlterationModal: React.FC<AlterationModalProps> = ({
         showToast('error', `Failed to send for alteration: ${result.message || 'Unknown error'}`);
       }
     } catch (error: unknown) {
-      console.error('Error sending for alteration:', error);
       showToast('error', `Error: ${error instanceof Error ? error.message : 'Failed to send for alteration'}`);
     } finally {
       setLoading(false);

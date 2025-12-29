@@ -78,7 +78,6 @@ const AlterationModal: React.FC<AlterationModalProps> = ({ isOpen, onClose, task
             if (onSuccess) onSuccess();
             onClose();
         } catch (error: any) {
-            console.error('Error adding alteration:', error);
             alert(error.message || 'Failed to add alteration');
         } finally {
             setSubmitting(false);

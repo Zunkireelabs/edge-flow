@@ -82,7 +82,6 @@ const AuthPage: React.FC = () => {
       throw new Error("Invalid email or password");
 
     } catch (err: any) {
-      console.error(err);
       setError(err.message || "An error occurred. Please try again.");
     } finally {
       setLoading(false);

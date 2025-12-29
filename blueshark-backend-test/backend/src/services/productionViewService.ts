@@ -152,8 +152,7 @@ export const getProductionViewData = async () => {
       total_completed: completedSubBatches.length,
       total_in_production: departmentSubBatches.length,
     };
-  } catch (error) {
-    console.error('Error fetching production view data:', error);
+  } catch {
     throw new Error('Failed to fetch production view data');
   }
 };
@@ -203,8 +202,7 @@ export const getProductionViewDataWithFilter = async (
     filteredData.total_completed = filteredData.completed_sub_batches.length;
 
     return filteredData;
-  } catch (error) {
-    console.error('Error fetching filtered production view data:', error);
+  } catch {
     throw new Error('Failed to fetch filtered production view data');
   }
 };
