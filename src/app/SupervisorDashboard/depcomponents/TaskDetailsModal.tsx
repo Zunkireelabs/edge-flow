@@ -20,20 +20,6 @@ interface TaskDetailsModalProps {
 const TaskDetailsModal: React.FC<TaskDetailsModalProps> = ({ isOpen, onClose, taskData, onStageChange }) => {
     const { showToast } = useToast();
 
-    // Debug logging to see taskData structure
-    useEffect(() => {
-        if (isOpen && taskData) {
-            console.log('=== TaskDetailsModal Debug ===');
-            console.log('Full taskData:', taskData);
-            console.log('taskData.alteration_source:', taskData.alteration_source);
-            console.log('taskData.rejection_source:', taskData.rejection_source);
-            console.log('taskData.sent_from_department:', taskData.sent_from_department);
-            console.log('taskData.sent_from_department_name:', taskData.sent_from_department_name);
-            console.log('taskData.remarks:', taskData.remarks);
-            console.log('taskData.altered_created:', taskData.altered_created);
-        }
-    }, [isOpen, taskData]);
-
     const [isAddRecordOpen, setIsAddRecordOpen] = useState(false);
     const [isPreviewOpen, setIsPreviewOpen] = useState(false);
     const [selectedRecord, setSelectedRecord] = useState<any | null>(null);
@@ -68,14 +54,10 @@ const TaskDetailsModal: React.FC<TaskDetailsModalProps> = ({ isOpen, onClose, ta
             const contentType = response.headers.get('content-type');
 
             if (!contentType || !contentType.includes('application/json')) {
-                const text = await response.text();
-                console.error('Backend returned non-JSON:', text);
                 return;
             }
 
             if (!response.ok) {
-                const text = await response.text();
-                console.error('Error fetching worker logs:', response.status, text);
                 setWorkerRecords([]);
                 return;
             }
@@ -137,8 +119,7 @@ const TaskDetailsModal: React.FC<TaskDetailsModalProps> = ({ isOpen, onClose, ta
             } else {
                 setWorkerRecords([]);
             }
-        } catch (err) {
-            console.error('Fetch error:', err);
+        } catch {
             setWorkerRecords([]);
         } finally {
             setLoading(false);
@@ -153,8 +134,8 @@ const TaskDetailsModal: React.FC<TaskDetailsModalProps> = ({ isOpen, onClose, ta
                 const data = await response.json();
                 setDepartments(data);
             }
-        } catch (error) {
-            console.error('Error fetching departments:', error);
+        } catch {
+            // Department fetch failed
         }
     }, []);
 
@@ -168,7 +149,6 @@ const TaskDetailsModal: React.FC<TaskDetailsModalProps> = ({ isOpen, onClose, ta
         try {
             const response = await fetch(apiUrl);
             if (!response.ok) {
-                console.error('Error fetching sub-batch history:', response.status);
                 return;
             }
 
@@ -177,8 +157,8 @@ const TaskDetailsModal: React.FC<TaskDetailsModalProps> = ({ isOpen, onClose, ta
             if (result.success) {
                 setSubBatchHistory(result);
             }
-        } catch (error) {
-            console.error('Error fetching sub-batch history:', error);
+        } catch {
+            // Sub-batch history fetch failed
         }
     }, [taskData?.sub_batch?.id]);
 
@@ -205,7 +185,6 @@ const TaskDetailsModal: React.FC<TaskDetailsModalProps> = ({ isOpen, onClose, ta
             });
 
             if (!response.ok) {
-                console.error('Error fetching supervisor cards:', response.status);
                 return;
             }
 
@@ -231,8 +210,8 @@ const TaskDetailsModal: React.FC<TaskDetailsModalProps> = ({ isOpen, onClose, ta
                     setMainCardData(mainCard);
                 }
             }
-        } catch (error) {
-            console.error('Error fetching main card data:', error);
+        } catch {
+            // Main card data fetch failed
         }
     }, [taskData?.remarks, taskData?.sub_batch_id, taskData?.department_id]);
 
@@ -339,7 +318,6 @@ const TaskDetailsModal: React.FC<TaskDetailsModalProps> = ({ isOpen, onClose, ta
 
                 if (!advanceResponse.ok) {
                     const errorData = await advanceResponse.json();
-                    console.error('Error Response:', errorData);
                     throw new Error(errorData.message || 'Failed to advance to next department');
                 }
 
@@ -368,7 +346,6 @@ const TaskDetailsModal: React.FC<TaskDetailsModalProps> = ({ isOpen, onClose, ta
                     throw new Error(result.message || 'Failed to advance to next department');
                 }
             } catch (error: any) {
-                console.error('Error:', error);
                 showToast('error', `Failed to send to department: ${error.message}`);
             } finally {
                 setSaving(false);
@@ -417,7 +394,6 @@ const TaskDetailsModal: React.FC<TaskDetailsModalProps> = ({ isOpen, onClose, ta
                     throw new Error(result.message || 'Failed to update stage');
                 }
             } catch (error: any) {
-                console.error('Error updating stage:', error);
                 showToast('error', `Failed to update stage: ${error.message}`);
             } finally {
                 setSaving(false);
@@ -487,7 +463,6 @@ const TaskDetailsModal: React.FC<TaskDetailsModalProps> = ({ isOpen, onClose, ta
                 throw new Error(result.message || 'Failed to mark sub-batch as completed');
             }
         } catch (error: any) {
-            console.error('Error marking as completed:', error);
             showToast('error', `Failed to mark as completed: ${error.message}`);
         } finally {
             setSaving(false);
@@ -650,7 +625,6 @@ const TaskDetailsModal: React.FC<TaskDetailsModalProps> = ({ isOpen, onClose, ta
             await fetchWorkerLogs();
             showToast('success', 'Worker record deleted successfully!');
         } catch (error: any) {
-            console.error('Error deleting worker record:', error);
             showToast('error', `Failed to delete worker record: ${error.message}`);
         }
     }, [fetchWorkerLogs, showToast]);

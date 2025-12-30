@@ -229,8 +229,6 @@ export async function sendToProduction(
     data: { status: 'IN_PRODUCTION' }
   });
 
-  console.log(`✅ Sub-batch #${subBatchId} status updated to IN_PRODUCTION`);
-
   return workflow;
 }
 
@@ -300,20 +298,9 @@ export async function advanceSubBatchToNextDepartment(
     throw new Error("Quantity being sent must be greater than 0");
   }
 
-  // Debug logging to understand the data
-  console.log('=== Send to Department Debug ===');
-  console.log('Department Sub-Batch ID:', departmentSubBatchId);
-  console.log('Quantity Being Sent:', quantityBeingSent);
-  console.log('quantity_assigned:', currentDept.quantity_assigned);
-  console.log('quantity_remaining:', currentDept.quantity_remaining);
-  console.log('quantity_received:', currentDept.quantity_received);
-  console.log('total_quantity:', currentDept.total_quantity);
-
   // Check against quantity_received (what arrived in this department)
   // This is the total that can be worked on and sent forward
   const availableQuantity = currentDept.quantity_received || currentDept.total_quantity || 0;
-
-  console.log('availableQuantity (using quantity_received):', availableQuantity);
 
   if (quantityBeingSent > availableQuantity) {
     throw new Error(
@@ -386,8 +373,6 @@ export async function markSubBatchAsCompleted(subBatchId: number) {
       completed_at: new Date(),
     },
   });
-
-  console.log(`✅ Sub-batch #${subBatchId} marked as COMPLETED at ${updatedSubBatch.completed_at}`);
 
   return updatedSubBatch;
 }

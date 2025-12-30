@@ -58,8 +58,7 @@ const Dashboard = () => {
                 completed: kanbanData?.completed?.length || 0,
                 workers: workersResponse.data?.length || 0
               };
-            } catch (err) {
-              console.error(`Error fetching stats for department ${dept.id}:`, err);
+            } catch {
               return { newArrivals: 0, inProgress: 0, completed: 0, workers: 0 };
             }
           });
@@ -103,8 +102,8 @@ const Dashboard = () => {
             activeWorkers: workersResponse.data?.length || 0
           });
         }
-      } catch (error) {
-        console.error("Error fetching dashboard stats:", error);
+      } catch {
+        // Error fetching dashboard stats
       } finally {
         setLoading(false);
       }

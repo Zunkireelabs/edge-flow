@@ -78,7 +78,6 @@ const RejectModal: React.FC<RejectModalProps> = ({ isOpen, onClose, taskData, on
             if (onSuccess) onSuccess();
             onClose();
         } catch (error: any) {
-            console.error('Error rejecting pieces:', error);
             alert(error.message || 'Failed to reject pieces');
         } finally {
             setSubmitting(false);

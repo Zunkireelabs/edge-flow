@@ -208,8 +208,7 @@ const ProductionView = () => {
             setVisibleSubBatches([result.data.all_sub_batches[0].id]);
           }
         }
-      } catch (error) {
-        console.error("Error fetching production view:", error);
+      } catch {
         alert("Failed to load production view data");
       } finally {
         setLoading(false);
@@ -266,8 +265,8 @@ const ProductionView = () => {
       if (result.success) {
         setData(result.data);
       }
-    } catch (error) {
-      console.error("Error refreshing production view:", error);
+    } catch {
+      // Silently fail on refresh
     }
   };
 

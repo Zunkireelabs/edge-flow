@@ -38,33 +38,6 @@ const WorkerAssignmentTable: React.FC<WorkerAssignmentTableProps> = ({
   // Filter records to only show NORMAL activity type
   const filteredRecords = records.filter(record => record.activity_type === 'NORMAL' || !record.activity_type);
 
-  // Console log all worker records data
-  console.log('======= WORKER ASSIGNMENT TABLE DATA =======');
-  console.log('Total Records:', records.length);
-  console.log('Filtered Records (NORMAL only):', filteredRecords.length);
-  console.log('All Worker Records:', records);
-  console.log('Filtered Worker Records:', filteredRecords);
-  filteredRecords.forEach((record, index) => {
-    console.log(`Record ${index + 1}:`, {
-      id: record.id,
-      worker: record.worker,
-      date: record.date,
-      realCategory: record.realCategory,
-      particulars: record.particulars,
-      qtyReceived: record.qtyReceived,
-      qtyWorked: record.qtyWorked,
-      unitPrice: record.unitPrice,
-      rejectReturn: record.rejectReturn,
-      returnTo: record.returnTo,
-      rejectionReason: record.rejectionReason,
-      alteration: record.alteration,
-      alterationNote: record.alterationNote,
-      status: record.status,
-      activity_type: record.activity_type
-    });
-  });
-  console.log('===========================================');
-
   const handleMenuAction = (action: string, record: WorkerRecord) => {
     setOpenMenuId(null);
     switch (action) {

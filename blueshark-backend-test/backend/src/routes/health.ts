@@ -18,7 +18,6 @@ router.get("/", async (req, res) => {
       time: new Date().toISOString(),
     });
   } catch (err) {
-    console.error("❌ Health DB check failed:", err);
     res.status(500).json({ status: "error", error: err });
   }
 });

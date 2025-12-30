@@ -58,8 +58,8 @@ const AssignAlteredWorkerModal: React.FC<AssignAlteredWorkerModalProps> = ({
                 { id: 2, name: 'Shyam' },
                 { id: 3, name: 'Hari' }
             ]);
-        } catch (error) {
-            console.error('Error fetching workers:', error);
+        } catch {
+            // Error fetching workers
         } finally {
             setLoading(false);
         }

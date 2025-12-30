@@ -81,8 +81,7 @@ const AddWorkerModal: React.FC<AddWorkerModalProps> = ({
       } else {
         showToast('error', 'Failed to fetch workers');
       }
-    } catch (e) {
-      console.error(e);
+    } catch {
       showToast('error', 'Error fetching workers');
     } finally {
       setLoading(false);
@@ -98,8 +97,7 @@ const AddWorkerModal: React.FC<AddWorkerModalProps> = ({
       } else {
         showToast('error', 'Failed to fetch departments');
       }
-    } catch (e) {
-      console.error(e);
+    } catch {
       showToast('error', 'Error fetching departments');
     }
   };
@@ -159,8 +157,7 @@ const AddWorkerModal: React.FC<AddWorkerModalProps> = ({
         const err = await response.json().catch(() => ({}));
         showToast('error', `Failed to assign worker: ${err.message || 'Unknown error'}`);
       }
-    } catch (e) {
-      console.error(e);
+    } catch {
       showToast('error', 'Error assigning worker to department');
     } finally {
       setIsSubmitting(false);

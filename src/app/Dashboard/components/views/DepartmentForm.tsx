@@ -355,8 +355,7 @@ const DepartmentForm = () => {
       }));
 
       setDepartments(normalizedData);
-    } catch (err) {
-      console.error("Fetch error:", err);
+    } catch {
       showToast("error", "Failed to fetch departments.");
     } finally {
       setLoading(false);
@@ -367,7 +366,6 @@ const DepartmentForm = () => {
   const fetchSupervisors = async () => {
     try {
       const token = localStorage.getItem("token");
-      console.log("Token used to fetch supervisors:", token);
 
       const res = await fetch(GET_SUPERVISOR!, {
         method: "GET",
@@ -380,7 +378,6 @@ const DepartmentForm = () => {
       if (!res.ok) throw new Error("Failed to fetch supervisors");
 
       const data = await res.json();
-      console.log("Supervisors API response:", data);
 
       // Normalize supervisors into an array
       const supervisorsArray = Array.isArray(data)
@@ -388,8 +385,7 @@ const DepartmentForm = () => {
         : data?.data || data?.supervisors || [];
 
       setSupervisors(supervisorsArray);
-    } catch (err) {
-      console.error("Fetch supervisors error:", err);
+    } catch {
       showToast("error", "Failed to fetch supervisors.");
     }
   };
@@ -401,9 +397,7 @@ const DepartmentForm = () => {
       if (!res.ok) throw new Error("Failed to fetch workers");
       const data: Worker[] = await res.json();
       setWorkers(data);
-      console.log(data)
-    } catch (err) {
-      console.error("Fetch workers error:", err);
+    } catch {
       showToast("error", "Failed to fetch workers.");
     }
   };
@@ -437,8 +431,6 @@ const DepartmentForm = () => {
         })) || [],
       };
 
-      console.log("Payload sent to backend:", payload);
-
       let response;
       if (editingDept) {
         response = await fetch(`${UPDATE_DEPARTMENTS}/${editingDept.id}`, {
@@ -458,8 +450,7 @@ const DepartmentForm = () => {
 
       await fetchDepartments();
       showToast("success", `Department ${editingDept ? "updated" : "created"} successfully`);
-    } catch (err) {
-      console.error("Save error:", err);
+    } catch {
       showToast("error", "Error saving department.");
     } finally {
       setSaveLoading(false);
@@ -515,8 +506,7 @@ const DepartmentForm = () => {
       if (!res.ok) throw new Error("Failed to delete department");
       await fetchDepartments();
       showToast("success", "Department deleted successfully");
-    } catch (err) {
-      console.error("Delete error:", err);
+    } catch {
       showToast("error", "Failed to delete department");
     }
   };

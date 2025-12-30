@@ -54,8 +54,7 @@ const Worker = () => {
               return await res.json();
             }
             return [];
-          } catch (err) {
-            console.error(`Error fetching workers for department ${dept.id}:`, err);
+          } catch {
             return [];
           }
         });
@@ -63,8 +62,7 @@ const Worker = () => {
         const results = await Promise.all(departmentPromises);
         const allWorkers = results.flat();
         setWorkers(allWorkers);
-      } catch (e) {
-        console.error('❌ Worker View: Exception:', e);
+      } catch {
         showToast('error', 'Error fetching workers');
       } finally {
         setLoading(false);
@@ -74,26 +72,21 @@ const Worker = () => {
 
     // Fetch workers for a specific department
     if (!targetDeptId) {
-      console.log('❌ Worker View: No department ID found');
       return;
     }
 
     try {
       setLoading(true);
       const url = `${process.env.NEXT_PUBLIC_API_URL}/workers/department/${targetDeptId}`;
-      console.log('🔍 Worker View: Fetching workers from:', url);
 
       const res = await fetch(url);
       if (res.ok) {
         const data = await res.json();
-        console.log('✅ Worker View: Received workers:', data);
         setWorkers(data);
       } else {
-        console.error('❌ Worker View: API returned error status:', res.status);
         showToast('error', 'Failed to fetch workers for this department');
       }
-    } catch (e) {
-      console.error('❌ Worker View: Exception:', e);
+    } catch {
       showToast('error', 'Error fetching workers');
     } finally {
       setLoading(false);
@@ -133,8 +126,7 @@ const Worker = () => {
         const err = await res.json().catch(() => ({}));
         showToast('error', `Failed to delete worker: ${err.message || 'Unknown error'}`);
       }
-    } catch (e) {
-      console.error(e);
+    } catch {
       showToast('error', 'Error deleting worker');
     }
   };

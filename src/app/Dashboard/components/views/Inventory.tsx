@@ -294,8 +294,7 @@ const Inventory = () => {
       setLoading(true);
       const res = await axios.get(API.getAll!);
       setInventoryItems(res.data);
-    } catch (error) {
-      console.error("Error fetching inventory:", error);
+    } catch {
       showToast("error", "Failed to fetch inventory items");
     } finally {
       setLoading(false);
@@ -306,8 +305,8 @@ const Inventory = () => {
     try {
       const res = await axios.get(API.getCategories!);
       setCategories(res.data);
-    } catch (error) {
-      console.error("Error fetching categories:", error);
+    } catch {
+      // Categories fetch failed silently
     }
   }, []);
 
@@ -332,8 +331,7 @@ const Inventory = () => {
         (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
       );
       setAdjustmentHistory(combined);
-    } catch (error) {
-      console.error("Error fetching adjustment history:", error);
+    } catch {
       setAdjustmentHistory([]);
     } finally {
       setHistoryLoading(false);
@@ -575,7 +573,6 @@ const Inventory = () => {
       closeDrawer();
       fetchInventory();
     } catch (error: any) {
-      console.error("Error saving item:", error);
       showToast("error", error.response?.data?.message || "Failed to save item");
     } finally {
       setSaveLoading(false);
@@ -618,7 +615,6 @@ const Inventory = () => {
       closeDrawer();
       fetchInventory();
     } catch (error: any) {
-      console.error("Error adjusting stock:", error);
       showToast("error", error.response?.data?.message || "Failed to adjust stock");
     } finally {
       setSaveLoading(false);
@@ -641,7 +637,6 @@ const Inventory = () => {
       showToast("success", "Item deleted successfully!");
       fetchInventory();
     } catch (error: any) {
-      console.error("Error deleting item:", error);
       showToast("error", error.response?.data?.message || "Failed to delete item");
     }
   };
@@ -666,7 +661,6 @@ const Inventory = () => {
       setSelectedRows(new Set());
       fetchInventory();
     } catch (error: any) {
-      console.error("Error deleting items:", error);
       showToast("error", "Failed to delete some items");
     }
   };
@@ -715,7 +709,6 @@ const Inventory = () => {
       setNewCategoryName("");
       fetchCategories();
     } catch (error: any) {
-      console.error("Error creating category:", error);
       showToast("error", error.response?.data?.message || "Failed to create category");
     } finally {
       setCategoryLoading(false);
@@ -736,7 +729,6 @@ const Inventory = () => {
       setEditingCategory(null);
       fetchCategories();
     } catch (error: any) {
-      console.error("Error updating category:", error);
       showToast("error", error.response?.data?.message || "Failed to update category");
     } finally {
       setCategoryLoading(false);
@@ -759,7 +751,6 @@ const Inventory = () => {
       showToast("success", "Category deleted successfully!");
       fetchCategories();
     } catch (error: any) {
-      console.error("Error deleting category:", error);
       showToast("error", error.response?.data?.message || "Failed to delete category");
     }
   };

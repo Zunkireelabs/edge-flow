@@ -36,11 +36,8 @@ export const convertToGregorianDate = (dateStr: string): Date => {
       // Convert to JavaScript Date (Gregorian)
       const gregorianDate = nepaliDate.toJsDate();
 
-      console.log(`[DateUtils] Converted Nepali ${dateStr} to Gregorian ${gregorianDate.toISOString().split('T')[0]}`);
-
       return gregorianDate;
-    } catch (error) {
-      console.error(`[DateUtils] Error converting Nepali date ${dateStr}:`, error);
+    } catch {
       // Fallback to current date if conversion fails
       return new Date();
     }
@@ -64,8 +61,7 @@ export const convertToNepaliDateString = (date: Date): string => {
     const month = String(nepaliDate.getMonth() + 1).padStart(2, '0'); // 0-indexed to 1-indexed
     const day = String(nepaliDate.getDate()).padStart(2, '0');
     return `${year}-${month}-${day}`;
-  } catch (error) {
-    console.error('[DateUtils] Error converting to Nepali date:', error);
+  } catch {
     return date.toISOString().split('T')[0];
   }
 };

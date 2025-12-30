@@ -452,8 +452,7 @@ const RollView = () => {
       if (!res.ok) throw new Error("Failed to fetch rolls");
       const data = await res.json();
       setRolls(data);
-    } catch (err) {
-      console.error("Fetch error:", err);
+    } catch {
       showToast("error", "Failed to fetch rolls. Please try again.");
     } finally {
       setLoading(false);
@@ -470,8 +469,7 @@ const RollView = () => {
       if (!res.ok) throw new Error("Failed to fetch vendors");
       const data = await res.json();
       setVendors(data);
-    } catch (err) {
-      console.error("Fetch vendors error:", err);
+    } catch {
       showToast("error", "Failed to fetch vendors.");
     }
   };
@@ -556,15 +554,12 @@ const RollView = () => {
         payload.roll_unit_count = Number(formData.roll_unit_count);
       }
 
-      console.log("🔥 Payload going to backend:", payload);
-
       let response;
 
       if (editingRoll) {
         if (!UPDATE_ROLL) {
           throw new Error("UPDATE_ROLL environment variable is not configured");
         }
-        console.log("🔄 Updating roll with ID:", editingRoll.id);
         response = await fetch(`${UPDATE_ROLL}/${editingRoll.id}`, {
           method: "PUT",
           headers: {
@@ -577,7 +572,6 @@ const RollView = () => {
         if (!CREATE_ROLLS) {
           throw new Error("CREATE_ROLLS environment variable is not configured");
         }
-        console.log("➕ Creating new roll");
         response = await fetch(CREATE_ROLLS, {
           method: "POST",
           headers: {
@@ -590,12 +584,10 @@ const RollView = () => {
 
       if (!response.ok) {
         const errorText = await response.text();
-        console.error("API Error:", response.status, errorText);
         throw new Error(`Failed to ${editingRoll ? 'update' : 'create'} roll: ${response.status} ${errorText}`);
       }
 
-      const result = await response.json();
-      console.log("✅ Success response:", result);
+      await response.json();
 
       // Refresh the rolls list
       await fetchRolls();
@@ -604,7 +596,6 @@ const RollView = () => {
       showToast("success", `Roll ${editingRoll ? 'updated' : 'created'} successfully!`);
 
     } catch (err) {
-      console.error("Save error:", err);
       showToast("error", `Error ${editingRoll ? 'updating' : 'creating'} roll: ${err instanceof Error ? err.message : 'Unknown error'}`);
     } finally {
       setSaveLoading(false);
@@ -617,7 +608,6 @@ const RollView = () => {
 
   // Edit
   const handleEdit = (roll: Roll) => {
-    console.log("🔧 Editing roll:", roll);
     setEditingRoll(roll);
     setFormData({
       id: roll.id.toString(),
@@ -668,8 +658,7 @@ const RollView = () => {
       if (!res.ok) throw new Error("Failed to delete roll");
       await fetchRolls();
       showToast("success", "Roll deleted successfully!");
-    } catch (err) {
-      console.error("Delete error:", err);
+    } catch {
       showToast("error", "Failed to delete roll. Please try again.");
     }
   };
@@ -713,10 +702,10 @@ const RollView = () => {
 
       const payload = {
         name: vendorFormData.name.trim(),
-        vat_pan: vendorFormData.vat_pan.trim() || null,
-        address: vendorFormData.address.trim() || null,
-        phone: vendorFormData.phone.trim() || null,
-        comment: vendorFormData.comment.trim() || null,
+        vat_pan: vendorFormData.vat_pan.trim() || "",
+        address: vendorFormData.address.trim() || "",
+        phone: vendorFormData.phone.trim() || "",
+        comment: vendorFormData.comment.trim() || "",
       };
 
       if (!GET_VENDORS) {
@@ -736,7 +725,6 @@ const RollView = () => {
       }
 
       const newVendor = await response.json();
-      console.log("✅ New vendor created:", newVendor);
 
       // Refresh vendors list
       await fetchVendors();
@@ -752,8 +740,7 @@ const RollView = () => {
       resetVendorFormData();
       showToast("success", "Vendor created successfully!");
 
-    } catch (err) {
-      console.error("Save vendor error:", err);
+    } catch {
       showToast("error", "Failed to create vendor. Please try again.");
     } finally {
       setSaveVendorLoading(false);

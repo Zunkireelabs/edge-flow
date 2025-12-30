@@ -47,13 +47,11 @@ const ProductionTaskDetailsModal: React.FC<ProductionTaskDetailsModalProps> = ({
             }
 
             const result = await response.json();
-            console.log('Task Details Response:', result);
 
             if (result.success) {
                 setTaskDetails(result.data);
             }
-        } catch (err) {
-            console.error('Fetch error:', err);
+        } catch {
             alert('Failed to load task details');
         } finally {
             setLoading(false);
@@ -70,8 +68,8 @@ const ProductionTaskDetailsModal: React.FC<ProductionTaskDetailsModalProps> = ({
                 const workers = await response.json();
                 setAvailableWorkers(workers);
             }
-        } catch (error) {
-            console.error('Error fetching workers:', error);
+        } catch {
+            // Worker fetch failed silently
         }
     }, [taskData?.department_id]);
 
@@ -101,8 +99,7 @@ const ProductionTaskDetailsModal: React.FC<ProductionTaskDetailsModalProps> = ({
             alert('Status updated successfully');
             fetchTaskDetails();
             if (onRefresh) onRefresh();
-        } catch (error) {
-            console.error('Error updating status:', error);
+        } catch {
             alert('Failed to update status');
         }
     };
@@ -148,7 +145,6 @@ const ProductionTaskDetailsModal: React.FC<ProductionTaskDetailsModalProps> = ({
             fetchTaskDetails();
             if (onRefresh) onRefresh();
         } catch (error: any) {
-            console.error('Error assigning worker:', error);
             alert(error.message || 'Failed to assign worker');
         }
     };
@@ -167,8 +163,7 @@ const ProductionTaskDetailsModal: React.FC<ProductionTaskDetailsModalProps> = ({
             alert('Worker assignment deleted successfully');
             fetchTaskDetails();
             if (onRefresh) onRefresh();
-        } catch (error) {
-            console.error('Error deleting worker:', error);
+        } catch {
             alert('Failed to delete worker assignment');
         }
     };

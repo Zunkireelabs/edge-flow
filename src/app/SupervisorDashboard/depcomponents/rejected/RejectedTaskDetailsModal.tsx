@@ -98,7 +98,6 @@ const RejectedTaskDetailsModal: React.FC<RejectedTaskDetailsModalProps> = ({
         const subBatchId = taskData?.sub_batch?.id;
 
         if (!subBatchId) {
-            console.error('Sub-batch ID not found in taskData');
             return;
         }
 
@@ -107,7 +106,6 @@ const RejectedTaskDetailsModal: React.FC<RejectedTaskDetailsModalProps> = ({
         try {
             const response = await fetch(apiUrl);
             if (!response.ok) {
-                console.error('Error fetching sub-batch history:', response.status);
                 return;
             }
 
@@ -116,8 +114,8 @@ const RejectedTaskDetailsModal: React.FC<RejectedTaskDetailsModalProps> = ({
             if (result.success) {
                 setSubBatchHistory(result);
             }
-        } catch (error) {
-            console.error('Error fetching sub-batch history:', error);
+        } catch {
+            // Error fetching sub-batch history
         }
     }, [taskData]);
 
@@ -128,8 +126,8 @@ const RejectedTaskDetailsModal: React.FC<RejectedTaskDetailsModalProps> = ({
                 const data = await response.json();
                 setDepartments(data);
             }
-        } catch (error) {
-            console.error('Error fetching departments:', error);
+        } catch {
+            // Error fetching departments
         }
     }, []);
 
@@ -139,7 +137,6 @@ const RejectedTaskDetailsModal: React.FC<RejectedTaskDetailsModalProps> = ({
             const departmentId = localStorage.getItem("departmentId");
 
             if (!departmentId) {
-                console.error('No department ID found in localStorage');
                 setWorkers([]);
                 setLoadingWorkers(false);
                 return;
@@ -149,11 +146,9 @@ const RejectedTaskDetailsModal: React.FC<RejectedTaskDetailsModalProps> = ({
             if (res.ok) {
                 const data = await res.json();
                 setWorkers(data);
-            } else {
-                console.error('Failed to fetch workers. Status:', res.status);
             }
-        } catch (e) {
-            console.error('Error fetching workers:', e);
+        } catch {
+            // Error fetching workers
         } finally {
             setLoadingWorkers(false);
         }
@@ -171,14 +166,10 @@ const RejectedTaskDetailsModal: React.FC<RejectedTaskDetailsModalProps> = ({
             const contentType = response.headers.get('content-type');
 
             if (!contentType || !contentType.includes('application/json')) {
-                const text = await response.text();
-                console.error('Backend returned non-JSON:', text);
                 return;
             }
 
             if (!response.ok) {
-                const text = await response.text();
-                console.error('Error fetching worker logs:', response.status, text);
                 setWorkerRecords([]);
                 return;
             }
@@ -208,8 +199,7 @@ const RejectedTaskDetailsModal: React.FC<RejectedTaskDetailsModalProps> = ({
             } else {
                 setWorkerRecords([]);
             }
-        } catch (err) {
-            console.error('Fetch error:', err);
+        } catch {
             setWorkerRecords([]);
         } finally {
             setLoadingWorkers(false);
@@ -278,7 +268,6 @@ const RejectedTaskDetailsModal: React.FC<RejectedTaskDetailsModalProps> = ({
 
         if (!taskData?.sub_batch?.id) {
             showToast('error', 'Sub-batch ID is missing');
-            console.error('taskData.sub_batch:', taskData?.sub_batch);
             return;
         }
 
@@ -337,7 +326,6 @@ const RejectedTaskDetailsModal: React.FC<RejectedTaskDetailsModalProps> = ({
                 showToast('error', `Failed to save worker! Error: ${errorMessage}`);
             }
         } catch (e) {
-            console.error('Exception while saving:', e);
             showToast('error', `Error saving record! ${e instanceof Error ? e.message : 'Unknown error'}`);
         } finally {
             setSaving(false);
@@ -363,11 +351,9 @@ const RejectedTaskDetailsModal: React.FC<RejectedTaskDetailsModalProps> = ({
                 await fetchWorkerRecords();
             } else {
                 const errorText = await response.text();
-                console.error('Error deleting worker:', errorText);
                 showToast('error', `Failed to delete worker: ${errorText}`);
             }
-        } catch (error) {
-            console.error('Error deleting worker:', error);
+        } catch {
             showToast('error', 'Error deleting worker. Please try again.');
         } finally {
             setSaving(false);
@@ -445,11 +431,9 @@ const RejectedTaskDetailsModal: React.FC<RejectedTaskDetailsModalProps> = ({
                 handleCancelEdit();
             } else {
                 const errorText = await response.text();
-                console.error('Error updating worker:', errorText);
                 showToast('error', `Failed to update worker: ${errorText}`);
             }
-        } catch (error) {
-            console.error('Error updating worker:', error);
+        } catch {
             showToast('error', 'Error updating worker. Please try again.');
         } finally {
             setSaving(false);
@@ -484,8 +468,6 @@ const RejectedTaskDetailsModal: React.FC<RejectedTaskDetailsModalProps> = ({
                     quantityBeingSent: totalWorkedQuantity, // The total quantity completed by workers
                 };
 
-                console.log('Sending rejected task to another department:', requestBody);
-
                 const response = await fetch(apiUrl!, {
                     method: 'POST',
                     headers: {
@@ -518,7 +500,6 @@ const RejectedTaskDetailsModal: React.FC<RejectedTaskDetailsModalProps> = ({
                     throw new Error(result.message || 'Failed to send to department');
                 }
             } catch (error: any) {
-                console.error('Error sending to department:', error);
                 showToast('error', `Failed to send to department: ${error.message}`);
             } finally {
                 setSaving(false);
@@ -571,7 +552,6 @@ const RejectedTaskDetailsModal: React.FC<RejectedTaskDetailsModalProps> = ({
                     throw new Error(result.message || 'Failed to update stage');
                 }
             } catch (error) {
-                console.error('Error updating stage:', error);
                 showToast('error', error instanceof Error ? error.message : 'Failed to update status. Please try again.');
             } finally {
                 setSaving(false);
@@ -641,7 +621,6 @@ const RejectedTaskDetailsModal: React.FC<RejectedTaskDetailsModalProps> = ({
                 throw new Error(result.message || 'Failed to mark sub-batch as completed');
             }
         } catch (error: any) {
-            console.error('Error marking as completed:', error);
             showToast('error', `Failed to mark as completed: ${error.message}`);
         } finally {
             setSaving(false);

@@ -37,7 +37,6 @@ export const getProductionView = async (req: Request, res: Response) => {
       data,
     });
   } catch (error: any) {
-    console.error("Error in getProductionView controller:", error);
     res.status(500).json({
       success: false,
       message: "Failed to fetch production view data",

@@ -38,7 +38,6 @@ export const getWorkerWages = async (req: Request, res: Response) => {
     const wageReport = await calculateWorkerWages(workerId, startDate, endDate);
     res.json(wageReport);
   } catch (error: any) {
-    console.error("Error calculating worker wages:", error);
     res.status(500).json({ error: error.message || "Failed to calculate wages" });
   }
 };
@@ -74,7 +73,6 @@ export const getAllWorkersWages = async (req: Request, res: Response) => {
     const wages = await calculateAllWorkersWages(startDate, endDate, departmentId);
     res.json(wages);
   } catch (error: any) {
-    console.error("Error calculating all workers wages:", error);
     res.status(500).json({ error: error.message || "Failed to calculate wages" });
   }
 };
@@ -110,7 +108,6 @@ export const getBillableLogs = async (req: Request, res: Response) => {
     const logs = await getBillableWorkLogs(workerId, startDate, endDate);
     res.json(logs);
   } catch (error: any) {
-    console.error("Error fetching billable logs:", error);
     res.status(500).json({ error: error.message || "Failed to fetch billable logs" });
   }
 };
@@ -145,7 +142,6 @@ export const getDepartmentWages = async (req: Request, res: Response) => {
     const summary = await getDepartmentWageSummary(departmentId, startDate, endDate);
     res.json(summary);
   } catch (error: any) {
-    console.error("Error calculating department wages:", error);
     res.status(500).json({ error: error.message || "Failed to calculate department wages" });
   }
 };
@@ -165,7 +161,6 @@ export const getSubBatchWages = async (req: Request, res: Response) => {
     const summary = await getSubBatchWageSummary(subBatchId);
     res.json(summary);
   } catch (error: any) {
-    console.error("Error calculating sub-batch wages:", error);
     res.status(500).json({ error: error.message || "Failed to calculate sub-batch wages" });
   }
 };

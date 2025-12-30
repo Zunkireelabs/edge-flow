@@ -87,8 +87,8 @@ const Header: React.FC<HeaderProps> = ({ activeView }) => {
           name: roll.name,
           details: `Color: ${roll.color || '-'}`
         })));
-      } catch (err) {
-        console.error('Error searching rolls:', err);
+      } catch {
+        // Error searching rolls
       }
 
       // Search batches
@@ -103,8 +103,8 @@ const Header: React.FC<HeaderProps> = ({ activeView }) => {
           name: batch.name,
           details: `Quantity: ${batch.quantity || '-'} ${batch.unit || ''}`
         })));
-      } catch (err) {
-        console.error('Error searching batches:', err);
+      } catch {
+        // Error searching batches
       }
 
       // Search sub-batches
@@ -119,8 +119,8 @@ const Header: React.FC<HeaderProps> = ({ activeView }) => {
           name: sb.name,
           details: `Estimated: ${sb.estimated_pieces || '-'} pieces`
         })));
-      } catch (err) {
-        console.error('Error searching sub-batches:', err);
+      } catch {
+        // Error searching sub-batches
       }
 
       // Search vendors
@@ -135,8 +135,8 @@ const Header: React.FC<HeaderProps> = ({ activeView }) => {
           name: vendor.name,
           details: vendor.phone || vendor.address || ''
         })));
-      } catch (err) {
-        console.error('Error searching vendors:', err);
+      } catch {
+        // Error searching vendors
       }
 
       // Search workers
@@ -151,8 +151,8 @@ const Header: React.FC<HeaderProps> = ({ activeView }) => {
           name: worker.name,
           details: worker.position || worker.department || ''
         })));
-      } catch (err) {
-        console.error('Error searching workers:', err);
+      } catch {
+        // Error searching workers
       }
 
       // Search departments
@@ -167,14 +167,14 @@ const Header: React.FC<HeaderProps> = ({ activeView }) => {
           name: dept.name,
           details: ''
         })));
-      } catch (err) {
-        console.error('Error searching departments:', err);
+      } catch {
+        // Error searching departments
       }
 
       setSearchResults(results);
       setShowResults(true);
-    } catch (error) {
-      console.error('Search error:', error);
+    } catch {
+      // Search error
     } finally {
       setIsSearching(false);
     }

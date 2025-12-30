@@ -90,8 +90,8 @@ const AddWorkerRecordModal: React.FC<AddWorkerRecordModalProps> = ({
         const data = await res.json();
         setWorkers(data);
       }
-    } catch (e) {
-      console.error('Error fetching workers:', e);
+    } catch {
+      // Worker fetch failed
     } finally {
       setLoading(false);
     }
@@ -161,8 +161,6 @@ const AddWorkerRecordModal: React.FC<AddWorkerRecordModalProps> = ({
         (payload as any).unit_price = unitPrice;
       }
 
-      console.log('📤 Creating worker assignment:', payload);
-
       const response = await fetch(`${process.env.NEXT_PUBLIC_CREATE_WORKER_LOGS}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -178,8 +176,7 @@ const AddWorkerRecordModal: React.FC<AddWorkerRecordModalProps> = ({
         const errorData = await response.json().catch(() => ({}));
         showToast('error', `Failed to assign worker: ${errorData.message || 'Unknown error'}`);
       }
-    } catch (e) {
-      console.error('Error:', e);
+    } catch {
       showToast('error', 'Error assigning worker. Please try again.');
     } finally {
       setIsSubmitting(false);

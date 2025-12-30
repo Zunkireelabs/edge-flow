@@ -122,8 +122,8 @@ const SubBatchView = () => {
         headers: { Authorization: `Bearer ${token}` },
       });
       setAllDepartments(response.data);
-    } catch (error) {
-      console.error("Error fetching departments:", error);
+    } catch {
+      // Error fetching departments
     }
   }, []);
 
@@ -180,8 +180,7 @@ const SubBatchView = () => {
 
         setSubBatches(uniqueSubBatches);
       }
-    } catch (error) {
-      console.error("Error fetching sub-batches:", error);
+    } catch {
       showToast("error", "Failed to fetch sub-batches");
     } finally {
       setLoading(false);
@@ -325,7 +324,6 @@ const SubBatchView = () => {
       setEditingSubBatch(null);
       fetchSubBatches();
     } catch (error: any) {
-      console.error("Error updating sub-batch:", error);
       showToast("error", error.response?.data?.message || "Failed to update sub-batch");
     } finally {
       setIsSaving(false);
@@ -366,8 +364,6 @@ const SubBatchView = () => {
         total_quantity: selectedSubBatch.total_quantity || selectedSubBatch.estimated_pieces || 0,
       };
 
-      console.log("Sending payload:", payload);
-
       const response = await axios.post(
         `${API}/sub-batches/send-to-production`,
         payload,
@@ -383,9 +379,6 @@ const SubBatchView = () => {
           `Sub-batch sent to production! Workflow ID: ${workflow.id}, Steps: ${workflow.steps.length} departments`
         );
 
-        console.log("Workflow created:", workflow);
-        console.log("Department workflow steps:", workflow.steps);
-
         setShowSendModal(false);
         setSelectedSubBatch(null);
         setDepartmentWorkflow([]);
@@ -394,7 +387,6 @@ const SubBatchView = () => {
         showToast("error", "Failed to send sub-batch to production");
       }
     } catch (error: any) {
-      console.error("Error sending to production:", error);
       const errorMessage = error.response?.data?.message || error.message || "Failed to send to production";
       showToast("error", errorMessage);
     } finally {

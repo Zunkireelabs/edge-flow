@@ -346,8 +346,7 @@ const SupervisorKanban = () => {
       } else {
         throw new Error(result.message || 'API returned unsuccessful response');
       }
-    } catch (error) {
-      console.error('Error fetching kanban data:', error);
+    } catch {
       showToast("error", "Failed to fetch work items. Please check your connection and try again.");
     } finally {
       setLoading(false);

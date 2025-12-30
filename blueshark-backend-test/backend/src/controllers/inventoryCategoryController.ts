@@ -23,7 +23,6 @@ export const createCategory = async (req: Request, res: Response) => {
 
     res.status(201).json(category);
   } catch (error: any) {
-    console.error("Error creating inventory category:", error);
     res.status(500).json({ message: error.message || "Failed to create category" });
   }
 };
@@ -34,7 +33,6 @@ export const getAllCategories = async (req: Request, res: Response) => {
     const categories = await inventoryCategoryService.getAllInventoryCategories();
     res.json(categories);
   } catch (error: any) {
-    console.error("Error fetching inventory categories:", error);
     res.status(500).json({ message: error.message || "Failed to fetch categories" });
   }
 };
@@ -56,7 +54,6 @@ export const getCategoryById = async (req: Request, res: Response) => {
 
     res.json(category);
   } catch (error: any) {
-    console.error("Error fetching inventory category:", error);
     res.status(500).json({ message: error.message || "Failed to fetch category" });
   }
 };
@@ -94,7 +91,6 @@ export const updateCategory = async (req: Request, res: Response) => {
 
     res.json(category);
   } catch (error: any) {
-    console.error("Error updating inventory category:", error);
     res.status(500).json({ message: error.message || "Failed to update category" });
   }
 };
@@ -118,8 +114,6 @@ export const deleteCategory = async (req: Request, res: Response) => {
 
     res.json({ message: "Category deleted successfully" });
   } catch (error: any) {
-    console.error("Error deleting inventory category:", error);
-
     // Check if it's the "items using category" error
     if (error.message && error.message.includes("Cannot delete category")) {
       return res.status(400).json({ message: error.message });
