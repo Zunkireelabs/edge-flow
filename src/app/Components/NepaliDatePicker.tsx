@@ -1,5 +1,5 @@
 "use client";
-import React, { useMemo } from "react";
+import React, { useMemo, useRef, useCallback } from "react";
 import { NepaliDatePicker as Calendar } from "nepali-datepicker-reactjs";
 import "nepali-datepicker-reactjs/dist/index.css";
 import { Calendar as CalendarIcon } from "lucide-react";
@@ -20,7 +20,9 @@ interface NepaliDatePickerProps {
  */
 const isNepaliDateString = (dateStr: string): boolean => {
   if (!dateStr) return false;
-  const parts = dateStr.split("-");
+  // Remove any time portion first
+  const datePart = dateStr.split("T")[0];
+  const parts = datePart.split("-");
   if (parts.length < 1) return false;
   const year = parseInt(parts[0]);
   return year > 2050;
@@ -28,6 +30,7 @@ const isNepaliDateString = (dateStr: string): boolean => {
 
 /**
  * Convert Gregorian date to Nepali string for calendar display
+ * Handles timezone issues by parsing date parts directly
  */
 const gregorianToNepali = (gregorianDate: string): string => {
   if (!gregorianDate) return "";
@@ -35,21 +38,33 @@ const gregorianToNepali = (gregorianDate: string): string => {
   try {
     // If already Nepali format, return as-is
     if (isNepaliDateString(gregorianDate)) {
-      return gregorianDate;
+      // Clean up any time portion
+      return gregorianDate.split("T")[0];
     }
 
-    // Parse Gregorian date
-    const jsDate = new Date(gregorianDate);
+    // Extract just the date part to avoid timezone issues
+    const datePart = gregorianDate.split("T")[0];
+    const [year, month, day] = datePart.split("-").map(Number);
+
+    // Validate the parsed values
+    if (!year || !month || !day || isNaN(year) || isNaN(month) || isNaN(day)) {
+      return "";
+    }
+
+    // Skip epoch date
+    if (year === 1970 && month === 1 && day === 1) return "";
+
+    // Create JS Date using local timezone (not UTC) to avoid day shifting
+    const jsDate = new Date(year, month - 1, day);
     if (isNaN(jsDate.getTime())) return "";
-    if (jsDate.getFullYear() === 1970 && jsDate.getMonth() === 0) return "";
 
     // Convert to Nepali
     const nepaliDate = new NepaliDate(jsDate);
-    const year = nepaliDate.getYear();
-    const month = String(nepaliDate.getMonth() + 1).padStart(2, "0");
-    const day = String(nepaliDate.getDate()).padStart(2, "0");
+    const nepYear = nepaliDate.getYear();
+    const nepMonth = String(nepaliDate.getMonth() + 1).padStart(2, "0");
+    const nepDay = String(nepaliDate.getDate()).padStart(2, "0");
 
-    return `${year}-${month}-${day}`;
+    return `${nepYear}-${nepMonth}-${nepDay}`;
   } catch {
     return "";
   }
@@ -62,16 +77,30 @@ const nepaliToGregorianISO = (nepaliDateStr: string): string => {
   if (!nepaliDateStr) return "";
 
   try {
-    if (isNepaliDateString(nepaliDateStr)) {
+    // Clean up any time portion
+    const cleanDateStr = nepaliDateStr.split("T")[0];
+
+    if (isNepaliDateString(cleanDateStr)) {
       // Parse Nepali date and convert to Gregorian
-      const [year, month, day] = nepaliDateStr.split("-").map(Number);
+      const [year, month, day] = cleanDateStr.split("-").map(Number);
+
+      // Validate
+      if (!year || !month || !day || isNaN(year) || isNaN(month) || isNaN(day)) {
+        return "";
+      }
+
       const nepaliDate = new NepaliDate(year, month - 1, day);
       const jsDate = nepaliDate.toJsDate();
-      // Return just the date part (YYYY-MM-DD) for form state
-      return jsDate.toISOString().split("T")[0];
+
+      // Return YYYY-MM-DD format (no timezone suffix to avoid issues)
+      const gYear = jsDate.getFullYear();
+      const gMonth = String(jsDate.getMonth() + 1).padStart(2, "0");
+      const gDay = String(jsDate.getDate()).padStart(2, "0");
+
+      return `${gYear}-${gMonth}-${gDay}`;
     }
-    // Already Gregorian
-    return nepaliDateStr;
+    // Already Gregorian - clean it up
+    return cleanDateStr;
   } catch {
     return "";
   }
@@ -84,16 +113,33 @@ export default function NepaliDatePicker({
   placeholder = "Select date",
   disabled,
 }: NepaliDatePickerProps) {
+  // Track last emitted value to prevent infinite loops
+  const lastEmittedValue = useRef<string>("");
+
   // Convert input value (Gregorian) to Nepali for calendar display
   const nepaliValue = useMemo(() => {
     return gregorianToNepali(value);
   }, [value]);
 
   // Handle date change from Nepali calendar - convert to Gregorian for storage
-  const handleDateChange = (nepaliDate: string) => {
+  const handleDateChange = useCallback((nepaliDate: string) => {
     const gregorianDate = nepaliToGregorianISO(nepaliDate);
+
+    // Prevent firing onChange if the value hasn't actually changed
+    // This stops the infinite loop / haywire behavior
+    if (gregorianDate === lastEmittedValue.current) {
+      return;
+    }
+
+    // Also check if it matches the current value (accounting for format differences)
+    const currentClean = value ? value.split("T")[0] : "";
+    if (gregorianDate === currentClean) {
+      return;
+    }
+
+    lastEmittedValue.current = gregorianDate;
     onChange(gregorianDate);
-  };
+  }, [onChange, value]);
 
   return (
     <div className={`nepali-datepicker-compact relative ${className}`}>

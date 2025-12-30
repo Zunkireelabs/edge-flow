@@ -2711,7 +2711,7 @@ const SubBatchView = () => {
                         onChange={(value) =>
                           setFormData({
                             ...formData,
-                            startDate: value ? `${value}T00:00:00.000Z` : "",
+                            startDate: value || "",
                           })
                         }
                         className="rounded-lg"
@@ -2730,7 +2730,7 @@ const SubBatchView = () => {
                         onChange={(value) =>
                           setFormData({
                             ...formData,
-                            dueDate: value ? `${value}T00:00:00.000Z` : "",
+                            dueDate: value || "",
                           })
                         }
                         className="rounded-lg"

@@ -702,10 +702,10 @@ const RollView = () => {
 
       const payload = {
         name: vendorFormData.name.trim(),
-        vat_pan: vendorFormData.vat_pan.trim() || null,
-        address: vendorFormData.address.trim() || null,
-        phone: vendorFormData.phone.trim() || null,
-        comment: vendorFormData.comment.trim() || null,
+        vat_pan: vendorFormData.vat_pan.trim() || "",
+        address: vendorFormData.address.trim() || "",
+        phone: vendorFormData.phone.trim() || "",
+        comment: vendorFormData.comment.trim() || "",
       };
 
       if (!GET_VENDORS) {

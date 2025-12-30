@@ -4,10 +4,10 @@ import { withSentryConfig } from "@sentry/nextjs";
 const isProd = process.env.NODE_ENV === 'production';
 const API_BASE = isProd
   ? 'https://edge-flow-backend.onrender.com/api'
-  : 'http://localhost:5000/api';
+  : 'http://localhost:5001/api';
 const LOGIN_BASE = isProd
   ? 'https://edge-flow-backend.onrender.com'
-  : 'http://localhost:5000';
+  : 'http://localhost:5001';
 
 const nextConfig: NextConfig = {
   env: {
