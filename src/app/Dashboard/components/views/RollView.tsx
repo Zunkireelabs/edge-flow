@@ -940,6 +940,9 @@ const RollView = () => {
                     <th className="px-4 py-2 text-left text-xs font-medium cursor-pointer hover:bg-gray-100 whitespace-nowrap border-r border-gray-200" style={{ color: '#141414', fontWeight: 500 }} onClick={() => handleSort("id")}>
                       <div className="flex items-center gap-1">Id {sortColumn === "id" && (sortDirection === "asc" ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)}</div>
                     </th>
+                    <th className="px-4 py-2 text-left text-xs font-medium cursor-pointer hover:bg-gray-100 whitespace-nowrap border-r border-gray-200" style={{ color: '#141414', fontWeight: 500 }} onClick={() => handleSort("created_at")}>
+                      <div className="flex items-center gap-1">Created {sortColumn === "created_at" && (sortDirection === "asc" ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)}</div>
+                    </th>
                     <th className="px-4 py-2 text-left text-xs font-medium cursor-pointer hover:bg-gray-100 whitespace-nowrap border-r border-gray-200" style={{ color: '#141414', fontWeight: 500 }} onClick={() => handleSort("name")}>
                       <div className="flex items-center gap-1">Name {sortColumn === "name" && (sortDirection === "asc" ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)}</div>
                     </th>
@@ -954,9 +957,6 @@ const RollView = () => {
                     <th className="px-4 py-2 text-left text-xs font-medium whitespace-nowrap border-r border-gray-200" style={{ color: '#141414', fontWeight: 500 }}>Remaining Units</th>
                     <th className="px-4 py-2 text-left text-xs font-medium whitespace-nowrap border-r border-gray-200" style={{ color: '#141414', fontWeight: 500 }}>Color</th>
                     <th className="px-4 py-2 text-left text-xs font-medium whitespace-nowrap border-r border-gray-200" style={{ color: '#141414', fontWeight: 500 }}>Vendor</th>
-                    <th className="px-4 py-2 text-left text-xs font-medium cursor-pointer hover:bg-gray-100 whitespace-nowrap border-r border-gray-200" style={{ color: '#141414', fontWeight: 500 }} onClick={() => handleSort("created_at")}>
-                      <div className="flex items-center gap-1">Created {sortColumn === "created_at" && (sortDirection === "asc" ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)}</div>
-                    </th>
                     <th className="px-4 py-2 text-right text-xs font-medium whitespace-nowrap" style={{ color: '#141414', fontWeight: 500 }}>Actions</th>
                   </tr>
                 </thead>
@@ -967,6 +967,9 @@ const RollView = () => {
                         <input type="checkbox" checked={selectedRows.has(roll.id)} onChange={() => toggleRowSelection(roll.id)} className="w-4 h-4 rounded border-gray-300 text-[#2272B4] focus:ring-[#2272B4]" />
                       </td>
                       <td className="px-4 py-1.5 text-sm text-gray-500 font-light whitespace-nowrap border-r border-gray-200">R{String(roll.id).padStart(3, '0')}</td>
+                      <td className="px-4 py-1.5 text-sm text-gray-500 font-light whitespace-nowrap border-r border-gray-200">
+                        {formatNepaliDate(roll.created_at)}
+                      </td>
                       <td className="px-4 py-1.5 whitespace-nowrap border-r border-gray-200"><span className="text-sm font-medium text-[#2272B4] hover:underline cursor-pointer" onClick={() => handlePreview(roll)}>{roll.name}</span></td>
                       <td className="px-4 py-1.5 text-sm text-gray-600 font-light whitespace-nowrap border-r border-gray-200">{roll.quantity}</td>
                       <td className="px-4 py-1.5 text-sm whitespace-nowrap border-r border-gray-200">
@@ -1015,9 +1018,6 @@ const RollView = () => {
                         )}
                       </td>
                       <td className="px-4 py-1.5 text-sm text-gray-600 font-light whitespace-nowrap border-r border-gray-200">{roll.vendor ? roll.vendor.name : <span className="text-gray-400">-</span>}</td>
-                      <td className="px-4 py-1.5 text-sm text-gray-500 font-light whitespace-nowrap border-r border-gray-200">
-                        {formatNepaliDate(roll.created_at)}
-                      </td>
                       <td className="px-4 py-1.5 text-right whitespace-nowrap">
                         <div className="flex items-center justify-end gap-1">
                           <button onClick={() => handlePreview(roll)} className="p-1.5 rounded hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors" title="Preview"><Eye size={16} /></button>

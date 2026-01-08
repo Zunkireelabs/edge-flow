@@ -25,6 +25,7 @@ interface SubBatch {
   department_id?: number | null;
   status?: 'DRAFT' | 'IN_PRODUCTION' | 'COMPLETED' | 'CANCELLED';
   total_quantity?: number;
+  created_at?: string;  // Creation date
 }
 
 interface Roll {
@@ -1450,7 +1451,7 @@ const SubBatchView = () => {
                         className="w-4 h-4 rounded border-gray-300 text-[#2272B4] focus:ring-[#2272B4]"
                       />
                     </th>
-                    {/* Sortable Headers - Order: ID, Name, Pieces, Color, Parent Batch, Parent Roll, Status, Start Date, Due Date, Actions */}
+                    {/* Sortable Headers - Order: ID, Created, Name, Pieces, Color, Parent Batch, Parent Roll, Status, Start Date, Due Date, Actions */}
                     <th
                       className="px-4 py-2 text-left text-xs font-medium cursor-pointer hover:bg-gray-100 transition-colors whitespace-nowrap border-r border-gray-200"
                       style={{ color: '#141414', fontWeight: 500 }}
@@ -1459,6 +1460,18 @@ const SubBatchView = () => {
                       <div className="flex items-center gap-1">
                         Id
                         {sortColumn === "id" && (
+                          sortDirection === "asc" ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />
+                        )}
+                      </div>
+                    </th>
+                    <th
+                      className="px-4 py-2 text-left text-xs font-medium cursor-pointer hover:bg-gray-100 transition-colors whitespace-nowrap border-r border-gray-200"
+                      style={{ color: '#141414', fontWeight: 500 }}
+                      onClick={() => handleSort("created_at")}
+                    >
+                      <div className="flex items-center gap-1">
+                        Created
+                        {sortColumn === "created_at" && (
                           sortDirection === "asc" ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />
                         )}
                       </div>
@@ -1551,8 +1564,11 @@ const SubBatchView = () => {
                           className="w-4 h-4 rounded border-gray-300 text-[#2272B4] focus:ring-[#2272B4]"
                         />
                       </td>
-                      {/* Order: ID, Name, Pieces, Color, Parent Batch, Parent Roll, Status, Start Date, Due Date */}
+                      {/* Order: ID, Created, Name, Pieces, Color, Parent Batch, Parent Roll, Status, Start Date, Due Date */}
                       <td className="px-4 py-1.5 text-sm text-gray-500 whitespace-nowrap border-r border-gray-200 font-light">SB{String(sb.id).padStart(3, '0')}</td>
+                      <td className="px-4 py-1.5 text-sm text-gray-500 whitespace-nowrap border-r border-gray-200 font-light">
+                        {formatNepaliDate(sb.created_at)}
+                      </td>
                       <td className="px-4 py-1.5 whitespace-nowrap border-r border-gray-200">
                         <span className="text-sm font-medium text-[#2272B4] hover:underline cursor-pointer" onClick={() => handlePreview(sb.id)}>{sb.name}</span>
                       </td>
