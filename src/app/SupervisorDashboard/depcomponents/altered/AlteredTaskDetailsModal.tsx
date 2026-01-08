@@ -16,17 +16,18 @@ interface AlteredTaskData {
     due_date: string;
     status: string;
     sent_from_department: string;
-    sent_from_department_id?: number;  // ✅ NEW: For filtering "Send to Department" dropdown
+    sent_from_department_id?: number;  // For filtering "Send to Department" dropdown
     alteration_date: string;
     altered_by: string;
     altered_quantity: number;
     alter_reason?: string;  // Alteration reason from database
     attachments?: { name: string; count: number }[];
     quantity_remaining?: number;
-    quantity_received?: number;  // ✅ NEW: Actual received quantity (constant, doesn't change with work)
+    quantity_received?: number;  // Actual received quantity (constant, doesn't change with work)
     sub_batch?: any;  // Add sub_batch object for accessing estimated_pieces
-    department?: { id: number; name: string };  // ✅ NEW: Current department info
-    // ✅ Add alteration_source from backend
+    department?: { id: number; name: string };  // Current department info
+    department_id?: number;  // Direct department ID fallback
+    // Add alteration_source from backend
     alteration_source?: {
         from_department_id: number;
         from_department_name: string;
@@ -134,7 +135,16 @@ const AlteredTaskDetailsModal: React.FC<AlteredTaskDetailsModalProps> = ({
 
     const fetchDepartments = useCallback(async () => {
         try {
-            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/departments`);
+            const token = localStorage.getItem('token');
+            const headers: HeadersInit = {
+                'Content-Type': 'application/json',
+            };
+            if (token) {
+                headers['Authorization'] = `Bearer ${token}`;
+            }
+            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/departments`, {
+                headers,
+            });
             if (response.ok) {
                 const data = await response.json();
                 setDepartments(data);
@@ -147,7 +157,13 @@ const AlteredTaskDetailsModal: React.FC<AlteredTaskDetailsModalProps> = ({
     const fetchWorkers = useCallback(async () => {
         try {
             setLoadingWorkers(true);
-            const departmentId = localStorage.getItem("departmentId");
+
+            // PRIMARY: Use taskData (always available when modal opens)
+            // SECONDARY: Fall back to localStorage
+            const departmentId = taskData?.sub_batch?.department_id ||
+                                taskData?.department?.id ||
+                                taskData?.department_id ||
+                                localStorage.getItem("departmentId");
 
             if (!departmentId) {
                 setWorkers([]);
@@ -165,7 +181,7 @@ const AlteredTaskDetailsModal: React.FC<AlteredTaskDetailsModalProps> = ({
         } finally {
             setLoadingWorkers(false);
         }
-    }, []);
+    }, [taskData]);
 
     const fetchWorkerRecords = useCallback(async () => {
         if (!taskData?.sub_batch?.id) return;
@@ -259,13 +275,8 @@ const AlteredTaskDetailsModal: React.FC<AlteredTaskDetailsModalProps> = ({
             return;
         }
 
-        // Validate unit_price
-        if (!unitPrice || !unitPrice.trim()) {
-            showToast('warning', 'Please enter a unit price');
-            return;
-        }
-
-        const parsedUnitPrice = parseFloat(unitPrice);
+        // Unit price is optional - default to 0 if not provided
+        const parsedUnitPrice = unitPrice && unitPrice.trim() ? parseFloat(unitPrice) : 0;
         if (isNaN(parsedUnitPrice) || parsedUnitPrice < 0) {
             showToast('error', 'Please enter a valid unit price (0 or greater)');
             return;
@@ -300,11 +311,15 @@ const AlteredTaskDetailsModal: React.FC<AlteredTaskDetailsModalProps> = ({
 
         try {
             // Get department ID - ensure it's an integer
-            const departmentId = taskData.sub_batch?.department_id || localStorage.getItem("departmentId");
+            // Try multiple sources: taskData properties first, then localStorage as fallback
+            const departmentId = taskData.sub_batch?.department_id ||
+                                taskData.department?.id ||
+                                taskData.department_id ||
+                                localStorage.getItem("departmentId");
             const parsedDepartmentId = typeof departmentId === 'string' ? parseInt(departmentId) : departmentId;
 
             if (!parsedDepartmentId) {
-                showToast('error', 'Department ID is missing!');
+                showToast('error', 'Department ID is missing! Please refresh the page and try again.');
                 setSaving(false);
                 return;
             }
@@ -863,10 +878,13 @@ const AlteredTaskDetailsModal: React.FC<AlteredTaskDetailsModalProps> = ({
                                                         {/* After rework is completed, it should continue in the workflow to the next department */}
                                                         {departments
                                                             .filter((dept) => {
-                                                                // Get current department ID from localStorage
-                                                                const currentDeptId = localStorage.getItem("departmentId");
+                                                                // Get current department ID from taskData first (works for Super Supervisors)
+                                                                // Fall back to localStorage for regular supervisors
+                                                                const currentDeptId = taskData.department?.id ||
+                                                                                      taskData.sub_batch?.department_id ||
+                                                                                      localStorage.getItem("departmentId");
                                                                 // Exclude the current department (can't send to yourself)
-                                                                return currentDeptId ? dept.id.toString() !== currentDeptId : true;
+                                                                return currentDeptId ? dept.id.toString() !== String(currentDeptId) : true;
                                                             })
                                                             .map((dept) => (
                                                                 <option key={dept.id} value={dept.id}>
@@ -1114,9 +1132,9 @@ const AlteredTaskDetailsModal: React.FC<AlteredTaskDetailsModalProps> = ({
                             <div>
                                 <h4 className="text-lg font-semibold mb-4 text-gray-900">Assign Workers</h4>
 
-                                {/* Input Row */}
-                                <div className="flex items-end gap-3 mb-4">
-                                    <div className="flex-1">
+                                {/* Input Row - Aligned horizontally */}
+                                <div className="flex items-end gap-3 mb-2">
+                                    <div className="w-36">
                                         <label className="text-sm font-medium text-gray-900 block mb-2">Worker Name</label>
                                         <select
                                             value={newWorkerId}
@@ -1151,27 +1169,6 @@ const AlteredTaskDetailsModal: React.FC<AlteredTaskDetailsModalProps> = ({
                                                 </option>
                                             ))}
                                         </select>
-                                        {!loadingWorkers && workers.length === 0 && (
-                                            <p className="text-xs text-orange-600 mt-1">
-                                                No workers assigned to your department.
-                                            </p>
-                                        )}
-
-                                        {/* Billable Checkbox - Only shown when worker is selected */}
-                                        {newWorkerId && (
-                                            <div className="flex items-center gap-2 mt-3">
-                                                <input
-                                                    type="checkbox"
-                                                    id="billable-checkbox"
-                                                    checked={isBillable}
-                                                    onChange={(e) => setIsBillable(e.target.checked)}
-                                                    className="w-4 h-4 text-blue-500 bg-white border-gray-300 rounded focus:ring-2 focus:ring-blue-500 accent-blue-500 cursor-pointer"
-                                                />
-                                                <label htmlFor="billable-checkbox" className="text-sm text-gray-700 cursor-pointer select-none">
-                                                    Billable
-                                                </label>
-                                            </div>
-                                        )}
                                     </div>
                                     <div className="w-28">
                                         <label className="text-sm font-medium text-gray-900 block mb-2">
@@ -1189,7 +1186,7 @@ const AlteredTaskDetailsModal: React.FC<AlteredTaskDetailsModalProps> = ({
                                     </div>
                                     <div className="w-28">
                                         <label className="text-sm font-medium text-gray-900 block mb-2">
-                                            Unit Price <span className="text-red-500">*</span>
+                                            Unit Price
                                         </label>
                                         <input
                                             type="number"
@@ -1199,13 +1196,7 @@ const AlteredTaskDetailsModal: React.FC<AlteredTaskDetailsModalProps> = ({
                                             min="0"
                                             step="0.01"
                                             className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
-                                            required
                                         />
-                                        {newWorkerId && (
-                                            <p className="text-xs text-gray-500 mt-1">
-                                                Rate: Rs. {workers.find(w => w.id === parseInt(newWorkerId))?.wage_rate || 0}
-                                            </p>
-                                        )}
                                     </div>
                                     <div className="w-40">
                                         <label className="text-sm font-medium text-gray-900 block mb-2">Date</label>
@@ -1224,6 +1215,32 @@ const AlteredTaskDetailsModal: React.FC<AlteredTaskDetailsModalProps> = ({
                                     >
                                         <Plus size={18} />
                                     </button>
+                                </div>
+
+                                {/* Second Row - Billable checkbox and messages */}
+                                <div className="flex items-center gap-4 mb-4">
+                                    {/* Billable Checkbox - Only shown when worker is selected */}
+                                    {newWorkerId && (
+                                        <div className="flex items-center gap-2">
+                                            <input
+                                                type="checkbox"
+                                                id="billable-checkbox"
+                                                checked={isBillable}
+                                                onChange={(e) => setIsBillable(e.target.checked)}
+                                                className="w-4 h-4 text-blue-500 bg-white border-gray-300 rounded focus:ring-2 focus:ring-blue-500 accent-blue-500 cursor-pointer"
+                                            />
+                                            <label htmlFor="billable-checkbox" className="text-sm text-gray-700 cursor-pointer select-none">
+                                                Billable
+                                            </label>
+                                        </div>
+                                    )}
+
+                                    {/* No workers message */}
+                                    {!loadingWorkers && workers.length === 0 && (
+                                        <p className="text-xs text-orange-600">
+                                            No workers assigned to your department.
+                                        </p>
+                                    )}
                                 </div>
 
                                 {/* Workers Table */}
@@ -1364,22 +1381,22 @@ const AlteredTaskDetailsModal: React.FC<AlteredTaskDetailsModalProps> = ({
                         </div>
 
                         {/* Right Column - Route Details (Full Height Sidebar) */}
-                        <div className="px-8 py-6">
-                            <h4 className="text-lg font-semibold mb-6 text-gray-900">Route Details</h4>
+                        <div className="px-4 py-6 bg-gray-50">
+                            <h4 className="text-base font-semibold mb-4 text-gray-900">Route Details</h4>
 
                             {/* Product Name and Batch ID */}
-                            <div className="mb-6">
-                                <p className="text-base font-normal text-gray-900">{taskData.batch_name || 'Linen Silk'}</p>
-                                <p className="text-sm text-gray-400">{taskData.sub_batch_name || 'B001.1'}</p>
+                            <div className="mb-4">
+                                <p className="text-sm font-medium text-gray-900 break-words">{taskData.batch_name || 'Linen Silk'}</p>
+                                <p className="text-xs text-gray-500 break-words">{taskData.sub_batch_name || 'B001.1'}</p>
                             </div>
 
                             {/* Department Flow with connecting line */}
                             {subBatchHistory && subBatchHistory.department_flow ? (
                                 <div className="relative">
                                     {/* Vertical line connecting dots */}
-                                    <div className="absolute left-[5px] top-[8px] bottom-[8px] w-[2px] bg-gray-200" />
+                                    <div className="absolute left-[5px] top-[6px] bottom-[6px] w-[2px] bg-gray-300" />
 
-                                    <div className="space-y-4 relative">
+                                    <div className="space-y-3 relative">
                                         {subBatchHistory.department_flow.split('→').map((deptName: string, index: number) => {
                                             const trimmedName = deptName.trim();
 
@@ -1431,24 +1448,24 @@ const AlteredTaskDetailsModal: React.FC<AlteredTaskDetailsModalProps> = ({
                                             }
 
                                             return (
-                                                <div key={index} className="flex items-center gap-3 relative">
-                                                    <div className={`w-[10px] h-[10px] rounded-full border-2 z-10 ${dotClasses}`} />
-                                                    <div className="flex flex-col">
-                                                        <span className={`text-sm ${
+                                                <div key={index} className="flex items-start gap-2 relative">
+                                                    <div className={`w-[8px] h-[8px] rounded-full border-2 z-10 mt-1 flex-shrink-0 ${dotClasses}`} />
+                                                    <div className="flex flex-col min-w-0">
+                                                        <span className={`text-xs ${
                                                             isCurrentDepartment || isSourceDepartment
                                                                 ? 'font-medium text-gray-900'
                                                                 : 'text-gray-600'
                                                         }`}>
                                                             {trimmedName}
-                                                            {statusLabel && (
-                                                                <span className={`ml-1 text-xs ${
-                                                                    isCurrentDepartment ? 'text-yellow-600' :
-                                                                    isSourceDepartment ? 'text-green-600 font-semibold' : ''
-                                                                }`}>
-                                                                    {statusLabel}
-                                                                </span>
-                                                            )}
                                                         </span>
+                                                        {statusLabel && (
+                                                            <span className={`text-[10px] leading-tight ${
+                                                                isCurrentDepartment ? 'text-yellow-600' :
+                                                                isSourceDepartment ? 'text-green-600' : ''
+                                                            }`}>
+                                                                {statusLabel}
+                                                            </span>
+                                                        )}
                                                     </div>
                                                 </div>
                                             );

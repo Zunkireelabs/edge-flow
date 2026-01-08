@@ -1,23 +1,24 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
-import React, { useState, useEffect, useCallback, useMemo } from "react";
+import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import axios from "axios";
 import {
-  Layers,
   Package,
-  Clock,
-  CheckCircle,
-  AlertCircle,
-  Send,
-  Building2,
-  ChevronDown,
-  ChevronUp,
   RefreshCw,
   Trash2,
   Eye,
   Edit2,
   X,
+  ChevronDown,
+  ChevronUp,
+  ChevronLeft,
+  ChevronRight,
+  Search,
+  Check,
+  ArrowUpDown,
+  SlidersHorizontal,
+  FileX,
 } from "lucide-react";
 import Loader from "@/app/Components/Loader";
 import { useToast } from "@/app/Components/ToastContext";
@@ -61,6 +62,20 @@ interface Department {
   name: string;
 }
 
+interface Roll {
+  id: number;
+  name: string;
+  color?: string;
+}
+
+interface Batch {
+  id: number;
+  name: string;
+  color?: string;
+  quantity?: number;
+  unit?: string;
+}
+
 // Workflow step for Send to Production
 interface WorkflowStep {
   current: string;
@@ -82,14 +97,162 @@ interface Attachment {
   quantity: string;
 }
 
+// Filter Dropdown Option Interface
+interface FilterOption {
+  value: string;
+  label: string;
+  description?: string;
+}
+
+// Custom Filter Dropdown Component
+const FilterDropdown = ({
+  label,
+  options,
+  value,
+  onChange,
+  searchable = true,
+  icon,
+}: {
+  label: string;
+  options: FilterOption[];
+  value: string;
+  onChange: (value: string) => void;
+  searchable?: boolean;
+  icon?: React.ReactNode;
+}) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const dropdownRef = useRef<HTMLDivElement>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+
+  // Get selected option label
+  const selectedOption = options.find(opt => opt.value === value);
+  const displayLabel = selectedOption?.label || label;
+
+  // Filter options based on search
+  const filteredOptions = options.filter(opt =>
+    opt.label.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (opt.description && opt.description.toLowerCase().includes(searchQuery.toLowerCase()))
+  );
+
+  // Handle click outside to close
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+        setSearchQuery("");
+      }
+    };
+
+    if (isOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+      setTimeout(() => searchInputRef.current?.focus(), 100);
+    }
+
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [isOpen]);
+
+  // Handle option select
+  const handleSelect = (optionValue: string) => {
+    onChange(optionValue);
+    setIsOpen(false);
+    setSearchQuery("");
+  };
+
+  // Check if filter is active (not default "all" value)
+  const isActive = value !== "all" && value !== "id-desc";
+
+  return (
+    <div className="relative" ref={dropdownRef}>
+      {/* Trigger Button */}
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className={`flex items-center gap-1.5 px-2.5 py-1.5 text-xs border rounded-md transition-all duration-200 ${
+          isActive
+            ? "border-[#2272B4] bg-blue-50 text-[#2272B4]"
+            : "border-gray-300 bg-white text-gray-600 hover:border-gray-400"
+        }`}
+      >
+        {icon && <span className="flex-shrink-0">{icon}</span>}
+        <span className="max-w-[120px] truncate">{displayLabel}</span>
+        <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`} />
+      </button>
+
+      {/* Dropdown Panel */}
+      {isOpen && (
+        <div className="absolute top-full left-0 mt-1.5 w-64 bg-white rounded-lg shadow-lg border border-gray-200 z-50 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
+          {/* Arrow pointer */}
+          <div className="absolute -top-2 left-4 w-3 h-3 bg-white border-l border-t border-gray-200 transform rotate-45" />
+
+          {/* Search Input */}
+          {searchable && (
+            <div className="p-2 border-b border-gray-100">
+              <div className="relative">
+                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
+                <input
+                  ref={searchInputRef}
+                  type="text"
+                  placeholder="Search..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full pl-8 pr-3 py-1.5 text-xs border border-gray-200 rounded-full focus:outline-none focus:ring-1 focus:ring-[#2272B4] focus:border-transparent"
+                />
+              </div>
+            </div>
+          )}
+
+          {/* Options List */}
+          <div className="max-h-56 overflow-y-auto">
+            {filteredOptions.length === 0 ? (
+              <div className="px-3 py-2 text-xs text-gray-500 text-center">No options found</div>
+            ) : (
+              filteredOptions.map((option) => (
+                <button
+                  key={option.value}
+                  onClick={() => handleSelect(option.value)}
+                  className={`w-full px-3 py-2 text-left hover:bg-gray-50 transition-colors flex items-start gap-2.5 ${
+                    value === option.value ? "bg-blue-50" : ""
+                  }`}
+                >
+                  {/* Selection indicator */}
+                  <div className={`mt-0.5 w-3.5 h-3.5 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${
+                    value === option.value
+                      ? "border-[#2272B4] bg-[#2272B4]"
+                      : "border-gray-300"
+                  }`}>
+                    {value === option.value && (
+                      <Check className="w-2 h-2 text-white" />
+                    )}
+                  </div>
+
+                  {/* Option content */}
+                  <div className="flex-1 min-w-0">
+                    <div className={`text-xs font-medium ${value === option.value ? "text-[#2272B4]" : "text-gray-900"}`}>
+                      {option.label}
+                    </div>
+                    {option.description && (
+                      <div className="text-[11px] text-gray-500 mt-0.5">{option.description}</div>
+                    )}
+                  </div>
+                </button>
+              ))
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
 const SubBatchView = () => {
   const { showToast, showConfirm } = useToast();
-  const { selectedDepartmentId, isSuperSupervisor, departments } = useDepartment();
+  const { selectedDepartmentId, isSuperSupervisor } = useDepartment();
 
   const [subBatches, setSubBatches] = useState<SubBatch[]>([]);
   const [allDepartments, setAllDepartments] = useState<Department[]>([]);
+  const [rolls, setRolls] = useState<Roll[]>([]);
+  const [batches, setBatches] = useState<Batch[]>([]);
   const [loading, setLoading] = useState(true);
-  const [sendingId, setSendingId] = useState<number | null>(null);
 
   // Modal state for send to production
   const [showSendModal, setShowSendModal] = useState(false);
@@ -110,9 +273,22 @@ const SubBatchView = () => {
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [isSaving, setIsSaving] = useState(false);
 
-  // Sorting
+  // Filter states (HubSpot-style horizontal filters)
+  const [selectedStatus, setSelectedStatus] = useState<string>("all");
+  const [selectedBatchFilter, setSelectedBatchFilter] = useState<string>("all");
+  const [selectedRollFilter, setSelectedRollFilter] = useState<string>("all");
+  const [selectedRows, setSelectedRows] = useState<Set<number>>(new Set());
+
+  // Sorting states
   const [sortColumn, setSortColumn] = useState<string>("id");
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc");
+
+  // Pagination states
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(25);
+
+  // Table search state
+  const [tableSearchQuery, setTableSearchQuery] = useState("");
 
   // Fetch departments for send-to-production dropdown
   const fetchDepartments = useCallback(async () => {
@@ -124,6 +300,32 @@ const SubBatchView = () => {
       setAllDepartments(response.data);
     } catch {
       // Error fetching departments
+    }
+  }, []);
+
+  // Fetch rolls
+  const fetchRolls = useCallback(async () => {
+    try {
+      const token = localStorage.getItem("token");
+      const response = await axios.get(`${API}/rolls`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setRolls(response.data || []);
+    } catch {
+      // Error fetching rolls
+    }
+  }, []);
+
+  // Fetch batches
+  const fetchBatches = useCallback(async () => {
+    try {
+      const token = localStorage.getItem("token");
+      const response = await axios.get(`${API}/batches`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setBatches(response.data || []);
+    } catch {
+      // Error fetching batches
     }
   }, []);
 
@@ -189,15 +391,87 @@ const SubBatchView = () => {
 
   useEffect(() => {
     fetchDepartments();
-  }, [fetchDepartments]);
+    fetchRolls();
+    fetchBatches();
+  }, [fetchDepartments, fetchRolls, fetchBatches]);
 
   useEffect(() => {
     fetchSubBatches();
   }, [fetchSubBatches]);
 
-  // Sorted sub-batches
-  const sortedSubBatches = useMemo(() => {
-    const sorted = [...subBatches].sort((a, b) => {
+  // Helper functions
+  const getRollName = (roll_id: number | null | undefined): string => {
+    if (!roll_id) return "-";
+    const roll = rolls.find((r) => r.id === roll_id);
+    return roll ? roll.name : "-";
+  };
+
+  const getBatchName = (batch_id: number | null | undefined): string => {
+    if (!batch_id) return "-";
+    const batch = batches.find((b) => b.id === batch_id);
+    return batch ? batch.name : "-";
+  };
+
+  const getRollColor = (roll_id: number | null | undefined): string | null => {
+    if (!roll_id) return null;
+    const roll = rolls.find((r) => r.id === roll_id);
+    return roll?.color || null;
+  };
+
+  // Color badge helpers
+  const getColorBg = (colorName: string): string => {
+    const colorMap: Record<string, string> = {
+      black: '#1f2937', red: '#ef4444', blue: '#3b82f6',
+      green: '#22c55e', yellow: '#fbbf24', pink: '#f472b6',
+      white: '#f3f4f6', orange: '#f97316', purple: '#a855f7',
+      brown: '#92400e', gray: '#6b7280', grey: '#6b7280',
+      navy: '#1e3a5f', maroon: '#7f1d1d', teal: '#14b8a6',
+      cyan: '#06b6d4', lime: '#84cc16', indigo: '#6366f1',
+      violet: '#8b5cf6', rose: '#f43f5e', amber: '#f59e0b',
+      emerald: '#10b981', sky: '#0ea5e9', slate: '#64748b',
+    };
+    return colorMap[colorName?.toLowerCase()] || '#e5e7eb';
+  };
+
+  const getColorText = (colorName: string): string => {
+    const darkColors = ['black', 'red', 'blue', 'green', 'purple', 'brown', 'gray', 'grey', 'navy', 'maroon', 'indigo', 'violet'];
+    return darkColors.includes(colorName?.toLowerCase()) ? '#ffffff' : '#1f2937';
+  };
+
+  // Filter, sort, and paginate sub batches using useMemo
+  const { paginatedSubBatches, totalPages, totalFiltered } = useMemo(() => {
+    // Step 1: Filter
+    let filtered = subBatches.filter(sb => {
+      // Status filter
+      if (selectedStatus !== "all" && sb.status !== selectedStatus) return false;
+      // Batch filter
+      if (selectedBatchFilter !== "all" && sb.batch_id !== Number(selectedBatchFilter)) return false;
+      // Roll filter
+      if (selectedRollFilter !== "all" && sb.roll_id !== Number(selectedRollFilter)) return false;
+
+      // Search filter
+      if (tableSearchQuery.trim()) {
+        const query = tableSearchQuery.toLowerCase();
+        const batchName = batches.find(b => b.id === sb.batch_id)?.name;
+        const rollName = rolls.find(r => r.id === sb.roll_id)?.name;
+        const searchFields = [
+          sb.name,
+          `SB${String(sb.id).padStart(3, '0')}`,
+          sb.status,
+          batchName,
+          rollName,
+        ].filter(Boolean).map(f => String(f).toLowerCase());
+
+        if (!searchFields.some(field => field.includes(query))) {
+          return false;
+        }
+      }
+
+      return true;
+    });
+
+    // Step 2: Sort
+    filtered = [...filtered].sort((a, b) => {
       let aVal: any, bVal: any;
       switch (sortColumn) {
         case "id":
@@ -205,16 +479,24 @@ const SubBatchView = () => {
           bVal = b.id;
           break;
         case "name":
-          aVal = a.name.toLowerCase();
-          bVal = b.name.toLowerCase();
+          aVal = a.name?.toLowerCase() || "";
+          bVal = b.name?.toLowerCase() || "";
           break;
         case "estimated_pieces":
-          aVal = a.estimated_pieces;
-          bVal = b.estimated_pieces;
+          aVal = a.estimated_pieces || 0;
+          bVal = b.estimated_pieces || 0;
           break;
         case "status":
           aVal = a.status || "";
           bVal = b.status || "";
+          break;
+        case "start_date":
+          aVal = a.start_date ? new Date(a.start_date).getTime() : 0;
+          bVal = b.start_date ? new Date(b.start_date).getTime() : 0;
+          break;
+        case "due_date":
+          aVal = a.due_date ? new Date(a.due_date).getTime() : 0;
+          bVal = b.due_date ? new Date(b.due_date).getTime() : 0;
           break;
         default:
           aVal = a.id;
@@ -224,10 +506,17 @@ const SubBatchView = () => {
       if (aVal > bVal) return sortDirection === "asc" ? 1 : -1;
       return 0;
     });
-    return sorted;
-  }, [subBatches, sortColumn, sortDirection]);
 
-  // Handle column header click for sorting
+    // Step 3: Paginate
+    const totalFiltered = filtered.length;
+    const totalPages = Math.ceil(totalFiltered / itemsPerPage);
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const paginated = filtered.slice(startIndex, startIndex + itemsPerPage);
+
+    return { paginatedSubBatches: paginated, totalPages, totalFiltered };
+  }, [subBatches, selectedStatus, selectedBatchFilter, selectedRollFilter, tableSearchQuery, sortColumn, sortDirection, currentPage, itemsPerPage, batches, rolls]);
+
+  // Handle sort column click
   const handleSort = (column: string) => {
     if (sortColumn === column) {
       setSortDirection(sortDirection === "asc" ? "desc" : "asc");
@@ -235,16 +524,52 @@ const SubBatchView = () => {
       setSortColumn(column);
       setSortDirection("asc");
     }
+    setCurrentPage(1);
   };
 
-  // Get sort icon
-  const getSortIcon = (column: string) => {
-    if (sortColumn !== column) return null;
-    return sortDirection === "asc" ? (
-      <ChevronUp className="w-4 h-4" />
-    ) : (
-      <ChevronDown className="w-4 h-4" />
-    );
+  // Get sort display value for dropdown
+  const getSortValue = (): string => {
+    return `${sortColumn}-${sortDirection}`;
+  };
+
+  // Handle sort dropdown change
+  const handleSortChange = (value: string) => {
+    const [col, dir] = value.split("-");
+    setSortColumn(col);
+    setSortDirection(dir as "asc" | "desc");
+    setCurrentPage(1);
+  };
+
+  // Clear all filters
+  const clearAllFilters = () => {
+    setSelectedStatus("all");
+    setSelectedBatchFilter("all");
+    setSelectedRollFilter("all");
+    setTableSearchQuery("");
+    setCurrentPage(1);
+  };
+
+  // Check if any filters are active
+  const hasActiveFilters = selectedStatus !== "all" || selectedBatchFilter !== "all" || selectedRollFilter !== "all" || tableSearchQuery.trim() !== "";
+
+  // Toggle row selection
+  const toggleRowSelection = (id: number) => {
+    const newSelected = new Set(selectedRows);
+    if (newSelected.has(id)) {
+      newSelected.delete(id);
+    } else {
+      newSelected.add(id);
+    }
+    setSelectedRows(newSelected);
+  };
+
+  // Toggle all rows (only on current page)
+  const toggleAllRows = () => {
+    if (selectedRows.size === paginatedSubBatches.length && paginatedSubBatches.every(sb => selectedRows.has(sb.id))) {
+      setSelectedRows(new Set());
+    } else {
+      setSelectedRows(new Set(paginatedSubBatches.map(sb => sb.id)));
+    }
   };
 
   // Open send to production modal
@@ -304,8 +629,6 @@ const SubBatchView = () => {
       setIsSaving(true);
       const token = localStorage.getItem("token");
 
-      // Super Supervisor can only update attachments and dates
-      // Backend expects camelCase fields
       const payload: any = {
         startDate: editFormData.startDate ? `${editFormData.startDate}T00:00:00.000Z` : null,
         dueDate: editFormData.dueDate ? `${editFormData.dueDate}T00:00:00.000Z` : null,
@@ -337,7 +660,6 @@ const SubBatchView = () => {
       return;
     }
 
-    // Validate workflow - at least one department must be selected
     const validWorkflow = departmentWorkflow.filter(step => step.current && step.departmentId);
     if (validWorkflow.length === 0) {
       showToast("warning", "Please select at least one department for the workflow");
@@ -399,46 +721,29 @@ const SubBatchView = () => {
     switch (status) {
       case "COMPLETED":
         return (
-          <span className="inline-flex items-center gap-1 px-2 py-1 bg-green-100 text-green-700 text-xs rounded-full">
-            <CheckCircle className="w-3 h-3" />
+          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
             Completed
           </span>
         );
       case "IN_PRODUCTION":
         return (
-          <span className="inline-flex items-center gap-1 px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded-full">
-            <Clock className="w-3 h-3" />
+          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
             In Production
           </span>
         );
       case "CANCELLED":
         return (
-          <span className="inline-flex items-center gap-1 px-2 py-1 bg-red-100 text-red-700 text-xs rounded-full">
-            <AlertCircle className="w-3 h-3" />
+          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
             Cancelled
           </span>
         );
       default:
         return (
-          <span className="inline-flex items-center gap-1 px-2 py-1 bg-gray-100 text-gray-700 text-xs rounded-full">
-            <Package className="w-3 h-3" />
+          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-200 text-gray-800">
             Draft
           </span>
         );
     }
-  };
-
-
-  // Get department label for display
-  const getDepartmentLabel = () => {
-    if (isSuperSupervisor) {
-      if (selectedDepartmentId === "all") {
-        return "all departments";
-      }
-      const dept = departments.find((d) => d.id === selectedDepartmentId);
-      return dept?.name || "selected department";
-    }
-    return "your department";
   };
 
   if (loading) {
@@ -454,15 +759,12 @@ const SubBatchView = () => {
   return (
     <div className="p-8 bg-gray-50 min-h-full">
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-3">
-          <Layers className="text-blue-600" size={32} />
-          <div>
-            <h1 className="text-2xl font-bold text-gray-800">Sub-Batches</h1>
-            <p className="text-sm text-gray-500">
-              View and manage sub-batches in {getDepartmentLabel()}
-            </p>
-          </div>
+      <div className="flex items-center justify-between mb-4">
+        <div>
+          <h1 className="text-xl font-semibold text-gray-900">Sub Batch View</h1>
+          <p className="text-sm text-gray-500">
+            Manage sub batches and track progress
+          </p>
         </div>
         <button
           onClick={fetchSubBatches}
@@ -473,157 +775,399 @@ const SubBatchView = () => {
         </button>
       </div>
 
-      {/* All Departments Banner for SUPER_SUPERVISOR */}
-      {isSuperSupervisor && selectedDepartmentId === "all" && (
-        <div className="mb-6 bg-purple-50 border border-purple-200 rounded-xl p-4 flex items-center gap-3">
-          <Building2 className="w-5 h-5 text-purple-600" />
-          <div>
-            <p className="text-sm font-medium text-purple-900">
-              Viewing All Departments
-            </p>
-            <p className="text-xs text-purple-700">
-              Showing {subBatches.length} sub-batches across{" "}
-              {departments.length} departments
-            </p>
-          </div>
+      {/* HubSpot-style Horizontal Filter Bar */}
+      <div className="mb-3 flex items-center gap-2 flex-wrap">
+        {/* Search Input */}
+        <div className="relative">
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
+          <input
+            type="text"
+            placeholder="Search..."
+            value={tableSearchQuery}
+            onChange={(e) => { setTableSearchQuery(e.target.value); setCurrentPage(1); }}
+            className="pl-8 pr-3 py-1.5 text-xs border border-gray-300 rounded-md w-48 focus:outline-none focus:ring-1 focus:ring-[#2272B4] focus:border-transparent"
+          />
         </div>
-      )}
 
-      {/* Sub-Batches Table */}
-      <div className="bg-white rounded-lg shadow border border-gray-200 overflow-hidden">
-        {subBatches.length === 0 ? (
-          <div className="p-12 text-center">
-            <Layers size={48} className="mx-auto mb-4 text-gray-300" />
-            <p className="text-gray-500">No sub-batches found</p>
-            <p className="text-sm text-gray-400 mt-2">
-              Sub-batches will appear here when created by admin
-            </p>
+        {/* Status Filter Dropdown */}
+        <FilterDropdown
+          label="All Status"
+          value={selectedStatus}
+          onChange={(val) => { setSelectedStatus(val); setCurrentPage(1); }}
+          options={[
+            { value: "all", label: "All Status", description: "Show all sub-batches" },
+            { value: "DRAFT", label: "Draft", description: "Not yet sent to production" },
+            { value: "IN_PRODUCTION", label: "In Production", description: "Currently in departments" },
+            { value: "COMPLETED", label: "Completed", description: "All departments finished" },
+            { value: "CANCELLED", label: "Cancelled", description: "Production was cancelled" },
+          ]}
+        />
+
+        {/* Batch Filter Dropdown */}
+        <FilterDropdown
+          label="All Batches"
+          value={selectedBatchFilter}
+          onChange={(val) => { setSelectedBatchFilter(val); setCurrentPage(1); }}
+          options={[
+            { value: "all", label: "All Batches", description: "Show sub-batches from all batches" },
+            ...batches.map(batch => ({
+              value: String(batch.id),
+              label: batch.name,
+              description: `${batch.quantity || 0} ${batch.unit || 'pcs'} • ${batch.color || 'No color'}`
+            }))
+          ]}
+        />
+
+        {/* Roll Filter Dropdown */}
+        <FilterDropdown
+          label="All Rolls"
+          value={selectedRollFilter}
+          onChange={(val) => { setSelectedRollFilter(val); setCurrentPage(1); }}
+          options={[
+            { value: "all", label: "All Rolls", description: "Show sub-batches from all rolls" },
+            ...rolls.map(roll => ({
+              value: String(roll.id),
+              label: roll.name,
+              description: roll.color || 'No color'
+            }))
+          ]}
+        />
+
+        {/* Sort Dropdown */}
+        <FilterDropdown
+          label="Newest first"
+          value={getSortValue()}
+          onChange={handleSortChange}
+          searchable={false}
+          icon={<ArrowUpDown className="w-3.5 h-3.5" />}
+          options={[
+            { value: "id-desc", label: "Newest first", description: "Most recently created" },
+            { value: "id-asc", label: "Oldest first", description: "First created sub-batches" },
+            { value: "name-asc", label: "Name A-Z", description: "Alphabetical order" },
+            { value: "name-desc", label: "Name Z-A", description: "Reverse alphabetical" },
+            { value: "status-asc", label: "Status A-Z", description: "By status alphabetically" },
+            { value: "status-desc", label: "Status Z-A", description: "Status reverse order" },
+          ]}
+        />
+
+        {/* Advanced filters button (placeholder) */}
+        <button className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs border border-gray-300 rounded-md text-gray-600 hover:border-gray-400 transition-colors">
+          <SlidersHorizontal className="w-3.5 h-3.5" />
+        </button>
+
+        {/* Clear all button (visible when filters active) */}
+        {hasActiveFilters && (
+          <button
+            onClick={clearAllFilters}
+            className="text-xs text-red-500 hover:text-red-600 font-medium transition-colors"
+          >
+            Clear all
+          </button>
+        )}
+
+        {/* Results Count */}
+        <span className="text-xs text-gray-400 ml-auto">
+          {totalFiltered} {totalFiltered === 1 ? "result" : "results"}
+        </span>
+      </div>
+
+      {/* Table Container */}
+      <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
+        {totalFiltered === 0 ? (
+          <div className="flex flex-col items-center justify-center py-12 px-4">
+            <div className="rounded-[10px] p-6 m-4 flex flex-col items-center">
+              <div className="bg-gray-100 mb-4 w-20 aspect-square rounded-full flex items-center justify-center">
+                <FileX size={48} className="text-gray-300" />
+              </div>
+              <h3 className="text-black mb-2 font-bold">No sub batches found</h3>
+              <p className="text-gray-500 font-medium">
+                {hasActiveFilters ? "Try adjusting your filters" : "Sub-batches will appear here when created by admin."}
+              </p>
+              {hasActiveFilters && (
+                <button
+                  onClick={clearAllFilters}
+                  className="mt-3 text-sm text-[#2272B4] hover:underline font-medium"
+                >
+                  Clear all filters
+                </button>
+              )}
+            </div>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-gray-100 border-b">
-                <tr>
-                  <th
-                    className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider cursor-pointer hover:bg-gray-200"
-                    onClick={() => handleSort("id")}
-                  >
-                    <div className="flex items-center gap-1">
-                      ID {getSortIcon("id")}
-                    </div>
-                  </th>
-                  <th
-                    className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider cursor-pointer hover:bg-gray-200"
-                    onClick={() => handleSort("name")}
-                  >
-                    <div className="flex items-center gap-1">
-                      Name {getSortIcon("name")}
-                    </div>
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                    Batch
-                  </th>
-                  <th
-                    className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider cursor-pointer hover:bg-gray-200"
-                    onClick={() => handleSort("estimated_pieces")}
-                  >
-                    <div className="flex items-center gap-1">
-                      Pieces {getSortIcon("estimated_pieces")}
-                    </div>
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                    Start Date
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                    Due Date
-                  </th>
-                  <th
-                    className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider cursor-pointer hover:bg-gray-200"
-                    onClick={() => handleSort("status")}
-                  >
-                    <div className="flex items-center gap-1">
-                      Status {getSortIcon("status")}
-                    </div>
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                    Actions
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-200">
-                {sortedSubBatches.map((subBatch) => (
-                  <tr key={subBatch.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      SB{String(subBatch.id).padStart(3, "0")}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                      {subBatch.name}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                      {subBatch.batch?.name || "-"}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {subBatch.estimated_pieces?.toLocaleString() || 0}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                      {formatNepaliDate(subBatch.start_date)}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                      {formatNepaliDate(subBatch.due_date)}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      {getStatusBadge(subBatch.status)}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm">
+          <>
+            <div className="overflow-x-auto">
+              <table className="min-w-max w-full">
+                <thead>
+                  <tr className="border-b border-gray-200" style={{ backgroundColor: 'rgb(247, 242, 242)' }}>
+                    <th className="px-4 py-2 text-left w-12 whitespace-nowrap border-r border-gray-200">
+                      <input
+                        type="checkbox"
+                        checked={paginatedSubBatches.length > 0 && paginatedSubBatches.every(sb => selectedRows.has(sb.id))}
+                        onChange={toggleAllRows}
+                        className="w-4 h-4 rounded border-gray-300 text-[#2272B4] focus:ring-[#2272B4]"
+                      />
+                    </th>
+                    <th
+                      className="px-4 py-2 text-left text-xs font-medium cursor-pointer hover:bg-gray-100 transition-colors whitespace-nowrap border-r border-gray-200"
+                      style={{ color: '#141414', fontWeight: 500 }}
+                      onClick={() => handleSort("id")}
+                    >
                       <div className="flex items-center gap-1">
-                        {/* View Button */}
-                        <button
-                          onClick={() => handleEdit(subBatch, true)}
-                          className="p-1.5 rounded hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors"
-                          title="View"
-                        >
-                          <Eye size={16} />
-                        </button>
-
-                        {/* Edit Button */}
-                        <button
-                          onClick={() => handleEdit(subBatch, false)}
-                          className="p-1.5 rounded hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors"
-                          title="Edit"
-                        >
-                          <Edit2 size={16} />
-                        </button>
-
-                        {/* Send to Production Button */}
-                        <button
-                          onClick={() => handleOpenSendModal(subBatch)}
-                          disabled={
-                            subBatch.status === "COMPLETED" ||
-                            subBatch.status === "IN_PRODUCTION"
-                          }
-                          className={`p-1.5 rounded transition-colors ${
-                            subBatch.status === "COMPLETED" ||
-                            subBatch.status === "IN_PRODUCTION"
-                              ? "text-gray-300 cursor-not-allowed"
-                              : "text-gray-400 hover:text-blue-600 hover:bg-blue-50"
-                          }`}
-                          title={
-                            subBatch.status === "IN_PRODUCTION"
-                              ? "Already in production"
-                              : subBatch.status === "COMPLETED"
-                              ? "Already completed"
-                              : "Send to production"
-                          }
-                        >
-                          <Send size={16} />
-                        </button>
+                        Id
+                        {sortColumn === "id" && (
+                          sortDirection === "asc" ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />
+                        )}
                       </div>
-                    </td>
+                    </th>
+                    <th
+                      className="px-4 py-2 text-left text-xs font-medium cursor-pointer hover:bg-gray-100 transition-colors whitespace-nowrap border-r border-gray-200"
+                      style={{ color: '#141414', fontWeight: 500 }}
+                      onClick={() => handleSort("name")}
+                    >
+                      <div className="flex items-center gap-1">
+                        Name
+                        {sortColumn === "name" && (
+                          sortDirection === "asc" ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />
+                        )}
+                      </div>
+                    </th>
+                    <th
+                      className="px-4 py-2 text-left text-xs font-medium cursor-pointer hover:bg-gray-100 transition-colors whitespace-nowrap border-r border-gray-200"
+                      style={{ color: '#141414', fontWeight: 500 }}
+                      onClick={() => handleSort("estimated_pieces")}
+                    >
+                      <div className="flex items-center gap-1">
+                        Pieces
+                        {sortColumn === "estimated_pieces" && (
+                          sortDirection === "asc" ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />
+                        )}
+                      </div>
+                    </th>
+                    <th className="px-4 py-2 text-left text-xs font-medium whitespace-nowrap border-r border-gray-200" style={{ color: '#141414', fontWeight: 500 }}>
+                      Color
+                    </th>
+                    <th className="px-4 py-2 text-left text-xs font-medium whitespace-nowrap border-r border-gray-200" style={{ color: '#141414', fontWeight: 500 }}>
+                      Parent Batch
+                    </th>
+                    <th className="px-4 py-2 text-left text-xs font-medium whitespace-nowrap border-r border-gray-200" style={{ color: '#141414', fontWeight: 500 }}>
+                      Parent Roll
+                    </th>
+                    <th
+                      className="px-4 py-2 text-left text-xs font-medium cursor-pointer hover:bg-gray-100 transition-colors whitespace-nowrap border-r border-gray-200"
+                      style={{ color: '#141414', fontWeight: 500 }}
+                      onClick={() => handleSort("status")}
+                    >
+                      <div className="flex items-center gap-1">
+                        Status
+                        {sortColumn === "status" && (
+                          sortDirection === "asc" ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />
+                        )}
+                      </div>
+                    </th>
+                    <th
+                      className="px-4 py-2 text-left text-xs font-medium cursor-pointer hover:bg-gray-100 transition-colors whitespace-nowrap border-r border-gray-200"
+                      style={{ color: '#141414', fontWeight: 500 }}
+                      onClick={() => handleSort("start_date")}
+                    >
+                      <div className="flex items-center gap-1">
+                        Start Date
+                        {sortColumn === "start_date" && (
+                          sortDirection === "asc" ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />
+                        )}
+                      </div>
+                    </th>
+                    <th
+                      className="px-4 py-2 text-left text-xs font-medium cursor-pointer hover:bg-gray-100 transition-colors whitespace-nowrap border-r border-gray-200"
+                      style={{ color: '#141414', fontWeight: 500 }}
+                      onClick={() => handleSort("due_date")}
+                    >
+                      <div className="flex items-center gap-1">
+                        Due Date
+                        {sortColumn === "due_date" && (
+                          sortDirection === "asc" ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />
+                        )}
+                      </div>
+                    </th>
+                    <th className="px-4 py-2 text-right text-xs font-medium whitespace-nowrap" style={{ color: '#141414', fontWeight: 500 }}>
+                      Actions
+                    </th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody className="divide-y divide-gray-200">
+                  {paginatedSubBatches.map((sb) => (
+                    <tr
+                      key={sb.id}
+                      className={`transition-colors ${selectedRows.has(sb.id) ? 'bg-blue-50' : 'hover:bg-gray-50'}`}
+                    >
+                      <td className="px-4 py-1.5 whitespace-nowrap border-r border-gray-200">
+                        <input
+                          type="checkbox"
+                          checked={selectedRows.has(sb.id)}
+                          onChange={() => toggleRowSelection(sb.id)}
+                          className="w-4 h-4 rounded border-gray-300 text-[#2272B4] focus:ring-[#2272B4]"
+                        />
+                      </td>
+                      <td className="px-4 py-1.5 text-sm text-gray-500 whitespace-nowrap border-r border-gray-200 font-light">
+                        SB{String(sb.id).padStart(3, '0')}
+                      </td>
+                      <td className="px-4 py-1.5 whitespace-nowrap border-r border-gray-200">
+                        <span
+                          className="text-sm font-medium text-[#2272B4] hover:underline cursor-pointer"
+                          onClick={() => handleEdit(sb, true)}
+                        >
+                          {sb.name}
+                        </span>
+                      </td>
+                      <td className="px-4 py-1.5 text-sm text-gray-600 whitespace-nowrap border-r border-gray-200 font-light">
+                        {sb.estimated_pieces?.toLocaleString() || 0}
+                      </td>
+                      <td className="px-4 py-1.5 text-sm whitespace-nowrap border-r border-gray-200">
+                        {(() => {
+                          const color = getRollColor(sb.roll_id);
+                          if (color) {
+                            return (
+                              <span
+                                className="px-2 py-0.5 rounded text-xs font-medium"
+                                style={{ backgroundColor: getColorBg(color), color: getColorText(color) }}
+                              >
+                                {color}
+                              </span>
+                            );
+                          }
+                          return <span className="text-gray-400 font-light">—</span>;
+                        })()}
+                      </td>
+                      <td className="px-4 py-1.5 text-sm text-gray-600 whitespace-nowrap border-r border-gray-200 font-light">
+                        {getBatchName(sb.batch_id)}
+                      </td>
+                      <td className="px-4 py-1.5 text-sm text-gray-600 whitespace-nowrap border-r border-gray-200 font-light">
+                        {getRollName(sb.roll_id)}
+                      </td>
+                      <td className="px-4 py-1.5 text-sm whitespace-nowrap border-r border-gray-200">
+                        {getStatusBadge(sb.status)}
+                      </td>
+                      <td className="px-4 py-1.5 text-sm text-gray-600 whitespace-nowrap border-r border-gray-200 font-light">
+                        {formatNepaliDate(sb.start_date)}
+                      </td>
+                      <td className="px-4 py-1.5 text-sm text-gray-600 whitespace-nowrap border-r border-gray-200 font-light">
+                        {formatNepaliDate(sb.due_date)}
+                      </td>
+                      <td className="px-4 py-1.5 text-right whitespace-nowrap">
+                        <div className="flex items-center justify-end gap-1">
+                          <button
+                            onClick={() => handleEdit(sb, true)}
+                            className="p-1.5 rounded hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors"
+                            title="View"
+                          >
+                            <Eye size={16} />
+                          </button>
+                          <button
+                            onClick={() => handleEdit(sb, false)}
+                            className="p-1.5 rounded hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors"
+                            title="Edit"
+                          >
+                            <Edit2 size={16} />
+                          </button>
+                          {/* Divider */}
+                          <div className="w-px h-4 bg-gray-300 mx-1"></div>
+                          {/* Send to Production - Prominent Green Pill Button */}
+                          <button
+                            onClick={() => handleOpenSendModal(sb)}
+                            disabled={
+                              sb.status === "COMPLETED" ||
+                              sb.status === "IN_PRODUCTION"
+                            }
+                            className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${
+                              sb.status === "COMPLETED" ||
+                              sb.status === "IN_PRODUCTION"
+                                ? "bg-gray-200 text-gray-400 cursor-not-allowed"
+                                : "bg-green-600 text-white hover:bg-green-700"
+                            }`}
+                            title={
+                              sb.status === "IN_PRODUCTION"
+                                ? "Already in production"
+                                : sb.status === "COMPLETED"
+                                ? "Already completed"
+                                : "Send to production"
+                            }
+                          >
+                            <Package size={12} />
+                            Send
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Pagination */}
+            <div className="px-4 py-3 border-t border-gray-200 flex items-center justify-between bg-white">
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-gray-700">
+                  Showing {((currentPage - 1) * itemsPerPage) + 1} to {Math.min(currentPage * itemsPerPage, totalFiltered)} of {totalFiltered}
+                </span>
+              </div>
+              <div className="flex items-center gap-4">
+                {/* Items per page selector */}
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-gray-600">per page</span>
+                  <select
+                    value={itemsPerPage}
+                    onChange={(e) => { setItemsPerPage(Number(e.target.value)); setCurrentPage(1); }}
+                    className="border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-[#2272B4]"
+                  >
+                    <option value={10}>10</option>
+                    <option value={25}>25</option>
+                    <option value={50}>50</option>
+                    <option value={100}>100</option>
+                  </select>
+                </div>
+
+                {/* Page navigation */}
+                <div className="flex items-center gap-1">
+                  <button
+                    onClick={() => setCurrentPage(1)}
+                    disabled={currentPage === 1}
+                    className="p-1.5 rounded hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed text-gray-600"
+                    title="First page"
+                  >
+                    <ChevronLeft className="w-4 h-4" />
+                    <ChevronLeft className="w-4 h-4 -ml-3" />
+                  </button>
+                  <button
+                    onClick={() => setCurrentPage(currentPage - 1)}
+                    disabled={currentPage === 1}
+                    className="p-1.5 rounded hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed text-gray-600"
+                    title="Previous page"
+                  >
+                    <ChevronLeft className="w-4 h-4" />
+                  </button>
+                  <span className="px-3 py-1 text-sm text-gray-700">
+                    Page {currentPage} of {totalPages || 1}
+                  </span>
+                  <button
+                    onClick={() => setCurrentPage(currentPage + 1)}
+                    disabled={currentPage >= totalPages}
+                    className="p-1.5 rounded hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed text-gray-600"
+                    title="Next page"
+                  >
+                    <ChevronRight className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={() => setCurrentPage(totalPages)}
+                    disabled={currentPage >= totalPages}
+                    className="p-1.5 rounded hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed text-gray-600"
+                    title="Last page"
+                  >
+                    <ChevronRight className="w-4 h-4" />
+                    <ChevronRight className="w-4 h-4 -ml-3" />
+                  </button>
+                </div>
+              </div>
+            </div>
+          </>
         )}
       </div>
 
@@ -813,14 +1357,39 @@ const SubBatchView = () => {
                   <span className="text-sm text-gray-600">{editFormData.name}</span>
                 </div>
                 <div className="flex justify-between items-center py-2 border-b border-gray-100">
-                  <span className="font-medium text-gray-900">Batch</span>
+                  <span className="font-medium text-gray-900">Parent Batch</span>
                   <span className="text-sm text-gray-600">
-                    {editingSubBatch.batch?.name || "-"}
+                    {getBatchName(editingSubBatch.batch_id)}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center py-2 border-b border-gray-100">
+                  <span className="font-medium text-gray-900">Parent Roll</span>
+                  <span className="text-sm text-gray-600">
+                    {getRollName(editingSubBatch.roll_id)}
                   </span>
                 </div>
                 <div className="flex justify-between items-center py-2 border-b border-gray-100">
                   <span className="font-medium text-gray-900">Pieces</span>
                   <span className="text-sm text-gray-600">{editFormData.estimatedPieces}</span>
+                </div>
+                <div className="flex justify-between items-center py-2 border-b border-gray-100">
+                  <span className="font-medium text-gray-900">Color</span>
+                  <span className="text-sm text-gray-600">
+                    {(() => {
+                      const color = getRollColor(editingSubBatch.roll_id);
+                      if (color) {
+                        return (
+                          <span
+                            className="px-2 py-0.5 rounded text-xs font-medium"
+                            style={{ backgroundColor: getColorBg(color), color: getColorText(color) }}
+                          >
+                            {color}
+                          </span>
+                        );
+                      }
+                      return "-";
+                    })()}
+                  </span>
                 </div>
                 <div className="flex justify-between items-center py-2 border-b border-gray-100">
                   <span className="font-medium text-gray-900">Start Date</span>
@@ -897,7 +1466,7 @@ const SubBatchView = () => {
                   </label>
                   <input
                     type="text"
-                    value={editingSubBatch.batch?.name || "-"}
+                    value={getBatchName(editingSubBatch.batch_id)}
                     disabled={true}
                     className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm bg-gray-100 cursor-not-allowed"
                   />
