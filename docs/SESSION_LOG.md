@@ -102,9 +102,11 @@
 
 ---
 
-## Current State (Updated: 2025-12-08)
+## Current State (Updated: 2026-01-08)
 
 ### What's Working
+- ✅ **Super Supervisor Worker Dropdown** - Workers now populate correctly for Super Supervisors viewing altered/rejected tasks
+- ✅ **Super Supervisor Department Selection** - "Send to Department" dropdown now shows all departments correctly
 - ✅ **BACKLOG-001 FIXED** - "Mark Sub-batch as Completed" button now only shows at LAST department
 - ✅ **Kanban Card Enhancement** - Shows Remaining, Processed, Altered (amber), Rejected (red) counts
 - ✅ **Activity History** - Shows all events including alterations/rejections with color-coded dots
@@ -155,6 +157,151 @@
 ---
 
 ## Session Entries
+
+---
+
+### Session: 2026-01-08 (Super Supervisor Bug Fixes)
+
+**Duration:** ~2 hours
+**Focus:** Fix Super Supervisor bugs - worker dropdown and department selection not working
+
+#### Goals
+1. Fix worker dropdown showing "No workers" for Super Supervisors viewing altered tasks
+2. Fix "Send to Department" dropdown showing no departments
+3. Audit all changes before production deployment
+
+#### What Was Done
+
+**1. Root Cause Analysis**
+
+Identified two related issues affecting Super Supervisors:
+
+| Issue | Root Cause | Impact |
+|-------|------------|--------|
+| Worker dropdown empty | `fetchWorkers()` relied solely on `localStorage.getItem("departmentId")` which is null for Super Supervisors | Super Supervisors couldn't assign workers to altered/rejected tasks |
+| Department dropdown empty | `fetchDepartments()` missing authentication token + filter used `localStorage` | Super Supervisors couldn't send completed tasks to next department |
+
+**2. Fixed `fetchWorkers()` - Both Modals**
+
+Updated to use `taskData` properties as primary source with `localStorage` fallback:
+
+```typescript
+// BEFORE (broken for Super Supervisors):
+const departmentId = localStorage.getItem("departmentId");
+
+// AFTER (works for all supervisor types):
+const departmentId = taskData?.sub_batch?.department_id ||
+                    taskData?.department?.id ||
+                    taskData?.department_id ||
+                    localStorage.getItem("departmentId");
+```
+
+**Files:**
+- `AlteredTaskDetailsModal.tsx` (line ~164)
+- `RejectedTaskDetailsModal.tsx` (line ~150)
+
+**3. Fixed `fetchDepartments()` - Added Authentication**
+
+Added auth token to API calls (departments endpoint may require authentication):
+
+```typescript
+// BEFORE:
+const response = await fetch(`${API_URL}/departments`);
+
+// AFTER:
+const token = localStorage.getItem('token');
+const headers: HeadersInit = { 'Content-Type': 'application/json' };
+if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+}
+const response = await fetch(`${API_URL}/departments`, { headers });
+```
+
+**Files:**
+- `AlteredTaskDetailsModal.tsx` (lines 135-154)
+- `RejectedTaskDetailsModal.tsx` (lines 122-141)
+
+**4. Fixed Department Dropdown Filter**
+
+Updated filter logic to use `taskData` instead of just `localStorage`:
+
+```typescript
+// BEFORE:
+const currentDeptId = localStorage.getItem("departmentId");
+
+// AFTER:
+const currentDeptId = taskData.department?.id ||
+                      taskData.sub_batch?.department_id ||
+                      localStorage.getItem("departmentId");
+```
+
+**Files:**
+- `AlteredTaskDetailsModal.tsx` (lines 878-886)
+- `RejectedTaskDetailsModal.tsx` (lines 768-782) - Added filter for consistency
+
+**5. Fixed TypeScript Interfaces**
+
+Added missing properties to fix type errors:
+
+```typescript
+// AlteredTaskData interface:
+department?: { id: number; name: string };  // Added 'id'
+department_id?: number;  // Added fallback property
+
+// RejectedTaskData interface:
+department?: { id: number; name: string };  // Changed from { name: string }
+department_id?: number;  // Added fallback property
+```
+
+**6. Production Audit & Deployment**
+
+| Check | Result |
+|-------|--------|
+| TypeScript compilation | ✅ No errors |
+| ESLint | ✅ No warnings |
+| Production build | ✅ Passed |
+| Logic consistency | ✅ Both modals use same pattern |
+
+**7. Git Operations**
+
+| Action | Details |
+|--------|---------|
+| Commit | `23be1fa` - "fix: Super Supervisor worker dropdown and department selection bugs" |
+| Pushed to | `origin/main` |
+| Branches updated | `dev`, `dev-v2`, `feature/v3-batch-workflow` |
+| Skipped | `backenddev`, `feature/batch-dependency-check` (unrelated histories) |
+
+#### Files Modified
+
+**Frontend:**
+| File | Changes |
+|------|---------|
+| `AlteredTaskDetailsModal.tsx` | Interface update, `fetchDepartments` auth, `fetchWorkers` fallback, dropdown filter |
+| `RejectedTaskDetailsModal.tsx` | Interface update, `fetchDepartments` auth, `fetchWorkers` fallback, dropdown filter added |
+| `SubBatchView.tsx` | Previous session changes (redesign) |
+
+#### Testing Results
+
+| Test Case | Expected | Result |
+|-----------|----------|--------|
+| Super Supervisor views altered task | Workers populate in dropdown | ✅ PASSED |
+| Super Supervisor completes altered task | Departments show in "Send to" dropdown | ✅ PASSED |
+| Regular Supervisor functionality | No regression | ✅ PASSED |
+| Production build | Compiles without errors | ✅ PASSED |
+| Live production | Working correctly | ✅ VERIFIED |
+
+#### Key Learnings
+
+1. **localStorage unreliable for Super Supervisors**: Super Supervisors can view multiple departments, so `localStorage.departmentId` may be null or stale
+2. **taskData is the source of truth**: When modal opens, `taskData` always contains correct department info from the backend
+3. **Fallback chain pattern**: `taskData.X || taskData.Y || localStorage` ensures maximum compatibility
+4. **Authentication on all API calls**: Even endpoints that seem public may require auth tokens for proper data access
+5. **Consistency across modals**: Both Altered and Rejected modals should have identical patterns for maintainability
+
+#### Next Steps
+1. Monitor production for any additional Super Supervisor issues
+2. Consider refactoring common patterns into shared utilities
+3. Add comprehensive testing for multi-role scenarios
 
 ---
 
