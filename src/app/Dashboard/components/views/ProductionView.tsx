@@ -35,6 +35,7 @@ interface SubBatch {
   batch_name: string | null;
   batch_id: number | null;
   completed_at?: string | null;
+  created_at?: string | null;
 }
 
 interface Attachment {
@@ -316,7 +317,7 @@ const ProductionView = () => {
       {/* Main Content */}
       <div className="flex-1 flex overflow-hidden pt-5 px-5 py-5 bg-gray-50">
         {/* Left Sidebar - Sub Batch Selector */}
-        <div className="w-80 bg-white flex flex-col rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+        <div className="w-80 bg-white flex flex-col rounded-xl border border-gray-200 shadow-sm">
           <div className="p-5 border-b border-gray-100 bg-white sticky top-0 z-20">
             <div className="flex items-center justify-between mb-1">
               <h3 className="text-base font-semibold text-gray-900" style={{ letterSpacing: '-0.01em' }}>Sub Batch Selector</h3>
@@ -335,26 +336,39 @@ const ProductionView = () => {
                 const isVisible = visibleSubBatches.includes(sb.id);
 
                 return (
-                  <button
-                    key={sb.id}
-                    onClick={() => toggleSubBatchVisibility(sb.id)}
-                    className={`w-full px-4 py-3 rounded-lg cursor-pointer transition-all duration-200 flex items-center justify-between group ${
-                      isVisible
-                        ? "bg-blue-600 text-white shadow-sm"
-                        : "bg-gray-50 hover:bg-gray-100 text-gray-700 border border-gray-200"
-                    }`}
-                  >
-                    <span className={`text-sm font-medium truncate ${
-                      isVisible ? "text-white" : "text-gray-900"
-                    }`}>
-                      {sb.name}
-                    </span>
-                    <ChevronRight className={`w-4 h-4 flex-shrink-0 ml-2 transition-transform duration-200 ${
-                      isVisible
-                        ? "text-white transform translate-x-0.5"
-                        : "text-gray-400 group-hover:text-gray-600"
-                    }`} />
-                  </button>
+                  <div key={sb.id} className="relative group/tooltip">
+                    <button
+                      onClick={() => toggleSubBatchVisibility(sb.id)}
+                      className={`w-full px-4 py-3 rounded-lg cursor-pointer transition-all duration-200 flex items-center justify-between ${
+                        isVisible
+                          ? "bg-blue-600 text-white shadow-sm"
+                          : "bg-gray-50 hover:bg-gray-100 text-gray-700 border border-gray-200"
+                      }`}
+                    >
+                      <span className={`text-sm font-medium truncate ${
+                        isVisible ? "text-white" : "text-gray-900"
+                      }`}>
+                        {sb.name}
+                      </span>
+                      <ChevronRight className={`w-4 h-4 flex-shrink-0 ml-2 transition-transform duration-200 ${
+                        isVisible
+                          ? "text-white transform translate-x-0.5"
+                          : "text-gray-400 group-hover/tooltip:text-gray-600"
+                      }`} />
+                    </button>
+                    {/* Hover Tooltip - Shows full name and created date */}
+                    <div className="absolute left-0 top-full mt-1 hidden group-hover/tooltip:block z-[100] pointer-events-none">
+                      <div className="bg-gray-900 text-white text-xs rounded-lg py-2.5 px-3.5 shadow-lg min-w-[200px]">
+                        <div className="font-semibold mb-1.5 text-white/95 break-words">{sb.name}</div>
+                        <div className="text-gray-300 text-[11px] space-y-0.5">
+                          <p>Created: {sb.created_at ? formatNepaliDate(sb.created_at) : formatNepaliDate(sb.start_date)}</p>
+                          <p>Batch: {sb.batch_name || '-'}</p>
+                        </div>
+                      </div>
+                      {/* Arrow pointing up */}
+                      <div className="absolute bottom-full left-4 w-0 h-0 border-l-[6px] border-r-[6px] border-b-[6px] border-transparent border-b-gray-900"></div>
+                    </div>
+                  </div>
                 );
               })}
             </div>
