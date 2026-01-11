@@ -90,12 +90,21 @@ const AuthPage: React.FC = () => {
 
   return (
     <div className="min-h-screen flex">
-      {/* Left Panel - Dark with features */}
-      <div className="hidden lg:flex lg:w-1/2 bg-[#1b3a4b] flex-col justify-center px-16 py-12">
+      {/* Left Panel - Frosted Glass iOS Style with Background Image */}
+      <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden">
+        {/* Background image */}
+        <div
+          className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+          style={{ backgroundImage: "url('/login-bg.jpg')" }}
+        ></div>
+        {/* Dark overlay for frosted glass effect */}
+        <div className="absolute inset-0 bg-black/60 backdrop-blur-[2px]"></div>
+        {/* Content */}
+        <div className="relative z-10 flex flex-col justify-center px-16 py-12 w-full">
         <div className="max-w-lg">
           {/* Main Heading */}
           <h1 className="text-[42px] font-semibold text-white leading-tight mb-4">
-            Get started with BlueShark
+            Get started with Gaamma
           </h1>
 
           {/* Subtitle */}
@@ -134,6 +143,7 @@ const AuthPage: React.FC = () => {
             </div>
           </div>
         </div>
+        </div>
       </div>
 
       {/* Right Panel - Light with form */}
@@ -141,12 +151,7 @@ const AuthPage: React.FC = () => {
         <div className="w-full max-w-[400px] px-8">
           {/* Logo */}
           <div className="flex justify-center mb-8">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-700 rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold text-xl">B</span>
-              </div>
-              <span className="text-2xl font-semibold text-gray-800">BlueShark</span>
-            </div>
+            <span className="text-3xl font-bold text-[#E94B4B]">Gaamma</span>
           </div>
 
           {/* Form Card */}
@@ -203,7 +208,7 @@ const AuthPage: React.FC = () => {
                 <button
                   type="submit"
                   disabled={loading}
-                  className="w-full bg-[#1a73e8] text-white py-3 px-4 rounded-md hover:bg-[#1557b0] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors font-medium text-[15px] disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2 mt-6"
+                  className="w-full bg-black text-white py-3 px-4 rounded-md hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition-colors font-medium text-[15px] disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2 mt-6"
                 >
                   {loading ? (
                     <>
