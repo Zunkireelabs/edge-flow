@@ -1506,6 +1506,9 @@ const BatchView = () => {
                     <th className="px-4 py-2 text-left text-xs font-medium cursor-pointer hover:bg-gray-100 whitespace-nowrap border-r border-gray-200" style={{ color: '#141414', fontWeight: 500 }} onClick={() => handleSort("name")}>
                       <div className="flex items-center gap-1">Name {sortColumn === "name" && (sortDirection === "asc" ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)}</div>
                     </th>
+                    <th className="px-4 py-2 text-left text-xs font-medium cursor-pointer hover:bg-gray-100 whitespace-nowrap border-r border-gray-200" style={{ color: '#141414', fontWeight: 500 }} onClick={() => handleSort("order_name")}>
+                      <div className="flex items-center gap-1">Order Name {sortColumn === "order_name" && (sortDirection === "asc" ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)}</div>
+                    </th>
                     <th className="px-4 py-2 text-left text-xs font-medium cursor-pointer hover:bg-gray-100 whitespace-nowrap border-r border-gray-200" style={{ color: '#141414', fontWeight: 500 }} onClick={() => handleSort("quantity")}>
                       <div className="flex items-center gap-1">Quantity {sortColumn === "quantity" && (sortDirection === "asc" ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)}</div>
                     </th>
@@ -1533,6 +1536,7 @@ const BatchView = () => {
                         {formatNepaliDate(batch.created_at)}
                       </td>
                       <td className="px-4 py-1.5 whitespace-nowrap border-r border-gray-200"><span className="text-sm font-medium text-[#2272B4] hover:underline cursor-pointer" onClick={() => handlePreview(batch)}>{batch.name}</span></td>
+                      <td className="px-4 py-1.5 text-sm text-gray-600 font-light whitespace-nowrap border-r border-gray-200">{batch.order_name || <span className="text-gray-400">-</span>}</td>
                       <td className="px-4 py-1.5 text-sm text-gray-600 font-light whitespace-nowrap border-r border-gray-200">{batch.quantity}</td>
                       <td className="px-4 py-1.5 text-sm text-gray-600 font-light whitespace-nowrap border-r border-gray-200">{batch.unit}</td>
                       <td className="px-4 py-1.5 text-sm whitespace-nowrap border-r border-gray-200">

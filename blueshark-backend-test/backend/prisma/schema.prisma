@@ -45,6 +45,7 @@ model batches {
   color        String
   vendor_id    Int?
   total_pieces Int?          // Expected total pieces for this batch (for size breakdown)
+  created_at   DateTime      @default(now()) // Date when batch was created
   roll         rolls?        @relation(fields: [roll_id], references: [id])
   vendor       vendors?      @relation(fields: [vendor_id], references: [id])
   sub_batches  sub_batches[]
@@ -53,6 +54,7 @@ model batches {
 
   @@index([roll_id])
   @@index([vendor_id])
+  @@index([created_at])
 }
 
 // NEW: Junction table for multi-roll batches
@@ -98,6 +100,7 @@ model sub_batches {
   name             String
   status           SubBatchStatus           @default(DRAFT)
   completed_at     DateTime?
+  created_at       DateTime                 @default(now()) // Date when sub-batch was created
   dept_links       department_sub_batches[]
   altered          sub_batch_altered[]
   attachments      sub_batch_attachments[]
@@ -114,6 +117,7 @@ model sub_batches {
   @@index([department_id])
   @@index([status])
   @@index([start_date])
+  @@index([created_at])
 }
 
 model sub_batch_size_details {
