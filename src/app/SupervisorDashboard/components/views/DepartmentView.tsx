@@ -137,30 +137,36 @@ const STAGES = [
     key: 'newArrival',
     title: 'New Arrivals',
     icon: AlertCircle,
-    color: 'bg-gray-50',
-    headerColor: 'text-gray-900 font-semibold',
-    badgeColor: 'bg-blue-100 text-blue-700',
+    color: 'bg-gray-100',
+    headerColor: 'text-gray-800 font-semibold',
+    badgeColor: 'bg-gray-100 text-gray-600 border border-gray-200',
     iconColor: 'text-blue-600',
+    iconBg: 'bg-blue-100',
+    dotColor: 'bg-gray-400',
     count: 0
   },
   {
     key: 'inProgress',
     title: 'In Progress',
     icon: Clock,
-    color: 'bg-gray-50',
-    headerColor: 'text-gray-900 font-semibold',
-    badgeColor: 'bg-yellow-100 text-yellow-700',
-    iconColor: 'text-yellow-600',
+    color: 'bg-gray-100',
+    headerColor: 'text-gray-800 font-semibold',
+    badgeColor: 'bg-gray-100 text-gray-600 border border-gray-200',
+    iconColor: 'text-amber-600',
+    iconBg: 'bg-amber-100',
+    dotColor: 'bg-blue-500',
     count: 0
   },
   {
     key: 'completed',
     title: 'Completed',
     icon: CheckCircle,
-    color: 'bg-gray-50',
-    headerColor: 'text-gray-900 font-semibold',
-    badgeColor: 'bg-green-100 text-green-700',
+    color: 'bg-gray-100',
+    headerColor: 'text-gray-800 font-semibold',
+    badgeColor: 'bg-gray-100 text-gray-600 border border-gray-200',
     iconColor: 'text-green-600',
+    iconBg: 'bg-green-100',
+    dotColor: 'bg-green-500',
     count: 0
   }
 ];
@@ -484,6 +490,11 @@ const SupervisorKanban = () => {
     completed: sortItems(kanbanData.completed || [])
   }), [kanbanData, sortItems]);
 
+  // Calculate total task count - must be before conditional returns
+  const totalTaskCount = useMemo(() => {
+    return (kanbanData.newArrival?.length || 0) + (kanbanData.inProgress?.length || 0) + (kanbanData.completed?.length || 0);
+  }, [kanbanData]);
+
   if (loading && kanbanData.newArrival.length === 0 && kanbanData.inProgress.length === 0 && kanbanData.completed.length === 0) {
     // Initial loading - show full page loader
     return (
@@ -537,88 +548,101 @@ const SupervisorKanban = () => {
   }
 
   return (
-    <div className="p-8 bg-gray-50 min-h-full relative">
+    <div className="min-h-full bg-gray-50 relative">
       {/* Overlay loader for refreshing data */}
       {loading && (
         <div className="absolute inset-0 bg-white/80 backdrop-blur-sm z-50 flex items-center justify-center">
           <Loader loading={true} message="Refreshing data..."/>
         </div>
       )}
-      {/* Header */}
-      <div className="flex items-center justify-between mb-8">
-        <div>
-          <h2 className="text-3xl font-bold text-gray-900">Department View</h2>
-          <p className="text-gray-600 mt-2">Manage tasks across departments</p>
+
+      {/* Header - Admin Style */}
+      <div className="bg-white border-b border-gray-200">
+        <div className="px-6 py-4">
+          <h1 className="text-2xl font-semibold text-gray-900">Department View</h1>
+          <p className="text-sm text-gray-500 mt-1">Manage tasks across departments</p>
         </div>
-        <div className="flex items-center gap-3 relative sort-menu-container">
+      </div>
+
+      {/* Filter Bar - Admin Style */}
+      <div className="bg-white border-b border-gray-200 px-6 py-3">
+        <div className="flex items-center justify-end gap-3 relative sort-menu-container">
           <button
             onClick={() => setShowSortMenu(!showSortMenu)}
-            className="text-sm text-gray-600 flex items-center gap-1 hover:text-gray-900"
+            className="flex items-center gap-1.5 px-3 py-1.5 text-sm border border-gray-300 rounded-lg hover:border-gray-400 bg-white text-gray-600 transition-colors"
           >
-            <span>⬆⬇</span> Sort by
+            <span>↑↓</span> Sort by
+            <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${showSortMenu ? 'rotate-180' : ''}`} />
           </button>
 
           {/* Sort Dropdown Menu */}
           {showSortMenu && (
-            <div className="absolute top-8 right-0 bg-white border border-gray-200 rounded-lg shadow-lg z-10 min-w-[160px]">
+            <div className="absolute top-full right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-10 min-w-[160px]">
               <button
                 onClick={() => handleSortChange('name')}
-                className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-100 rounded-t-lg ${
-                  sortBy === 'name' ? 'bg-gray-50 font-semibold' : ''
+                className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-50 rounded-t-lg transition-colors ${
+                  sortBy === 'name' ? 'bg-blue-50 text-[#2272B4] font-medium' : 'text-gray-700'
                 }`}
               >
                 Name
               </button>
               <button
                 onClick={() => handleSortChange('startDate')}
-                className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-100 ${
-                  sortBy === 'startDate' ? 'bg-gray-50 font-semibold' : ''
+                className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-50 transition-colors ${
+                  sortBy === 'startDate' ? 'bg-blue-50 text-[#2272B4] font-medium' : 'text-gray-700'
                 }`}
               >
                 Start Date
               </button>
               <button
                 onClick={() => handleSortChange('dueDate')}
-                className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-100 rounded-b-lg ${
-                  sortBy === 'dueDate' ? 'bg-gray-50 font-semibold' : ''
+                className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-50 rounded-b-lg transition-colors ${
+                  sortBy === 'dueDate' ? 'bg-blue-50 text-[#2272B4] font-medium' : 'text-gray-700'
                 }`}
               >
                 Due Date
               </button>
             </div>
           )}
+
+          {/* Task count */}
+          <span className="text-sm text-gray-500">{totalTaskCount} tasks</span>
         </div>
       </div>
 
       {/* Kanban Board */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {updatedStages.map((stage) => {
-          const items = sortedKanbanData[stage.key as keyof KanbanData] || [];
-          const Icon = stage.icon;
+      <div className="p-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+          {updatedStages.map((stage) => {
+            const items = sortedKanbanData[stage.key as keyof KanbanData] || [];
+            const Icon = stage.icon;
 
-          return (
-            <div key={stage.key} className="bg-white rounded-xl border border-gray-200 shadow-sm flex flex-col h-full">
-              {/* Stage Header */}
-              <div className="p-4 border-b border-gray-200">
-                <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center gap-2">
-                    <Icon className={`w-5 h-5 ${stage.iconColor}`} />
-                    <h3 className={`${stage.headerColor} text-base`}>{stage.title}</h3>
+            return (
+              <div key={stage.key} className={`${stage.color} rounded-xl overflow-hidden flex flex-col h-full`}>
+                {/* Column Header - Admin Style */}
+                <div className="px-4 py-3 bg-white border border-gray-200 rounded-lg mx-3 mt-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <div className={`w-2.5 h-2.5 rounded-full ${stage.dotColor}`}></div>
+                      <div className={`p-1.5 rounded-lg ${stage.iconBg}`}>
+                        <Icon className={`w-4 h-4 ${stage.iconColor}`} />
+                      </div>
+                      <h3 className={`${stage.headerColor} text-sm`}>{stage.title}</h3>
+                    </div>
+                    <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${stage.badgeColor}`}>
+                      {stage.count}
+                    </span>
                   </div>
-                  <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${stage.badgeColor}`}>
-                    {stage.count}
-                  </span>
                 </div>
-              </div>
 
-              {/* Items */}
-              <div className="p-4 space-y-3 flex-1 overflow-y-auto">
-                {items.length === 0 ? (
-                  <div className="text-center py-12 text-gray-400">
-                    <Package size={40} className="mx-auto mb-3 opacity-30" />
-                    <p className="text-sm font-medium">No items in this stage</p>
-                  </div>
-                ) : (
+                {/* Items */}
+                <div className="p-3 space-y-2 flex-1 overflow-y-auto min-h-[400px] max-h-[600px]">
+                  {items.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-12 text-gray-400">
+                      <Package size={32} className="mb-2 opacity-50" />
+                      <p className="text-sm">No tasks</p>
+                    </div>
+                  ) : (
                   items.map((item) => {
                     // Determine if item is rejected or altered based on remarks
                     const isRejected = item.remarks?.toLowerCase().includes('reject') ?? false;
@@ -631,13 +655,27 @@ const SupervisorKanban = () => {
                     const isReworkCard = item.alteration_source !== null && item.alteration_source !== undefined;
                     const reworkQuantity = item.alteration_source?.quantity ?? 0;
 
+                    // Get left border color based on stage and remarks
+                    const getLeftBorderColor = () => {
+                      if (isReworkCard) return 'border-l-amber-400';
+                      if (isRejected) return 'border-l-red-400';
+                      if (isAlteredByRemarks) return 'border-l-yellow-400';
+                      if (stage.key === 'inProgress') return 'border-l-blue-400';
+                      if (stage.key === 'completed') return 'border-l-green-400';
+                      return 'border-l-gray-300';
+                    };
+
                     return (
                       <div
                         key={item.id}
-                        className={`relative rounded-lg p-4 border hover:shadow-md transition-shadow cursor-pointer ${
+                        className={`relative rounded-lg p-4 border-l-4 border border-gray-200 hover:shadow-md transition-all duration-200 cursor-pointer ${getLeftBorderColor()} ${
                           // Rework cards maintain amber styling even after assignment
                           isReworkCard && isAssigned
-                            ? 'border-amber-500 bg-amber-50'
+                            ? 'bg-amber-50'
+                            : stage.key === 'inProgress' && !isRejected && !isAlteredByRemarks
+                            ? 'bg-blue-50'
+                            : stage.key === 'completed' && !isRejected && !isAlteredByRemarks && !isReworkCard
+                            ? 'bg-green-50'
                             : getCardStyle(item.remarks)
                         }`}
                         onClick={() => handleItemClick(item)}
@@ -749,18 +787,20 @@ const SupervisorKanban = () => {
 
                         {/* Batch Info */}
                         {item.sub_batch.batch && (
-                          <div className="text-xs text-gray-500">
-                            Batch: {item.sub_batch.batch.name}
+                          <div className="flex items-center gap-2 text-xs text-gray-500 mt-2">
+                            <Package size={12} className="text-gray-400" />
+                            <span>Batch: {item.sub_batch.batch.name}</span>
                           </div>
                         )}
                       </div>
                     );
                   })
                 )}
+                </div>
               </div>
-            </div>
-          );
-        })}
+            );
+          })}
+        </div>
       </div>
 
       {/* Task Details Modal - Conditional rendering based on altered/rejected status */}

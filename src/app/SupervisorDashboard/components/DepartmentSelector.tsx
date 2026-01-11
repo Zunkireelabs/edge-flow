@@ -9,12 +9,7 @@ const DepartmentSelector = () => {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  // Don't render if not a super supervisor
-  if (!isSuperSupervisor) {
-    return null;
-  }
-
-  // Close dropdown when clicking outside
+  // Close dropdown when clicking outside - must be before any early returns
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
@@ -26,6 +21,11 @@ const DepartmentSelector = () => {
     }
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [isOpen]);
+
+  // Don't render if not a super supervisor
+  if (!isSuperSupervisor) {
+    return null;
+  }
 
   const selectedDepartment = selectedDepartmentId === "all"
     ? null
