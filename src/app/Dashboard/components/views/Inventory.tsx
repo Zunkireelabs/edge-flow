@@ -29,6 +29,7 @@ import {
 import Loader from "@/app/Components/Loader";
 import NepaliDatePicker from "@/app/Components/NepaliDatePicker";
 import { useToast } from "@/app/Components/ToastContext";
+import { formatUnitShort } from "@/app/utils/formatUtils";
 
 // ============== INTERFACES ==============
 interface InventoryCategory {
@@ -1029,7 +1030,7 @@ const Inventory = () => {
                       </div>
                     </td>
                     <td className="px-4 py-1.5 text-sm text-gray-600 whitespace-nowrap border-r border-gray-200 font-light">
-                      {item.quantity} {item.unit}
+                      {item.quantity} {formatUnitShort(item.unit)}
                       {item.min_quantity && item.min_quantity > 0 && (
                         <span className="text-xs text-gray-400 ml-1">(min: {item.min_quantity})</span>
                       )}
@@ -1809,7 +1810,7 @@ const Inventory = () => {
                       </div>
                       <div className="flex items-center gap-2 text-sm text-gray-500">
                         <span>
-                          {item.quantity} {item.unit}
+                          {item.quantity} {formatUnitShort(item.unit)}
                         </span>
                         {item.category && (
                           <>

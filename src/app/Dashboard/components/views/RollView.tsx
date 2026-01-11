@@ -23,6 +23,7 @@ import {
 import Loader from "@/app/Components/Loader";
 import { useToast } from "@/app/Components/ToastContext";
 import { formatNepaliDate } from "@/app/utils/dateUtils";
+import { formatUnitShort } from "@/app/utils/formatUtils";
 
 // Helper function to get background color from color name
 const getColorBg = (colorName: string): string => {
@@ -986,7 +987,7 @@ const RollView = () => {
                           );
                         })()}
                       </td>
-                      <td className="px-4 py-1.5 text-sm text-gray-600 font-light whitespace-nowrap border-r border-gray-200">{roll.unit}</td>
+                      <td className="px-4 py-1.5 text-sm text-gray-600 font-light whitespace-nowrap border-r border-gray-200">{formatUnitShort(roll.unit)}</td>
                       <td className="px-4 py-1.5 text-sm text-gray-600 font-light whitespace-nowrap border-r border-gray-200">{roll.roll_unit_count || <span className="text-gray-400">-</span>}</td>
                       <td className="px-4 py-1.5 text-sm whitespace-nowrap border-r border-gray-200">
                         {(() => {

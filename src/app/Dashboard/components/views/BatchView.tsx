@@ -6,6 +6,7 @@ import { Plus, X, Edit2, Trash2, Package, Eye, ChevronDown, ChevronUp, SlidersHo
 import Loader from "@/app/Components/Loader";
 import { useToast } from "@/app/Components/ToastContext";
 import { formatNepaliDate } from "@/app/utils/dateUtils";
+import { formatUnitShort } from "@/app/utils/formatUtils";
 
 // Helper function to get background color from color name
 const getColorBg = (colorName: string): string => {
@@ -1538,7 +1539,7 @@ const BatchView = () => {
                       <td className="px-4 py-1.5 whitespace-nowrap border-r border-gray-200"><span className="text-sm font-medium text-[#2272B4] hover:underline cursor-pointer" onClick={() => handlePreview(batch)}>{batch.name}</span></td>
                       <td className="px-4 py-1.5 text-sm text-gray-600 font-light whitespace-nowrap border-r border-gray-200">{batch.order_name || <span className="text-gray-400">-</span>}</td>
                       <td className="px-4 py-1.5 text-sm text-gray-600 font-light whitespace-nowrap border-r border-gray-200">{batch.quantity}</td>
-                      <td className="px-4 py-1.5 text-sm text-gray-600 font-light whitespace-nowrap border-r border-gray-200">{batch.unit}</td>
+                      <td className="px-4 py-1.5 text-sm text-gray-600 font-light whitespace-nowrap border-r border-gray-200">{formatUnitShort(batch.unit)}</td>
                       <td className="px-4 py-1.5 text-sm whitespace-nowrap border-r border-gray-200">
                         {(() => {
                           const colors = getBatchColors(batch);
