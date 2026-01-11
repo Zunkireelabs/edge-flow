@@ -4,7 +4,7 @@
 
 import React, { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import axios from "axios";
-import { Plus, Edit2, Trash2, X, FileX, Layers, Package, Volleyball, PackageMinus, ClockAlert, Clock, MoreVertical, Eye, ChevronDown, ChevronUp, SlidersHorizontal, ChevronLeft, ChevronRight, ArrowUpDown, Search, Check } from "lucide-react";
+import { Plus, Edit2, Trash2, X, FileX, Layers, Package, Volleyball, PackageMinus, ClockAlert, Clock, MoreVertical, Eye, ChevronDown, ChevronUp, SlidersHorizontal, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, ArrowUpDown, Search, Check } from "lucide-react";
 import Loader from "@/app/Components/Loader";
 import NepaliDatePicker from "@/app/Components/NepaliDatePicker";
 import { useToast } from "@/app/Components/ToastContext";
@@ -1668,8 +1668,7 @@ const SubBatchView = () => {
                     className="p-1.5 rounded hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed text-gray-600"
                     title="First page"
                   >
-                    <ChevronLeft className="w-4 h-4" />
-                    <ChevronLeft className="w-4 h-4 -ml-3" />
+                    <ChevronsLeft className="w-4 h-4" />
                   </button>
                   <button
                     onClick={() => setCurrentPage(currentPage - 1)}
@@ -1696,8 +1695,7 @@ const SubBatchView = () => {
                     className="p-1.5 rounded hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed text-gray-600"
                     title="Last page"
                   >
-                    <ChevronRight className="w-4 h-4" />
-                    <ChevronRight className="w-4 h-4 -ml-3" />
+                    <ChevronsRight className="w-4 h-4" />
                   </button>
                 </div>
               </div>

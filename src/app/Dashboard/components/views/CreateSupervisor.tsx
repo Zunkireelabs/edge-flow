@@ -2,7 +2,7 @@
 "use client";
 
 import React, { useState, useEffect, useMemo, useRef } from "react";
-import { Plus, X, Trash2, Edit2, Users, ChevronDown, ChevronUp, SlidersHorizontal, ChevronLeft, ChevronRight, ArrowUpDown, Search, Check } from "lucide-react";
+import { Plus, X, Trash2, Edit2, Users, ChevronDown, ChevronUp, SlidersHorizontal, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, ArrowUpDown, Search, Check } from "lucide-react";
 import Loader from "@/app/Components/Loader";
 import { useToast } from "@/app/Components/ToastContext";
 
@@ -677,8 +677,7 @@ const CreateSupervisor = () => {
                     disabled={currentPage === 1}
                     className="p-1.5 rounded hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed text-gray-600"
                   >
-                    <ChevronLeft className="w-4 h-4" />
-                    <ChevronLeft className="w-4 h-4 -ml-3" />
+                    <ChevronsLeft className="w-4 h-4" />
                   </button>
                   <button
                     onClick={() => setCurrentPage(currentPage - 1)}
@@ -702,8 +701,7 @@ const CreateSupervisor = () => {
                     disabled={currentPage >= totalPages}
                     className="p-1.5 rounded hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed text-gray-600"
                   >
-                    <ChevronRight className="w-4 h-4" />
-                    <ChevronRight className="w-4 h-4 -ml-3" />
+                    <ChevronsRight className="w-4 h-4" />
                   </button>
                 </div>
               </div>
