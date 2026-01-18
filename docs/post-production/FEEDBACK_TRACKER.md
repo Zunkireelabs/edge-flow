@@ -97,14 +97,14 @@ Client wants to clear all existing data to start fresh with production.
 - Clear: inventory, workers, rolls, batches, sub-batches, departments, vendors, supervisors
 
 **Resolution:**
-- [x] Created backup snapshot at docs/backups/2026-01-18-pre-reset-backup.json (79 records, 27KB)
+- [x] Created backup snapshot at docs/backups/2026-01-18-production-backup.json (352 records, 116KB)
 - [x] Cleared all data via Prisma script (backup-and-reset.ts)
 - [x] Verified admin login works (admin@gmail.com preserved)
-- [ ] Client notified
+- [x] Client verified - production site cleared
 
 **Notes:**
 Script created at `blueshark-backend-test/backend/scripts/backup-and-reset.ts`
-Backup contains: 1 User, 1 Supervisor, 2 departments, 4 vendors, 4 rolls, 3 batches, 2 sub_batches, 2 workers, etc.
+Production backup contains: 1 User, 1 Supervisor, 5 departments, 5 vendors, 12 rolls, 8 batches, 10 sub_batches, 19 workers, 60 worker_logs, etc.
 
 ---
 
