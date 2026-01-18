@@ -81,6 +81,33 @@
 
 <!-- Add new feedback items here using the template above -->
 
+### FB-004: Clear all data for fresh start
+**Date:** 2026-01-18
+**Reported By:** Khum
+**Type:** Feature Request
+**Priority:** High
+**Status:** Deployed
+
+**Description:**
+Client wants to clear all existing data to start fresh with production.
+
+**Requirements:**
+- Create backup snapshot before clearing
+- Keep admin@gmail.com / admin login credentials
+- Clear: inventory, workers, rolls, batches, sub-batches, departments, vendors, supervisors
+
+**Resolution:**
+- [x] Created backup snapshot at docs/backups/2026-01-18-pre-reset-backup.json (79 records, 27KB)
+- [x] Cleared all data via Prisma script (backup-and-reset.ts)
+- [x] Verified admin login works (admin@gmail.com preserved)
+- [ ] Client notified
+
+**Notes:**
+Script created at `blueshark-backend-test/backend/scripts/backup-and-reset.ts`
+Backup contains: 1 User, 1 Supervisor, 2 departments, 4 vendors, 4 rolls, 3 batches, 2 sub_batches, 2 workers, etc.
+
+---
+
 ### FB-003: Inventory modal not scrollable on tablet devices
 **Date:** 2025-12-09
 **Reported By:** Khum
@@ -197,6 +224,7 @@ Fix: Created `.env.production` with all 40+ environment variables pointing to pr
 
 | ID | Title | Type | Priority | Status | Date |
 |----|-------|------|----------|--------|------|
+| FB-004 | Clear all data for fresh start | Feature Request | High | Deployed | 2026-01-18 |
 | FB-003 | Modal not scrollable on tablet | UI/UX | Medium | Investigating | 2025-12-09 |
 | FB-002 | Failed to fetch inventory | Bug | High | Fixed | 2025-12-08 |
 | FB-001 | Failed to fetch data | Bug | Critical | Deployed | 2025-12-08 |
@@ -234,4 +262,4 @@ Fix: Created `.env.production` with all 40+ environment variables pointing to pr
 
 ---
 
-**Last Updated:** 2025-12-09
+**Last Updated:** 2026-01-18
